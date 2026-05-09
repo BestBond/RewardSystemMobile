@@ -1,0 +1,12 @@
+{
+    "mcpServers": {
+      "react-native": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-react-native"],
+        "env": {
+          "PROJECT_ROOT": ".",
+          "PLATFORM": "android"
+        }
+      }
+    }
+  }

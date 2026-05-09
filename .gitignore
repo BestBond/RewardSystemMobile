@@ -1,0 +1,85 @@
+##############################
+# React Native / JavaScript
+##############################
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Metro / React Native caches
+.metro-health-check*
+.metro-cache/
+.react-native/
+*.pack
+
+# Watchman
+.watchmanconfig
+
+# dotenv / secrets
+.env
+.env.*
+!.env.example
+
+##############################
+# iOS
+##############################
+ios/Pods/
+ios/build/
+ios/DerivedData/
+*.xcworkspace
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/
+*.xcodeproj/*.pbxuser
+*.xcodeproj/*.mode1v3
+*.xcodeproj/*.mode2v3
+*.xcodeproj/*.perspectivev3
+
+# CocoaPods
+Podfile.lock
+
+##############################
+# Android
+##############################
+android/.gradle/
+android/**/build/
+android/**/.cxx/
+android/**/.externalNativeBuild/
+android/local.properties
+*.apk
+*.aab
+
+##############################
+# Builds / distributions
+##############################
+dist/
+build/
+
+##############################
+# Coverage
+##############################
+coverage/
+*.lcov
+
+##############################
+# macOS
+##############################
+.DS_Store
+
+##############################
+# IDEs / editors
+##############################
+.idea/
+.vscode/
+*.iml
+
+##############################
+# Misc
+##############################
+*.log
+.eslintcache
+

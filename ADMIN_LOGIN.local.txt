@@ -1,0 +1,8 @@
+Admin mobile login (local development — not committed to git)
+
+Phone number: 9000000000
+PIN: 111111
+
+Backend: restart the API after pulling changes. In non-production, the server
+seeds this user (+91) with PIN 111111 and SUPERADMIN. Override with env
+DEV_ADMIN_PHONE / DEV_ADMIN_PIN if needed.
