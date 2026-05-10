@@ -1,4 +1,4 @@
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
@@ -19,6 +19,7 @@ import {
   type PendingOperationalAdmin,
 } from '../../api/adminOperationalAdminApprovals';
 import { isApiError, userFacingApiMessage } from '../../api/client';
+import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 
 type Nav = NativeStackNavigationProp<AdminUsersStackParamList, 'AdminOpsApprovals'>;
 
@@ -75,11 +76,9 @@ export function AdminOpsApprovalsScreen() {
     [hasMore, items.length, loading, loadingMore],
   );
 
-  useFocusEffect(
-    useCallback(() => {
-      load('reset').catch(() => {});
-    }, [load]),
-  );
+  useRefreshOnFocusAndForeground(() => {
+    load('reset').catch(() => {});
+  });
 
   const rows = useMemo(
     () =>

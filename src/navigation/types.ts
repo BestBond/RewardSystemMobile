@@ -25,6 +25,8 @@ export type ProfileStackParamList = {
   CustomerSupport: undefined;
   GiftDeliveryStatus: undefined;
   DeliveryStatus: { redemptionId: string };
+  TermsPrivacyHub: undefined;
+  LegalDocument: { document: 'terms' | 'privacy' };
 };
 
 export type MainTabParamList = {
@@ -45,6 +47,7 @@ export type AdminUsersStackParamList = {
 export type AdminApprovalsStackParamList = {
   AdminApprovalsList: undefined;
   AdminApprovalDetail: { requestId: string };
+  AdminRecordDealerRedemption: undefined;
 };
 
 export type AdminProfileStackParamList = {
@@ -128,5 +131,4 @@ export type AdminTabScreenProps<T extends keyof AdminTabParamList> =
     BottomTabScreenProps<AdminTabParamList, T>,
     NativeStackScreenProps<RootStackParamList>
   >;
-
 

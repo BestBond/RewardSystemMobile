@@ -20,8 +20,6 @@ import { getAuthMe, getMyProfile, updateMyProfile } from '../api/users';
 import { isProfileComplete } from '../auth/profileCompletion';
 import { pickHomeRoute } from '../auth/roleRouting';
 
-type Trade = 'contractor' | 'painter';
-
 export function ProfileSetupScreen({
   navigation,
   route,
@@ -30,10 +28,11 @@ export function ProfileSetupScreen({
   const edit = route.params?.edit === true;
   const [fullName, setFullName] = useState('');
   const [address, setAddress] = useState('');
-  const [isDealer, setIsDealer] = useState(false);
-  const [trade, setTrade] = useState<Trade>('painter');
+  /** Profession is chosen at signup; profile edit only updates name/address. */
+  const [professionToKeep, setProfessionToKeep] =
+    useState<string>('Contractor/Painter');
 
-  const bg = isDealer ? colors.white : colors.offWhite;
+  const bg = colors.offWhite;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,18 +66,14 @@ export function ProfileSetupScreen({
   };
 
   useEffect(() => {
-    if (!edit) return;
     getMyProfile()
       .then(p => {
-        setFullName(p.fullName?.trim() ?? '');
-        setAddress(p.deliveryAddress?.trim() ?? '');
-        const pro = p.profession?.trim();
-        if (!pro) {
-          setIsDealer(true);
-        } else {
-          setIsDealer(false);
-          setTrade(pro.toLowerCase().includes('contractor') ? 'contractor' : 'painter');
+        if (edit) {
+          setFullName(p.fullName?.trim() ?? '');
+          setAddress(p.deliveryAddress?.trim() ?? '');
         }
+        const pro = p.profession?.trim();
+        if (pro) setProfessionToKeep(pro);
       })
       .catch(() => {});
   }, [edit]);
@@ -115,7 +110,7 @@ export function ProfileSetupScreen({
     try {
       const updated = await updateMyProfile({
         fullName: fullName || undefined,
-        profession: isDealer ? undefined : trade === 'contractor' ? 'Contractor' : 'Painter',
+        profession: professionToKeep,
         deliveryAddress: address || undefined,
       });
       if (!isProfileComplete(updated)) {
@@ -176,40 +171,6 @@ export function ProfileSetupScreen({
             onChangeText={setFullName}
           />
 
-          <Pressable
-            style={styles.checkRow}
-            onPress={() => setIsDealer(d => !d)}>
-            <View
-              style={[styles.checkbox, isDealer && styles.checkboxOn]}>
-              {isDealer ? <Text style={styles.checkMark}>✓</Text> : null}
-            </View>
-            <Text style={styles.checkLabel}>Select this if you are a dealer</Text>
-          </Pressable>
-
-          {!isDealer ? (
-            <>
-              <View style={styles.labelGap}>
-                <AppFieldLabel text="YOUR PRIMARY TRADE" />
-              </View>
-              <View style={styles.tradeRow}>
-                <TradeCard
-                  title="Contractor"
-                  subtitle="General building & management"
-                  icon="📐"
-                  selected={trade === 'contractor'}
-                  onPress={() => setTrade('contractor')}
-                />
-                <TradeCard
-                  title="Painter"
-                  subtitle="Finishing & aesthetic work"
-                  icon="🖌️"
-                  selected={trade === 'painter'}
-                  onPress={() => setTrade('painter')}
-                />
-              </View>
-            </>
-          ) : null}
-
           <View style={styles.labelGap}>
             <AppFieldLabel text="DELIVERY ADDRESS" />
           </View>
@@ -234,39 +195,6 @@ export function ProfileSetupScreen({
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
-  );
-}
-
-function TradeCard({
-  title,
-  subtitle,
-  icon,
-  selected,
-  onPress,
-}: {
-  title: string;
-  subtitle: string;
-  icon: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.card,
-        selected && styles.cardSelected,
-        pressed && styles.cardPressed,
-      ]}
-      onPress={onPress}>
-      {selected ? (
-        <View style={styles.cardBadge}>
-          <Text style={styles.cardBadgeText}>✓</Text>
-        </View>
-      ) : null}
-      <Text style={styles.cardIcon}>{icon}</Text>
-      <Text style={styles.cardTitle}>{title}</Text>
-      <Text style={styles.cardSub}>{subtitle}</Text>
-    </Pressable>
   );
 }
 
@@ -309,87 +237,6 @@ const styles = StyleSheet.create({
   },
   inputPill: {
     marginBottom: 0,
-  },
-  checkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 5,
-    borderWidth: 1.5,
-    borderColor: colors.borderGray,
-    marginRight: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.white,
-  },
-  checkboxOn: {
-    backgroundColor: colors.primaryOrange,
-    borderColor: colors.primaryOrange,
-  },
-  checkMark: {
-    color: colors.white,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  checkLabel: {
-    fontSize: 15,
-    color: colors.mutedGray,
-    flex: 1,
-  },
-  tradeRow: {
-    flexDirection: 'row',
-  },
-  card: {
-    flex: 1,
-    marginHorizontal: 6,
-    borderWidth: 1,
-    borderColor: colors.borderGray,
-    borderRadius: 16,
-    padding: 14,
-    paddingTop: 20,
-    backgroundColor: colors.white,
-    minHeight: 148,
-  },
-  cardSelected: {
-    borderColor: colors.primaryOrange,
-    borderWidth: 2,
-    backgroundColor: 'rgba(255, 122, 26, 0.08)',
-  },
-  cardPressed: { opacity: 0.92 },
-  cardBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: colors.primaryOrange,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cardBadgeText: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  cardIcon: {
-    fontSize: 28,
-    marginBottom: 10,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.navy,
-  },
-  cardSub: {
-    fontSize: 12,
-    color: colors.mutedGray,
-    marginTop: 6,
-    lineHeight: 17,
   },
   inputArea: {
     borderWidth: 1,

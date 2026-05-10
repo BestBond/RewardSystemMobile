@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 import { AdminApprovalsListScreen } from '../screens/admin/AdminApprovalsListScreen';
 import { AdminApprovalDetailScreen } from '../screens/admin/AdminApprovalDetailScreen';
+import { AdminRecordDealerRedemptionScreen } from '../screens/admin/AdminRecordDealerRedemptionScreen';
 import type { AdminApprovalsStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<AdminApprovalsStackParamList>();
@@ -22,6 +23,10 @@ export function AdminApprovalsStack() {
       <Stack.Screen
         name="AdminApprovalDetail"
         component={AdminApprovalDetailScreen}
+      />
+      <Stack.Screen
+        name="AdminRecordDealerRedemption"
+        component={AdminRecordDealerRedemptionScreen}
       />
     </Stack.Navigator>
   );

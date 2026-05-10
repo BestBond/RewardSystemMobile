@@ -2,6 +2,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
+import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 import {
   ActivityIndicator,
   Pressable,
@@ -43,6 +44,7 @@ export function RewardCheckoutScreen() {
   const [error, setError] = useState<string | null>(null);
   const [reward, setReward] = useState<RewardDto | null>(null);
   const [balance, setBalance] = useState(0);
+  const [isDealer, setIsDealer] = useState(false);
   const [deliveryLabel, setDeliveryLabel] = useState('Delivery');
   const [deliveryLine, setDeliveryLine] = useState('');
 
@@ -55,6 +57,11 @@ export function RewardCheckoutScreen() {
       ]);
       setReward(r);
       setBalance(profile.loyaltyPoints ?? 0);
+      setIsDealer(
+        (profile.roles ?? []).some(
+          role => String(role).toUpperCase() === 'DEALER',
+        ),
+      );
       const split = splitDeliveryAddress(profile.deliveryAddress);
       setDeliveryLabel(split.label);
       setDeliveryLine(split.line);
@@ -65,10 +72,10 @@ export function RewardCheckoutScreen() {
     }
   }, [rewardId]);
 
-  React.useEffect(() => {
+  useRefreshOnFocusAndForeground(() => {
     setLoading(true);
     load().catch(() => {});
-  }, [load]);
+  });
 
   const pts = reward?.pointsCost ?? 0;
   const canAfford = balance >= pts;
@@ -79,8 +86,8 @@ export function RewardCheckoutScreen() {
     setError(null);
     try {
       const res = await redeemReward(reward.id, {
-        deliveryLabel,
-        deliveryAddress: deliveryLine || null,
+        deliveryLabel: isDealer ? 'In-store pickup' : deliveryLabel,
+        deliveryAddress: isDealer ? null : deliveryLine || null,
       });
       navigation.replace('RewardSuccess', {
         trackingId: res.trackingId,
@@ -161,24 +168,43 @@ export function RewardCheckoutScreen() {
               </View>
             </View>
 
-            <Text style={styles.sectionLabel}>DELIVERY DETAILS</Text>
+            <Text style={styles.sectionLabel}>
+              {isDealer ? 'STORE REDEMPTION' : 'DELIVERY DETAILS'}
+            </Text>
             <View style={styles.deliveryCard}>
               <View style={styles.pinCircle}>
                 <MapPin width={20} height={20} />
               </View>
               <View style={styles.deliveryText}>
-                <Text style={styles.placeName}>{deliveryLabel}</Text>
-                <Text style={styles.address}>{deliveryLine}</Text>
+                {isDealer ? (
+                  <>
+                    <Text style={styles.placeName}>Visit nearest store</Text>
+                    <Text style={styles.address}>
+                      Dealer reward redemptions are reviewed by operations. Once
+                      approved, collect your reward at your nearest authorized Best
+                      Bond store. No delivery to your profile address applies.
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.placeName}>{deliveryLabel}</Text>
+                    <Text style={styles.address}>{deliveryLine}</Text>
+                  </>
+                )}
               </View>
-              <Pressable
-                hitSlop={8}
-                onPress={() =>
-                  navigation
-                    .getParent()
-                    ?.navigate('Profile', { screen: 'UserProfile' })
-                }>
-                <Text style={styles.edit}>Edit</Text>
-              </Pressable>
+              {!isDealer ? (
+                <Pressable
+                  hitSlop={8}
+                  onPress={() =>
+                    navigation
+                      .getParent()
+                      ?.navigate('Profile', { screen: 'UserProfile' })
+                  }>
+                  <Text style={styles.edit}>Edit</Text>
+                </Pressable>
+              ) : (
+                <View style={styles.editSpacer} />
+              )}
             </View>
 
             <View style={styles.summaryCard}>
@@ -187,8 +213,12 @@ export function RewardCheckoutScreen() {
                 <Text style={styles.summaryRight}>{pts.toLocaleString()} pts</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLeft}>Shipping Fee</Text>
-                <Text style={[styles.summaryRight, styles.free]}>FREE</Text>
+                <Text style={styles.summaryLeft}>
+                  {isDealer ? 'Pickup / approval' : 'Shipping Fee'}
+                </Text>
+                <Text style={[styles.summaryRight, styles.free]}>
+                  {isDealer ? 'In-store' : 'FREE'}
+                </Text>
               </View>
               <View style={styles.summaryDivider} />
               <View style={styles.summaryRow}>
@@ -220,7 +250,9 @@ export function RewardCheckoutScreen() {
                 <ActivityIndicator color={colors.white} />
               ) : (
                 <>
-                  <Text style={styles.confirmText}>Confirm Redemption</Text>
+                  <Text style={styles.confirmText}>
+                    {isDealer ? 'Confirm Redemption' : 'Submit redemption request'}
+                  </Text>
                   <BasketSmall width={22} height={22} />
                 </>
               )}
@@ -368,6 +400,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.primaryOrange,
   },
+  editSpacer: { width: 36 },
   summaryCard: {
     marginTop: 16,
     backgroundColor: colors.white,

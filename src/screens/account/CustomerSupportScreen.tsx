@@ -22,7 +22,8 @@ import {
 import { AppButton } from '../../components/ui';
 import { getSupportInfo } from '../../api/support';
 import type { ProfileStackParamList } from '../../navigation/types';
-import { SUPPORT } from './accountFigmaData';
+import { openWhatsAppChat } from '../../utils/whatsappLink';
+import { resolveSupportFromApi, SUPPORT } from './accountFigmaData';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'CustomerSupport'>;
 
@@ -45,9 +46,10 @@ export function CustomerSupportScreen() {
     getSupportInfo()
       .then(s => {
         if (cancelled) return;
-        if (s.phone != null) setPhone(s.phone);
-        if (s.email != null) setEmail(s.email);
-        if (s.whatsapp != null) setWhatsapp(s.whatsapp);
+        const r = resolveSupportFromApi(s);
+        setPhone(r.phone);
+        setEmail(r.email);
+        setWhatsapp(r.whatsapp);
       })
       .catch(() => {})
       .finally(() => {
@@ -65,9 +67,7 @@ export function CustomerSupportScreen() {
   };
 
   const onWhatsApp = () => {
-    const w = whatsapp?.replace(/\D/g, '') ?? '';
-    if (!w) return;
-    Linking.openURL(`https://wa.me/${w}`).catch(() => {});
+    void openWhatsAppChat(whatsapp ?? '');
   };
 
   return (

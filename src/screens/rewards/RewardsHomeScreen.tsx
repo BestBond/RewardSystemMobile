@@ -2,7 +2,7 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -30,6 +30,7 @@ import { colors } from '../../theme/colors';
 import { figma } from '../../theme/figmaTokens';
 import { RewardImageBlock } from './RewardImageBlock';
 import { balanceCaption } from './rewardPointsUtils';
+import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 
 type Nav = CompositeNavigationProp<
   NativeStackNavigationProp<RewardsStackParamList, 'RewardsHome'>,
@@ -44,19 +45,37 @@ export function RewardsHomeScreen() {
   const [filter, setFilter] = useState<PointFilterId>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [rewardsError, setRewardsError] = useState<string | null>(null);
   const [balance, setBalance] = useState(0);
   const [slabs, setSlabs] = useState<number[]>([]);
   const [allRewards, setAllRewards] = useState<RewardDto[]>([]);
+  const [isDealer, setIsDealer] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
+    setRewardsError(null);
     try {
-      const [profile, rewards, slabValues] = await Promise.all([
-        getMyProfile(),
+      const profile = await getMyProfile();
+      const pts = Number(profile.loyaltyPoints ?? 0);
+      setBalance(Number.isFinite(pts) ? pts : 0);
+      setIsDealer(
+        (profile.roles ?? []).some(
+          r => String(r).toUpperCase() === 'DEALER',
+        ),
+      );
+    } catch (e) {
+      setError(
+        (e as Error)?.message ?? 'Could not load your profile. Pull to retry.',
+      );
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const [rewards, slabValues] = await Promise.all([
         listRewards(),
         getWorkerRedemptionSlabs(),
       ]);
-      setBalance(profile.loyaltyPoints ?? 0);
       setSlabs(
         [...new Set((slabValues ?? []).filter((x) => Number.isFinite(x) && x > 0))].sort(
           (a, b) => a - b,
@@ -64,16 +83,20 @@ export function RewardsHomeScreen() {
       );
       setAllRewards(rewards);
     } catch (e) {
-      setError((e as Error)?.message ?? 'Could not load rewards');
+      setRewardsError(
+        (e as Error)?.message ?? 'Could not load rewards. Pull to retry.',
+      );
+      setAllRewards([]);
+      setSlabs([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
+  useRefreshOnFocusAndForeground(() => {
     setLoading(true);
     load().catch(() => {});
-  }, [load]);
+  });
 
   const caption = useMemo(
     () => balanceCaption(balance, allRewards),
@@ -147,6 +170,28 @@ export function RewardsHomeScreen() {
             { paddingBottom: 100 + insets.bottom },
           ]}
           showsVerticalScrollIndicator={false}>
+          {rewardsError ? (
+            <View style={styles.rewardsErrBanner}>
+              <Text style={styles.rewardsErrText}>{rewardsError}</Text>
+              <Pressable
+                onPress={() => load().catch(() => {})}
+                accessibilityRole="button"
+                accessibilityLabel="Retry loading rewards">
+                <Text style={styles.retryText}>Retry</Text>
+              </Pressable>
+            </View>
+          ) : null}
+          {isDealer ? (
+            <View style={styles.dealerBanner}>
+              <Text style={styles.dealerBannerTitle}>Dealer account</Text>
+              <Text style={styles.dealerBannerBody}>
+                Submit redemptions in the app; operations will approve them. After
+                approval, collect your reward at your nearest authorized Best Bond
+                store.
+              </Text>
+            </View>
+          ) : null}
+
           <View style={styles.balanceCard}>
             <View style={styles.balanceGradient} pointerEvents="none" />
             <Text style={styles.yourBalance}>YOUR BALANCE</Text>
@@ -304,6 +349,19 @@ const styles = StyleSheet.create({
   errText: { color: colors.mutedGray, textAlign: 'center' },
   retry: { marginTop: 12 },
   retryText: { color: colors.primaryOrange, fontWeight: '700' },
+  rewardsErrBanner: {
+    marginBottom: 12,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: '#FFF4ED',
+    borderWidth: 1,
+    borderColor: 'rgba(242, 101, 34, 0.25)',
+  },
+  rewardsErrText: {
+    color: colors.navyAlt,
+    fontSize: 14,
+    marginBottom: 8,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -410,6 +468,25 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: colors.primaryOrange,
+  },
+  dealerBanner: {
+    backgroundColor: '#FFF4E8',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(242, 101, 34, 0.25)',
+  },
+  dealerBannerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.navyAlt,
+  },
+  dealerBannerBody: {
+    marginTop: 6,
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.mutedGray,
   },
   filterRow: {
     gap: 10,

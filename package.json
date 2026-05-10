@@ -7,7 +7,9 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "generate:app-icons": "node scripts/generate-app-icons.mjs",
+    "sync:app-icons": "node scripts/sync-app-icons.mjs"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -17,7 +19,9 @@
     "@react-navigation/native-stack": "^7.14.10",
     "react": "19.2.3",
     "react-native": "0.85.0",
+    "react-native-blob-util": "^0.21.3",
     "react-native-fs": "^2.20.0",
+    "react-native-qrcode-svg": "^6.3.21",
     "react-native-safe-area-context": "^5.5.2",
     "react-native-screens": "^4.24.0",
     "react-native-svg": "^15.15.4",
@@ -44,6 +48,7 @@
     "prettier": "2.8.8",
     "react-native-svg-transformer": "^1.5.3",
     "react-test-renderer": "19.2.3",
+    "sharp": "^0.34.5",
     "typescript": "^5.8.3"
   },
   "engines": {

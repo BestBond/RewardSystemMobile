@@ -7,6 +7,7 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -36,6 +37,9 @@ export function AdminLoginScreen({
   const [sendingOtp, setSendingOtp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [password, setPassword] = useState('');
+  /** Controls password UI; backend still enforces password for real Super Admin accounts. */
+  const [loginKind, setLoginKind] = useState<'ops' | 'super'>('ops');
 
   useEffect(() => {
     if (!otpSent) return;
@@ -62,6 +66,7 @@ export function AdminLoginScreen({
       setOtpSent(true);
       setSecondsLeft(RESEND_SECONDS);
       setOtp('');
+      setPassword('');
       if (r.devCode) setOtp(String(r.devCode));
     } catch (e) {
       if (isApiError(e)) setError(userFacingApiMessage(e.message));
@@ -85,6 +90,13 @@ export function AdminLoginScreen({
       setError('Enter a valid 6-digit OTP.');
       return;
     }
+    if (loginKind === 'super') {
+      const pw = password.trim();
+      if (pw.length < 8) {
+        setError('Super Admin: enter your account password (min 8 characters).');
+        return;
+      }
+    }
     setLoading(true);
     setError(null);
     try {
@@ -92,6 +104,7 @@ export function AdminLoginScreen({
         phone: digits,
         countryCode: COUNTRY_CODE,
         code: otp,
+        password: loginKind === 'super' ? password.trim() : undefined,
       });
       await setAccessToken(r.accessToken);
 
@@ -114,7 +127,19 @@ export function AdminLoginScreen({
           navigation.reset({ index: 0, routes: [{ name: 'PendingApproval' }] });
           return;
         }
-        setError(userFacingApiMessage(e.message));
+        const raw = e.message;
+        // This number is Super Admin but user chose Ops — show password field
+        if (
+          loginKind === 'ops' &&
+          /password is required for super admin/i.test(raw)
+        ) {
+          setLoginKind('super');
+          setError(
+            'This mobile number is a Super Admin account. Enter your password below.',
+          );
+          return;
+        }
+        setError(userFacingApiMessage(raw));
       } else {
         setError('Unable to log in. Please try again.');
       }
@@ -132,7 +157,49 @@ export function AdminLoginScreen({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           <Text style={styles.title}>Management Login</Text>
-          <Text style={styles.sub}>Super Admin and Ops Admin sign in with OTP.</Text>
+          <Text style={styles.sub}>
+            {loginKind === 'super'
+              ? 'Super Admin: enter OTP and your account password (8+ characters).'
+              : 'Ops Admin: enter OTP only — no account password.'}
+          </Text>
+
+          <View style={styles.kindRow}>
+            <Pressable
+              style={[
+                styles.kindChip,
+                loginKind === 'ops' && styles.kindChipOn,
+              ]}
+              onPress={() => {
+                setLoginKind('ops');
+                setPassword('');
+                if (error) setError(null);
+              }}>
+              <Text
+                style={[
+                  styles.kindChipText,
+                  loginKind === 'ops' && styles.kindChipTextOn,
+                ]}>
+                Ops Admin
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.kindChip,
+                loginKind === 'super' && styles.kindChipOn,
+              ]}
+              onPress={() => {
+                setLoginKind('super');
+                if (error) setError(null);
+              }}>
+              <Text
+                style={[
+                  styles.kindChipText,
+                  loginKind === 'super' && styles.kindChipTextOn,
+                ]}>
+                Super Admin
+              </Text>
+            </Pressable>
+          </View>
 
           <AppFieldLabel text="MOBILE NUMBER" />
           <AppPhoneInput
@@ -161,6 +228,28 @@ export function AdminLoginScreen({
           </View>
 
           <SixDigitInput value={otp} onChange={setOtp} />
+
+          {otpSent && loginKind === 'super' ? (
+            <View style={styles.pwBlock}>
+              <AppFieldLabel text="ACCOUNT PASSWORD" />
+              <Text style={styles.pwHint}>The password you set for this Super Admin account.</Text>
+              <TextInput
+                style={styles.pwInput}
+                value={password}
+                onChangeText={(t) => {
+                  setPassword(t);
+                  if (error) setError(null);
+                }}
+                placeholder="Min 8 characters"
+                placeholderTextColor={colors.mutedGray}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="password"
+              />
+            </View>
+          ) : null}
+
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <AppButton text={loading ? 'Logging in...' : 'Log In'} onPress={onLogin} disabled={loading} style={styles.cta} />
@@ -189,7 +278,33 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { paddingHorizontal: 24, paddingTop: 40 },
   title: { fontSize: 28, fontWeight: '900', color: figma.textTitle, marginBottom: 10 },
-  sub: { fontSize: 14, color: colors.mutedGray, lineHeight: 20, marginBottom: 24 },
+  sub: { fontSize: 14, color: colors.mutedGray, lineHeight: 20, marginBottom: 16 },
+  kindRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 20,
+  },
+  kindChip: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+  },
+  kindChipOn: {
+    borderColor: colors.primaryOrange,
+    backgroundColor: '#FFF7F0',
+  },
+  kindChipText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.mutedGray,
+  },
+  kindChipTextOn: {
+    color: colors.primaryOrange,
+  },
   otpHeader: {
     marginTop: 18,
     flexDirection: 'row',
@@ -199,6 +314,18 @@ const styles = StyleSheet.create({
   },
   otpMuted: { fontSize: 12, color: colors.mutedGray, marginBottom: 2 },
   otpAction: { fontSize: 12, color: colors.primaryOrange, fontWeight: '700', marginBottom: 2 },
+  pwBlock: { marginTop: 20 },
+  pwHint: { fontSize: 12, color: colors.mutedGray, marginTop: -4, marginBottom: 10 },
+  pwInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: figma.textTitle,
+    backgroundColor: colors.white,
+  },
   cta: { marginTop: 34 },
   error: { marginTop: 10, fontSize: 13, color: '#D14343', textAlign: 'center' },
   row: { marginTop: 14, flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },

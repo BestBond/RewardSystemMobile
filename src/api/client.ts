@@ -81,6 +81,15 @@ export function userFacingApiMessage(text: string): string {
       'This API does not expose the admin dashboard (404). Another process on port 3000 may be an old build — stop it, then from reward-system-backend run: npm run build && npm run start:prod'
     );
   }
+  if (/mobile number is already registered|already registered.*log in/i.test(t)) {
+    return 'This mobile number is already registered. Use Log in with OTP instead.';
+  }
+  if (/password is required for super admin/i.test(t)) {
+    return 'Choose Super Admin at the top, then enter your account password (8+ characters).';
+  }
+  if (/^invalid password\.?$/i.test(t.trim())) {
+    return 'Incorrect password. Try again.';
+  }
   return t;
 }
 
@@ -211,6 +220,7 @@ export async function apiGet<T>(path: string): Promise<T> {
     res = await fetchWithLocalFallback(`${API_BASE_URL}${path}`, {
       method: 'GET',
       headers: await buildHeaders(),
+      cache: 'no-store',
     });
   } catch (e) {
     const detail = String((e as Error)?.message ?? e);

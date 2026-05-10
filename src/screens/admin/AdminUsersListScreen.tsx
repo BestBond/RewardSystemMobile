@@ -1,4 +1,4 @@
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
@@ -16,10 +16,11 @@ import type { AdminUsersStackParamList } from '../../navigation/types';
 import { adminUi } from '../../theme/adminUi';
 import { listAdminUsers, type AdminUserListItem } from '../../api/adminUsers';
 import { isApiError, userFacingApiMessage } from '../../api/client';
+import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 
 type Nav = NativeStackNavigationProp<AdminUsersStackParamList, 'AdminUsersList'>;
 
-const FILTERS = ['All', 'Contractor', 'Painter', 'Dealer'] as const;
+const FILTERS = ['All', 'Contractor/Painter', 'Dealer'] as const;
 
 function formatInt(n: number): string {
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(
@@ -126,11 +127,9 @@ export function AdminUsersListScreen() {
     [hasMore, items.length, loading, loadingMore, professionParam, q],
   );
 
-  useFocusEffect(
-    useCallback(() => {
-      load('reset').catch(() => {});
-    }, [load]),
-  );
+  useRefreshOnFocusAndForeground(() => {
+    load('reset').catch(() => {});
+  });
 
   const rows = useMemo(() => {
     const palette = ['#E0E7FF', '#DCFCE7', '#FFE4E6', '#E0F2FE', '#FEF3C7'];

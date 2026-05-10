@@ -29,6 +29,7 @@ import {
   activitySubtitle,
   formatPointsDelta,
 } from '../../utils/activityFormat';
+import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'TransactionHistory'>;
 
@@ -128,6 +129,10 @@ export function TransactionHistoryScreen() {
       setLoading(false);
     }
   }, [mapTx, period]);
+
+  useRefreshOnFocusAndForeground(() => {
+    loadInitial().catch(() => {});
+  });
 
   useEffect(() => {
     loadInitial().catch(() => {});

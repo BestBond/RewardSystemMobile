@@ -19,9 +19,13 @@ import {
   updateAdminPreferences,
 } from '../../api/adminPreferences';
 import { isApiError, userFacingApiMessage } from '../../api/client';
+import { getAuthMe } from '../../api/users';
+import { isSuperAdmin } from './adminRole';
 
 export function AdminSecurityScreen() {
   const insets = useSafeAreaInsets();
+  const [roleLoading, setRoleLoading] = useState(true);
+  const [showSecurityUi, setShowSecurityUi] = useState(false);
   const [quickPin, setQuickPin] = useState(true);
   const [cur, setCur] = useState('');
   const [nw, setNw] = useState('');
@@ -33,6 +37,28 @@ export function AdminSecurityScreen() {
 
   React.useEffect(() => {
     let cancelled = false;
+    getAuthMe()
+      .then(r => {
+        const user = r.user ?? null;
+        if (!cancelled) {
+          setShowSecurityUi(isSuperAdmin(user));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setShowSecurityUi(false);
+      })
+      .finally(() => {
+        if (!cancelled) setRoleLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (!showSecurityUi || roleLoading) return;
+    let cancelled = false;
+    setLoadingPrefs(true);
     getAdminPreferences()
       .then(prefs => {
         if (!cancelled) {
@@ -46,7 +72,7 @@ export function AdminSecurityScreen() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [showSecurityUi, roleLoading]);
 
   const onUpdatePassword = async () => {
     setError(null);
@@ -81,6 +107,42 @@ export function AdminSecurityScreen() {
       setSaving(false);
     }
   };
+
+  if (roleLoading) {
+    return (
+      <View style={styles.root}>
+        <StatusBar barStyle="dark-content" />
+        <AdminHeader title="Security & Preferences" />
+        <View style={styles.loadingBox}>
+          <ActivityIndicator color={adminUi.accentOrange} size="large" />
+        </View>
+      </View>
+    );
+  }
+
+  if (!showSecurityUi) {
+    return (
+      <View style={styles.root}>
+        <StatusBar barStyle="dark-content" />
+        <AdminHeader title="Security & Preferences" />
+        <ScrollView
+          contentContainerStyle={[
+            styles.scroll,
+            { paddingBottom: 32 + insets.bottom },
+          ]}
+          showsVerticalScrollIndicator={false}>
+          <View style={[styles.card, adminUi.shadowCard]}>
+            <Text style={styles.h1}>Sign-in</Text>
+            <Text style={styles.desc}>
+              Operational Admin accounts sign in with a one-time code (OTP) sent
+              to your mobile number. There is no account password or quick PIN to
+              manage here.
+            </Text>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>
@@ -188,6 +250,7 @@ export function AdminSecurityScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: adminUi.screenBg },
+  loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scroll: { paddingHorizontal: 20, paddingTop: 4 },
   card: {
     backgroundColor: '#F8F9FA',

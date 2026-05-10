@@ -1,4 +1,4 @@
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
 import {
@@ -18,6 +18,7 @@ import {
   IconGiftOrange,
   IconHeadsetOrange,
   IconReceiptDocOrange,
+  IconTermsAlertOrange,
   LogOutDoor,
   MapPinOrange,
 } from '../../assets/svgs';
@@ -30,6 +31,7 @@ import { colors } from '../../theme/colors';
 import { figma } from '../../theme/figmaTokens';
 import { MENU_SUBTITLES } from './accountFigmaData';
 import packageJson from '../../../package.json';
+import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 
 const APP_VERSION = packageJson.version;
 
@@ -54,6 +56,9 @@ export function UserProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<MyProfile | null>(null);
 
+  const isDealerUser = (p: MyProfile | null) =>
+    (p?.roles ?? []).some(role => String(role).toUpperCase() === 'DEALER');
+
   const load = useCallback(async () => {
     try {
       const [p, me] = await Promise.all([
@@ -71,12 +76,10 @@ export function UserProfileScreen() {
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      setLoading(true);
-      load().catch(() => {});
-    }, [load]),
-  );
+  useRefreshOnFocusAndForeground(() => {
+    setLoading(true);
+    load().catch(() => {});
+  });
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -155,8 +158,16 @@ export function UserProfileScreen() {
             onPress={() => navigation.navigate('GiftDeliveryStatus')}>
             <IconGiftOrange width={24} height={24} />
             <View style={styles.menuTextCol}>
-              <Text style={styles.menuTitle}>Gift Delivery Status</Text>
-              <Text style={styles.menuSub}>{MENU_SUBTITLES.gift}</Text>
+              <Text style={styles.menuTitle}>
+                {isDealerUser(profile)
+                  ? 'In-store reward status'
+                  : 'Gift delivery status'}
+              </Text>
+              <Text style={styles.menuSub}>
+                {isDealerUser(profile)
+                  ? MENU_SUBTITLES.giftDealer
+                  : MENU_SUBTITLES.gift}
+              </Text>
             </View>
             <ChevronRight strokeColor="#64748B" />
           </Pressable>
@@ -184,6 +195,17 @@ export function UserProfileScreen() {
           </Pressable>
 
           <Pressable
+            style={({ pressed }) => [styles.menuCard, pressed && styles.pressed]}
+            onPress={() => navigation.navigate('TermsPrivacyHub')}>
+            <IconTermsAlertOrange width={24} height={24} />
+            <View style={styles.menuTextCol}>
+              <Text style={styles.menuTitle}>Terms & Privacy Policies</Text>
+              <Text style={styles.menuSub}>{MENU_SUBTITLES.legal}</Text>
+            </View>
+            <ChevronRight strokeColor="#64748B" />
+          </Pressable>
+
+          <Pressable
             style={({ pressed }) => [styles.logoutBtn, pressed && styles.pressed]}
             onPress={async () => {
               await clearAuthSession();
@@ -194,6 +216,10 @@ export function UserProfileScreen() {
           </Pressable>
 
           <Text style={styles.version}>APP VERSION {APP_VERSION}</Text>
+          <Text style={styles.developer}>
+            Developed by{' '}
+            <Text style={styles.developerAccent}>Nuvate</Text>
+          </Text>
         </ScrollView>
       )}
     </View>
@@ -369,6 +395,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.5,
     color: '#B0B4BC',
+  },
+  developer: {
+    marginTop: 8,
+    textAlign: 'center',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    color: '#B0B4BC',
+  },
+  developerAccent: {
+    color: colors.primaryOrange,
+    fontWeight: '700',
   },
   pressed: { opacity: 0.92 },
 });

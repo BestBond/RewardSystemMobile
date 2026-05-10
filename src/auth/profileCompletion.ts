@@ -9,6 +9,8 @@ export function isProfileComplete(p: MyProfile): boolean {
     return p.profileComplete;
   }
   return (
-    Boolean(p.fullName?.trim()) && Boolean(p.deliveryAddress?.trim())
+    Boolean(p.fullName?.trim()) &&
+    Boolean(p.deliveryAddress?.trim()) &&
+    Boolean(p.profession?.trim())
   );
 }

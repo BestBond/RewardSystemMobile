@@ -1,4 +1,4 @@
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
 import {
@@ -15,33 +15,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackArrowLeft, IconGiftOrange } from '../../assets/svgs';
 import { AppChip } from '../../components/ui';
 import { listMyRedemptions } from '../../api/rewards';
+import { getMyProfile } from '../../api/users';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { colors } from '../../theme/colors';
+import {
+  consumerRedemptionStatusPresentation,
+  redemptionIsDealerPickup,
+} from '../../utils/redemptionUi';
 import { MENU_SUBTITLES } from './accountFigmaData';
+import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'GiftDeliveryStatus'>;
 
 const bg = '#F5F6F8';
 const text = '#1A1C1E';
 const muted = '#707070';
-
-function statusLabel(raw: string): string {
-  return raw
-    .split('_')
-    .map(w => w.charAt(0) + w.slice(1).toLowerCase())
-    .join(' ');
-}
-
-function chipVariantFromStatus(status: string): 'success' | 'danger' | 'muted' {
-  const normalized = status.toLowerCase();
-  if (normalized.includes('delivered') || normalized.includes('shipped')) {
-    return 'success';
-  }
-  if (normalized.includes('cancel')) {
-    return 'danger';
-  }
-  return 'muted';
-}
 
 export function GiftDeliveryStatusScreen() {
   const insets = useSafeAreaInsets();
@@ -54,21 +42,37 @@ export function GiftDeliveryStatusScreen() {
       title: string;
       sub: string;
       status: string;
+      chip: 'success' | 'danger' | 'muted';
     }[]
   >([]);
+  const [dealerAccount, setDealerAccount] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
     setLoading(true);
     try {
-      const list = await listMyRedemptions();
+      const [list, profile] = await Promise.all([
+        listMyRedemptions(),
+        getMyProfile().catch(() => null),
+      ]);
+      const isDealerUser = (profile?.roles ?? []).some(
+        role => String(role).toUpperCase() === 'DEALER',
+      );
+      setDealerAccount(isDealerUser);
       setItems(
-        list.map(r => ({
-          id: r.id,
-          title: r.reward.title ?? 'Reward',
-          sub: `Tracking ID #${r.trackingId} · ${r.etaText ?? 'ETA TBD'}`,
-          status: statusLabel(r.status),
-        })),
+        list.map(r => {
+          const inStore = redemptionIsDealerPickup(r);
+          const pres = consumerRedemptionStatusPresentation(r.status, inStore);
+          return {
+            id: r.id,
+            title: r.reward.title ?? 'Reward',
+            sub: inStore
+              ? `Ref #${r.trackingId} · ${r.etaText ?? 'Awaiting ops approval at the store.'}`
+              : `Tracking ID #${r.trackingId} · ${r.etaText ?? 'ETA TBD'}`,
+            status: pres.label,
+            chip: pres.chip,
+          };
+        }),
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load');
@@ -78,11 +82,7 @@ export function GiftDeliveryStatusScreen() {
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      load().catch(() => {});
-    }, [load]),
-  );
+  useRefreshOnFocusAndForeground(() => load());
 
   return (
     <View style={[styles.root, { paddingTop: insets.top, backgroundColor: bg }]}>
@@ -96,7 +96,9 @@ export function GiftDeliveryStatusScreen() {
           accessibilityLabel="Back">
           <BackArrowLeft width={24} height={24} />
         </Pressable>
-        <Text style={styles.headerTitle}>Gift Delivery Status</Text>
+        <Text style={styles.headerTitle}>
+          {dealerAccount ? 'In-store reward status' : 'Gift delivery status'}
+        </Text>
       </View>
 
       {loading ? (
@@ -110,7 +112,9 @@ export function GiftDeliveryStatusScreen() {
             { paddingBottom: 100 + insets.bottom },
           ]}
           showsVerticalScrollIndicator={false}>
-          <Text style={styles.intro}>{MENU_SUBTITLES.gift}</Text>
+          <Text style={styles.intro}>
+            {dealerAccount ? MENU_SUBTITLES.giftDealer : MENU_SUBTITLES.gift}
+          </Text>
           {error ? <Text style={styles.err}>{error}</Text> : null}
           {items.length === 0 && !error ? (
             <Text style={styles.empty}>No reward orders yet.</Text>
@@ -130,10 +134,7 @@ export function GiftDeliveryStatusScreen() {
                 <Text style={styles.cardSub}>{item.sub}</Text>
               </View>
               <View style={styles.cardRight}>
-                <AppChip
-                  text={item.status}
-                  variant={chipVariantFromStatus(item.status)}
-                />
+                <AppChip text={item.status} variant={item.chip} />
               </View>
             </Pressable>
           ))}

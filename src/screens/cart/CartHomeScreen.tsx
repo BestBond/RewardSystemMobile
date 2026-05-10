@@ -1,5 +1,5 @@
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -24,6 +24,7 @@ import { RewardImageBlock } from '../rewards/RewardImageBlock';
 import {
   nextRewardCostThreshold,
 } from '../rewards/rewardPointsUtils';
+import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 import { colors } from '../../theme/colors';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -47,25 +48,29 @@ export function CartHomeScreen() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [profile, list] = await Promise.all([
-        getMyProfile(),
-        listRewards(),
-      ]);
-      setBalance(profile.loyaltyPoints ?? 0);
+      const profile = await getMyProfile();
+      const pts = Number(profile.loyaltyPoints ?? 0);
+      setBalance(Number.isFinite(pts) ? pts : 0);
+    } catch (e) {
+      setError((e as Error)?.message ?? 'Could not load profile');
+      setLoading(false);
+      return;
+    }
+    try {
+      const list = await listRewards();
       setRewards(list);
     } catch (e) {
-      setError((e as Error)?.message ?? 'Could not load');
+      setError((e as Error)?.message ?? 'Could not load rewards');
+      setRewards([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      setLoading(true);
-      load().catch(() => {});
-    }, [load]),
-  );
+  useRefreshOnFocusAndForeground(() => {
+    setLoading(true);
+    load().catch(() => {});
+  });
 
   const recommended = useMemo(() => {
     const sorted = [...rewards].sort((a, b) => a.pointsCost - b.pointsCost);

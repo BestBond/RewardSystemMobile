@@ -1,4 +1,4 @@
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import React, { useCallback, useState } from 'react';
 import {
@@ -31,6 +31,7 @@ import {
   activitySubtitle,
   formatPointsDelta,
 } from '../utils/activityFormat';
+import { useRefreshOnFocusAndForeground } from '../hooks/useRefreshOnFocusAndForeground';
 
 type HomeTabNav = BottomTabNavigationProp<MainTabParamList, 'Home'>;
 
@@ -128,11 +129,7 @@ export function HomeScreen() {
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      load(false).catch(() => {});
-    }, [load]),
-  );
+  useRefreshOnFocusAndForeground(() => load(false));
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>

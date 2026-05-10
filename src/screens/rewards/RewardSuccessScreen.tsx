@@ -44,7 +44,11 @@ export function RewardSuccessScreen() {
   const { trackingId, eta, status } = params;
 
   const statusLabel =
-    status === 'PROCESSING' ? 'Processing' : status.replace(/_/g, ' ');
+    status === 'PROCESSING' ? 'Pending approval' : status.replace(/_/g, ' ');
+  const subMessage =
+    status === 'PROCESSING'
+      ? 'Operations will review your redemption. When it is approved, visit your nearest authorized Best Bond store to collect your reward.'
+      : 'Your reward is being processed.';
 
   return (
     <View style={[styles.root, { paddingTop: insets.top, backgroundColor: screenBg }]}>
@@ -67,7 +71,7 @@ export function RewardSuccessScreen() {
         </View>
 
         <Text style={styles.headline}>Request Successful!</Text>
-        <Text style={styles.sub}>Your reward is being processed.</Text>
+        <Text style={styles.sub}>{subMessage}</Text>
 
         <View style={styles.infoCard}>
           <View style={styles.receiptIcon}>
@@ -85,8 +89,10 @@ export function RewardSuccessScreen() {
             <Text style={styles.infoValue}>{formatTrackingId(trackingId)}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>EST. DELIVERY</Text>
-            <Text style={styles.infoValue}>{eta}</Text>
+            <Text style={styles.infoLabel}>
+              {status === 'PROCESSING' ? 'DETAILS' : 'EST. DELIVERY'}
+            </Text>
+            <Text style={styles.infoValue}>{eta ?? '—'}</Text>
           </View>
         </View>
 

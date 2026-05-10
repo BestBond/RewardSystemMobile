@@ -12,16 +12,22 @@ import {
   Text,
   View,
 } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
+import Svg, {
+  Defs,
+  LinearGradient,
+  Path,
+  Rect,
+  Stop,
+} from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdminHeader } from '../components/AdminHeader';
 import type { AdminCouponStackParamList } from '../../../navigation/types';
 import { adminUi } from '../../../theme/adminUi';
 import { formatBatchCreatedLabel } from './couponGenerationUtils';
 import { ChevronRight, Scanner, TxTicketOrange } from '../../../assets/svgs';
-import QrCodeBlack from '../../../assets/svgs/originals/qr_code_black.svg';
 import CouponPhoneScan from '../../../assets/svgs/originals/coupon_phone_scan.svg';
-import CouponSteps from '../../../assets/svgs/originals/coupon_steps.svg';
-import BestBond from '../../../assets/svgs/originals/best_bond.svg';
+import BestBondManLogo from '../../../assets/svgs/originals/BestBondman.svg';
 
 type Nav = NativeStackNavigationProp<
   AdminCouponStackParamList,
@@ -47,7 +53,7 @@ export function AdminCouponPreviewScreen() {
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
 
   const redeemPointsLabel = useMemo(() => {
-    // Coupon design shows a single redeem value; for each coupon use the slab value.
+    // Match PDF copy: "5,000 Points" (locale-formatted slab value).
     return `${formatInt(slabPts)} Points`;
   }, [slabPts]);
 
@@ -67,15 +73,13 @@ export function AdminCouponPreviewScreen() {
 
   const closeModal = () => setSelectedCode(null);
 
-  // Match the banner design resolution (660x245) while fitting on mobile screens.
+  // Match PDF front canvas 660×245: white strip 220px, orange panel 440px.
   const bannerAspect = 660 / 245;
-  const bannerW = Math.min(screenW - 12, 720);
+  const bannerW = Math.min(screenW - 24, 720);
   const bannerH = bannerW / bannerAspect;
   const scale = bannerW / 660;
-  const leftW = 330 * scale; // exact half of 660 design
+  const leftW = (220 / 660) * bannerW;
   const rightW = bannerW - leftW;
-  const downloadStripW = 72 * scale;
-  const rightPadR = downloadStripW + 22 * scale;
 
   return (
     <View style={styles.root}>
@@ -165,105 +169,117 @@ export function AdminCouponPreviewScreen() {
         transparent
         animationType="fade"
         onRequestClose={closeModal}>
-        <Pressable style={styles.modalBackdrop} onPress={closeModal}>
-          <View style={[styles.couponFrame, { width: bannerW, height: bannerH }]}>
-            <Pressable style={styles.couponCard} onPress={() => {}}>
+        <View style={styles.modalRoot}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={closeModal}
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss coupon preview"
+          />
+          <View
+            style={[styles.couponFrame, { width: bannerW, height: bannerH }]}
+            pointerEvents="box-none">
+            <View style={styles.couponCard}>
               <View
                 style={[
                   styles.couponLeft,
-                  { width: leftW },
-                  { paddingTop: 18 * scale, paddingHorizontal: 18 * scale },
+                  { width: leftW, paddingTop: 14 * scale },
                 ]}>
-                <View style={[styles.couponLeftTop, { marginBottom: 10 * scale }]}>
-                  <CouponPhoneScan width={34 * scale} height={34 * scale} />
+                <View style={styles.couponLeftTop}>
+                  <CouponPhoneScan width={28 * scale} height={28 * scale} />
                 </View>
-                <View style={styles.qrWrap}>
-                  <QrCodeBlack width={175 * scale} height={175 * scale} />
+                <View style={[styles.qrWrap, { marginTop: 10 * scale }]}>
+                  {selectedCode ? (
+                    <QRCode
+                      value={selectedCode}
+                      size={150 * scale}
+                      quietZone={2}
+                      backgroundColor="#FFFFFF"
+                      color="#111827"
+                    />
+                  ) : null}
                 </View>
                 <Text
                   style={[
                     styles.couponId,
-                    { fontSize: 14 * scale, marginTop: 12 * scale },
+                    { fontSize: 13 * scale, marginTop: 14 * scale },
                   ]}>
                   ID: {selectedCode ?? ''}
                 </Text>
               </View>
 
-              <View
-                style={[
-                  styles.couponRight,
-                  {
-                    width: rightW,
-                    paddingLeft: 44 * scale,
-                    paddingRight: rightPadR,
-                  },
-                ]}>
-                <View style={[styles.couponRightTopRow, { marginTop: 22 * scale }]}>
-                  <Text style={[styles.redeemLabel, { fontSize: 28 * scale }]}>
-                    Redeem:
-                  </Text>
-                  <View
-                    style={[
-                      styles.redeemPill,
-                      {
-                        marginLeft: 16 * scale,
-                        paddingHorizontal: 30 * scale,
-                        paddingVertical: 12 * scale,
-                      },
-                    ]}>
-                    <Text style={[styles.redeemPillText, { fontSize: 28 * scale }]}>
-                      {redeemPointsLabel}
-                    </Text>
-                  </View>
-                </View>
+              <View style={[styles.couponRight, { width: rightW, height: bannerH }]}>
+                <Svg
+                  width={rightW}
+                  height={bannerH}
+                  viewBox="0 0 440 245"
+                  preserveAspectRatio="none"
+                  style={StyleSheet.absoluteFill}>
+                  <Defs>
+                    <LinearGradient
+                      id="couponOrangeGrad"
+                      x1="0"
+                      y1="0"
+                      x2="440"
+                      y2="245"
+                      gradientUnits="userSpaceOnUse">
+                      <Stop offset="0" stopColor="#F97316" />
+                      <Stop offset="1" stopColor="#EA6A12" />
+                    </LinearGradient>
+                  </Defs>
+                  <Rect width="440" height="245" fill="url(#couponOrangeGrad)" />
+                  <Path
+                    d="M40 18C80 50 150 78 240 96C315 111 365 132 420 162V0H0v245h440v-26c-62-8-126-30-190-66C140 126 80 72 40 18Z"
+                    fill="#000"
+                    opacity={0.06}
+                  />
+                </Svg>
 
-                <View style={[styles.stepsWrap, { marginTop: 28 * scale }]}>
-                  <CouponSteps width={390 * scale} height={120 * scale} />
-                </View>
-
-                <View style={[styles.brandBadge, { top: 16 * scale, right: 18 * scale }]}>
-                  <BestBond width={86 * scale} height={54 * scale} />
+                <View
+                  style={[
+                    styles.brandBadge,
+                    { top: 14 * scale, right: 10 * scale },
+                  ]}
+                  pointerEvents="none">
+                  <BestBondManLogo
+                    width={50 * scale}
+                    height={75 * scale}
+                  />
                 </View>
 
                 <View
                   style={[
-                    styles.downloadCard,
-                    {
-                      right: 14 * scale,
-                      top: 18 * scale,
-                      width: downloadStripW,
-                      height: bannerH - 36 * scale,
-                      borderRadius: 14 * scale,
-                      paddingVertical: 10 * scale,
-                      paddingHorizontal: 8 * scale,
-                    },
+                    styles.pdfFrontContent,
+                    { paddingTop: 76 * scale, paddingHorizontal: 12 * scale },
                   ]}>
-                  <Text
-                    style={[
-                      styles.downloadText,
-                      {
-                        fontSize: 14 * scale,
-                        width: (bannerH - 36 * scale) * 1.05,
-                        marginTop: (bannerH - 36 * scale) * 0.42,
-                      },
-                    ]}>
-                    Download the app
-                  </Text>
                   <View
                     style={[
-                      styles.downloadQr,
+                      styles.pointsPill,
                       {
-                        width: 54 * scale,
-                        height: 54 * scale,
-                        borderRadius: 10 * scale,
-                        marginTop: 12 * scale,
+                        width: 330 * scale,
+                        height: 74 * scale,
+                        borderRadius: 37 * scale,
                       },
                     ]}>
-                    <QrCodeBlack width={44 * scale} height={44 * scale} />
+                    <Text
+                      style={[styles.pointsPillText, { fontSize: 36 * scale }]}>
+                      {redeemPointsLabel}
+                    </Text>
                   </View>
+                  <Text
+                    style={[
+                      styles.scanSubtitle,
+                      {
+                        fontSize: 14 * scale,
+                        marginTop: 34 * scale,
+                        paddingHorizontal: 8 * scale,
+                      },
+                    ]}>
+                    Scan in the Best Bond app to redeem
+                  </Text>
                 </View>
               </View>
-            </Pressable>
+            </View>
 
             <Pressable
               onPress={closeModal}
@@ -282,7 +298,7 @@ export function AdminCouponPreviewScreen() {
               <Text style={[styles.modalCloseText, { fontSize: 22 * scale }]}>×</Text>
             </Pressable>
           </View>
-        </Pressable>
+        </View>
       </Modal>
     </View>
   );
@@ -418,12 +434,11 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
 
-  modalBackdrop: {
+  modalRoot: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 0,
   },
   couponFrame: { position: 'relative' },
   couponCard: {
@@ -447,16 +462,13 @@ const styles = StyleSheet.create({
   modalCloseText: { fontSize: 22, fontWeight: '800', color: '#111827' },
 
   couponLeft: {
-    width: '42%',
     backgroundColor: adminUi.white,
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
   },
   couponLeftTop: {
+    alignItems: 'center',
     width: '100%',
-    alignItems: 'flex-start',
-    marginBottom: 6,
   },
   qrWrap: {
     flex: 1,
@@ -473,59 +485,31 @@ const styles = StyleSheet.create({
   },
 
   couponRight: {
-    width: '58%',
-    backgroundColor: '#1F2A37',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    justifyContent: 'space-between',
+    overflow: 'hidden',
+    position: 'relative',
   },
   brandBadge: {
     position: 'absolute',
-    top: 10,
-    right: 10,
     alignItems: 'flex-end',
     zIndex: 5,
   },
-  couponRightTopRow: {
-    flexDirection: 'row',
+  pdfFrontContent: {
     alignItems: 'center',
-    gap: 10,
-    marginTop: 0,
+    zIndex: 2,
   },
-  redeemLabel: { fontSize: 18, fontWeight: '800', color: adminUi.white },
-  redeemPill: {
-    backgroundColor: '#F97316',
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  redeemPillText: { fontSize: 18, fontWeight: '900', color: adminUi.white },
-  stepsWrap: {
+  pointsPill: {
+    backgroundColor: adminUi.white,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6,
   },
-  downloadCard: {
-    position: 'absolute',
-    right: 12,
-    top: 22,
-    backgroundColor: adminUi.white,
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    alignItems: 'center',
-  },
-  downloadText: {
-    fontWeight: '700',
-    color: '#374151',
-    transform: [{ rotate: '-90deg' }],
+  pointsPillText: {
+    fontWeight: '900',
+    color: '#1F2937',
     textAlign: 'center',
-    marginBottom: 10,
   },
-  downloadQr: {
-    backgroundColor: adminUi.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
+  scanSubtitle: {
+    fontWeight: '600',
+    color: adminUi.white,
+    textAlign: 'center',
   },
 });

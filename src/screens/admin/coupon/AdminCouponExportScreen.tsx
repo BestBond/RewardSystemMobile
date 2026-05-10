@@ -4,6 +4,7 @@ import type { RouteProp } from '@react-navigation/native';
 import React, { useState } from 'react';
 import {
   Alert,
+  Platform,
   Pressable,
   Share,
   ScrollView,
@@ -12,6 +13,8 @@ import {
   Text,
   View,
 } from 'react-native';
+import ReactNativeBlobUtil from 'react-native-blob-util';
+import RNFS from 'react-native-fs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdminHeader } from '../components/AdminHeader';
 import type { AdminCouponStackParamList } from '../../../navigation/types';
@@ -66,18 +69,7 @@ export function AdminCouponExportScreen() {
       const token = await getAccessToken();
       if (!token) throw new Error('Not authenticated');
 
-      // Lazy-load to avoid iOS crash when native module isn't linked yet.
-      let RNFS: typeof import('react-native-fs');
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        RNFS = require('react-native-fs');
-      } catch {
-        throw new Error(
-          'File module not available. Run iOS pods install and rebuild the app.',
-        );
-      }
-      const docDir = (RNFS as unknown as { DocumentDirectoryPath?: string })
-        .DocumentDirectoryPath;
+      const docDir = RNFS.DocumentDirectoryPath;
       if (!docDir) {
         throw new Error(
           'File module is not linked (DocumentDirectoryPath missing). Run `cd ios && pod install`, then rebuild the iOS app.',
@@ -93,17 +85,24 @@ export function AdminCouponExportScreen() {
         fromUrl,
         toFile,
         headers: { Authorization: `Bearer ${token}` },
-        background: true,
+        background: Platform.OS === 'ios',
       });
       const result = await r.promise;
       if (result.statusCode && result.statusCode >= 400) {
         throw new Error(`Download failed (${result.statusCode})`);
       }
 
-      await Share.share({
-        title: `Coupon batch ${batchId}`,
-        url: `file://${toFile}`,
-      });
+      if (Platform.OS === 'android') {
+        await ReactNativeBlobUtil.android.actionViewIntent(
+          toFile,
+          'application/pdf',
+        );
+      } else {
+        await Share.share({
+          title: `Coupon batch ${batchId}`,
+          url: `file://${toFile}`,
+        });
+      }
     })()
       .catch((e) => {
         const msg = String((e as Error)?.message ?? e);

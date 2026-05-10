@@ -1,7 +1,7 @@
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, AppState, View } from 'react-native';
 import { AdminTabBar } from './AdminTabBar';
 import { AdminUsersStack } from './AdminUsersStack';
 import { AdminApprovalsStack } from './AdminApprovalsStack';
@@ -40,6 +40,16 @@ export function AdminTabNavigator() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', state => {
+      if (state !== 'active') return;
+      getAuthMe()
+        .then(res => setRoleSnap(res.user ?? null))
+        .catch(() => {});
+    });
+    return () => sub.remove();
   }, []);
 
   if (loading) {

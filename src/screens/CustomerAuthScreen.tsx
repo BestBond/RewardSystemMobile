@@ -7,6 +7,7 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,13 +20,13 @@ import { isApiError, userFacingApiMessage } from '../api/client';
 import { loginCustomerWithOtp, requestOtp, signupCustomerWithOtp } from '../api/auth';
 import { getMyProfile } from '../api/users';
 import { setAccessToken } from '../api/storage';
-import { isProfileComplete } from '../auth/profileCompletion';
 import { pickHomeRoute } from '../auth/roleRouting';
 
 const COUNTRY_CODE = '+91';
 const RESEND_SECONDS = 30;
 
 type Mode = 'login' | 'signup';
+type Trade = 'dealer' | 'contractor_painter';
 
 export function CustomerAuthScreen({
   navigation,
@@ -41,6 +42,8 @@ export function CustomerAuthScreen({
   const [error, setError] = useState<string | null>(null);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [trade, setTrade] = useState<Trade>('contractor_painter');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
 
   const title = useMemo(
     () => (mode === 'login' ? 'Log In' : 'Sign Up'),
@@ -105,6 +108,10 @@ export function CustomerAuthScreen({
       setError('Enter your full name.');
       return;
     }
+    if (mode === 'signup' && !deliveryAddress.trim()) {
+      setError('Enter your delivery address.');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -116,6 +123,9 @@ export function CustomerAuthScreen({
               code: otp,
               fullName: fullName.trim(),
               email: email.trim() || null,
+              profession:
+                trade === 'dealer' ? 'Dealer' : 'Contractor/Painter',
+              deliveryAddress: deliveryAddress.trim(),
             })
           : await loginCustomerWithOtp({
               phone: digits,
@@ -129,10 +139,6 @@ export function CustomerAuthScreen({
       if (home !== 'Main') {
         await setAccessToken(null);
         setError('This account is not a customer account.');
-        return;
-      }
-      if (!isProfileComplete(profile)) {
-        navigation.reset({ index: 0, routes: [{ name: 'ProfileSetup' }] });
         return;
       }
       navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
@@ -191,6 +197,39 @@ export function CustomerAuthScreen({
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="email-address"
+              />
+
+              <View style={styles.gap}>
+                <AppFieldLabel text="YOUR PRIMARY TRADE" />
+              </View>
+              <View style={styles.tradeRow}>
+                <TradeCard
+                  title="Dealer"
+                  subtitle="Redeem through your authorised store"
+                  icon="🏪"
+                  selected={trade === 'dealer'}
+                  onPress={() => setTrade('dealer')}
+                />
+                <TradeCard
+                  title="Contractor/Painter"
+                  subtitle="On-site building, finishing & paint work"
+                  icon="🎨"
+                  selected={trade === 'contractor_painter'}
+                  onPress={() => setTrade('contractor_painter')}
+                />
+              </View>
+
+              <View style={styles.gap}>
+                <AppFieldLabel text="DELIVERY ADDRESS" />
+              </View>
+              <TextInput
+                style={styles.addressInput}
+                placeholder="Enter your address"
+                placeholderTextColor={colors.lightGray}
+                value={deliveryAddress}
+                onChangeText={setDeliveryAddress}
+                multiline
+                textAlignVertical="top"
               />
             </>
           ) : null}
@@ -252,6 +291,39 @@ export function CustomerAuthScreen({
   );
 }
 
+function TradeCard({
+  title,
+  subtitle,
+  icon,
+  selected,
+  onPress,
+}: {
+  title: string;
+  subtitle: string;
+  icon: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.card,
+        selected && styles.cardSelected,
+        pressed && styles.cardPressed,
+      ]}
+      onPress={onPress}>
+      {selected ? (
+        <View style={styles.cardBadge}>
+          <Text style={styles.cardBadgeText}>✓</Text>
+        </View>
+      ) : null}
+      <Text style={styles.cardIcon}>{icon}</Text>
+      <Text style={styles.cardTitle}>{title}</Text>
+      <Text style={styles.cardSub}>{subtitle}</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.white },
   flex: { flex: 1 },
@@ -280,6 +352,50 @@ const styles = StyleSheet.create({
   switchText: { fontWeight: '800', color: colors.mutedGray },
   switchTextOn: { color: figma.textTitle },
   gap: { marginTop: 16 },
+  addressInput: {
+    borderWidth: 1,
+    borderColor: '#E6EAF0',
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: figma.textTitle,
+    minHeight: 100,
+    backgroundColor: colors.white,
+  },
+  tradeRow: { flexDirection: 'row' },
+  card: {
+    flex: 1,
+    marginHorizontal: 6,
+    borderWidth: 1,
+    borderColor: '#E6EAF0',
+    borderRadius: 16,
+    padding: 14,
+    paddingTop: 20,
+    backgroundColor: colors.white,
+    minHeight: 148,
+  },
+  cardSelected: {
+    borderColor: colors.primaryOrange,
+    borderWidth: 2,
+    backgroundColor: 'rgba(255, 122, 26, 0.08)',
+  },
+  cardPressed: { opacity: 0.92 },
+  cardBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.primaryOrange,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardBadgeText: { color: colors.white, fontSize: 12, fontWeight: '700' },
+  cardIcon: { fontSize: 28, marginBottom: 10 },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: figma.textTitle },
+  cardSub: { fontSize: 12, color: colors.mutedGray, marginTop: 6, lineHeight: 17 },
   otpHeader: {
     marginTop: 18,
     flexDirection: 'row',

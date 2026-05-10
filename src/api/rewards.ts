@@ -50,6 +50,8 @@ export type RedemptionListItem = {
   pointsCost: number;
   deliveryLabel: string | null;
   deliveryAddress: string | null;
+  /** DEALER_STORE: in-store pickup after ops approves. CUSTOMER_APP: shipped delivery. */
+  channel?: 'CUSTOMER_APP' | 'DEALER_STORE';
   status: string;
   etaText: string | null;
   createdAt: string;

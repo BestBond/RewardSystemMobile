@@ -30,6 +30,8 @@ export { HeaderShoppingBag } from './HeaderShoppingBag';
 export { IconGiftOrange } from './IconGiftOrange';
 export { IconHeadsetOrange } from './IconHeadsetOrange';
 export { IconReceiptDocOrange } from './IconReceiptDocOrange';
+export { IconShieldOrange } from './IconShieldOrange';
+export { IconTermsAlertOrange } from './IconTermsAlertOrange';
 export { LogOutDoor } from './LogOutDoor';
 export { MapPinOrange } from './MapPinOrange';
 export { PhoneHandsetWhite } from './PhoneHandsetWhite';

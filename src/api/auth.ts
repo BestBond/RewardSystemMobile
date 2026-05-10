@@ -7,7 +7,7 @@ import { apiPost } from './client';
  * - customer signup: POST /auth/customer/otp/signup
  * - customer login:  POST /auth/customer/otp/login
  * - ops admin signup: POST /auth/admin/otp/signup (returns pending approval)
- * - staff login (superadmin/ops): POST /auth/admin/otp/login (ops gated by approval)
+ * - staff login (superadmin/ops): POST /auth/admin/otp/login — Super Admin sends OTP + password; Ops sends OTP only
  * - superadmin signup exists but is web-only (mobile should not expose it):
  *   POST /auth/superadmin/otp/signup
  */
@@ -58,8 +58,15 @@ export async function loginAdminWithOtp(params: {
   phone: string;
   countryCode: string;
   code: string;
+  /** Super Admin only (min 8 chars). Omit or empty for Ops Admin. */
+  password?: string;
 }) {
-  return apiPost<AdminOtpLoginResponse>('/auth/admin/otp/login', params);
+  const { password, ...rest } = params;
+  const body =
+    password != null && password.trim().length > 0
+      ? { ...rest, password: password.trim() }
+      : rest;
+  return apiPost<AdminOtpLoginResponse>('/auth/admin/otp/login', body);
 }
 
 export async function signupCustomerWithOtp(params: {
@@ -68,6 +75,8 @@ export async function signupCustomerWithOtp(params: {
   code: string;
   fullName?: string | null;
   email?: string | null;
+  profession?: string | null;
+  deliveryAddress?: string | null;
 }) {
   return apiPost<CustomerOtpSignupResponse>('/auth/customer/otp/signup', params);
 }
@@ -79,4 +88,3 @@ export async function loginCustomerWithOtp(params: {
 }) {
   return apiPost<CustomerOtpLoginResponse>('/auth/customer/otp/login', params);
 }
-

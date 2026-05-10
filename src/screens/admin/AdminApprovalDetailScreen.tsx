@@ -1,4 +1,4 @@
-import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import type { AdminApprovalsStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { adminUi } from '../../theme/adminUi';
@@ -24,8 +25,7 @@ import {
   type AdminRedemptionDetail,
 } from '../../api/adminRedemptions';
 import { isApiError, userFacingApiMessage } from '../../api/client';
-import { getAuthMe } from '../../api/users';
-import { isOperationalOnly } from './adminRole';
+import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 
 type Props = NativeStackScreenProps<
   AdminApprovalsStackParamList,
@@ -35,6 +35,7 @@ type Nav = NativeStackNavigationProp<AdminApprovalsStackParamList>;
 
 export function AdminApprovalDetailScreen(_props: Props) {
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const navigation = useNavigation<Nav>();
   const { params } = useRoute<Props['route']>();
   const [doneOpen, setDoneOpen] = useState(false);
@@ -44,13 +45,9 @@ export function AdminApprovalDetailScreen(_props: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [deliverOpen, setDeliverOpen] = useState(false);
-  const [operationalOnly, setOperationalOnly] = useState(false);
-
   const load = useCallback(async () => {
     setError(null);
     try {
-      const me = await getAuthMe().catch(() => ({ user: null }));
-      setOperationalOnly(isOperationalOnly(me.user ?? null));
       const d = await getAdminRedemptionById(params.requestId);
       setDetail(d);
     } catch (e) {
@@ -62,21 +59,19 @@ export function AdminApprovalDetailScreen(_props: Props) {
     }
   }, [params.requestId]);
 
-  useFocusEffect(
-    useCallback(() => {
-      setLoading(true);
-      load().catch(() => {});
-    }, [load]),
-  );
+  useRefreshOnFocusAndForeground(() => {
+    setLoading(true);
+    load().catch(() => {});
+  });
 
   const canApprove = useMemo(
-    () => !!detail && !operationalOnly && detail.status === 'PROCESSING' && !submitting,
-    [detail, operationalOnly, submitting],
+    () => !!detail && detail.status === 'PROCESSING' && !submitting,
+    [detail, submitting],
   );
 
   const canReject = useMemo(
-    () => !!detail && !operationalOnly && detail.status === 'PROCESSING' && !submitting,
-    [detail, operationalOnly, submitting],
+    () => !!detail && detail.status === 'PROCESSING' && !submitting,
+    [detail, submitting],
   );
 
   const canDeliver = useMemo(() => !!detail && detail.status === 'SHIPPED' && !submitting, [detail, submitting]);
@@ -165,7 +160,7 @@ export function AdminApprovalDetailScreen(_props: Props) {
       <ScrollView
         contentContainerStyle={[
           styles.scroll,
-          { paddingBottom: 32 + insets.bottom },
+          { paddingBottom: 32 + insets.bottom + tabBarHeight },
         ]}
         showsVerticalScrollIndicator={false}>
         {loading ? (
@@ -191,6 +186,13 @@ export function AdminApprovalDetailScreen(_props: Props) {
             {detail.statusMessage ? (
               <Text style={styles.alertSub}>{detail.statusMessage}</Text>
             ) : null}
+            {detail.channel ? (
+              <Text style={styles.channelTag}>
+                {detail.channel === 'DEALER_STORE'
+                  ? 'Dealer store redemption'
+                  : 'Customer app redemption'}
+              </Text>
+            ) : null}
           </View>
         </View>
 
@@ -210,68 +212,42 @@ export function AdminApprovalDetailScreen(_props: Props) {
           <Text style={styles.val}>
             {detail.requester.address ?? '—'}
           </Text>
+        </View>
+
+        <>
           <Pressable
-            style={styles.linkRow}
+            style={({ pressed }) => [
+              styles.approve,
+              (!canApprove || submitting) && styles.btnDisabled,
+              pressed && { opacity: 0.92 },
+            ]}
+            disabled={!canApprove || submitting}
             accessibilityRole="button"
-            accessibilityLabel="View requester account"
+            accessibilityLabel="Approve and dispatch request"
             onPress={() => {
-              const userId = detail.requester.id;
-              if (!userId) return;
-              // Navigate to Admin Users → User Detail from the approvals stack.
-              navigation
-                .getParent()
-                ?.navigate('AdminUsers', { screen: 'AdminUserDetail', params: { userId } });
+              onApprove().catch(() => {});
             }}>
-            <Text style={styles.linkTxt}>View Account</Text>
-            <Text style={styles.linkExt}>{'\u2197'}</Text>
+            {submitting ? (
+              <ActivityIndicator color={adminUi.white} />
+            ) : (
+              <Text style={styles.approveTxt}>Approve & Dispatch</Text>
+            )}
           </Pressable>
-        </View>
-
-        <View style={styles.flagAcct}>
-          <Text style={styles.flagEx}>{'!'}</Text>
-          <Text style={styles.flagTxt}>Flag the Account</Text>
-        </View>
-
-        {!operationalOnly ? (
-          <>
-            <Pressable
-              style={({ pressed }) => [
-                styles.approve,
-                (!canApprove || submitting) && styles.btnDisabled,
-                pressed && { opacity: 0.92 },
-              ]}
-              disabled={!canApprove || submitting}
-              accessibilityRole="button"
-              accessibilityLabel="Approve and dispatch request"
-              onPress={() => {
-                onApprove().catch(() => {});
-              }}>
-              {submitting ? (
-                <ActivityIndicator color={adminUi.white} />
-              ) : (
-                <Text style={styles.approveTxt}>Approve & Dispatch</Text>
-              )}
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [
-                styles.reject,
-                (!canReject || submitting) && styles.btnDisabled,
-                pressed && { opacity: 0.92 },
-              ]}
-              disabled={!canReject || submitting}
-              accessibilityRole="button"
-              accessibilityLabel="Reject request"
-              onPress={() => {
-                onReject().catch(() => {});
-              }}>
-              <Text style={styles.rejectTxt}>Reject Request</Text>
-            </Pressable>
-          </>
-        ) : (
-          <Text style={styles.roleHint}>
-            Operational admin can update dispatch and delivery status only.
-          </Text>
-        )}
+          <Pressable
+            style={({ pressed }) => [
+              styles.reject,
+              (!canReject || submitting) && styles.btnDisabled,
+              pressed && { opacity: 0.92 },
+            ]}
+            disabled={!canReject || submitting}
+            accessibilityRole="button"
+            accessibilityLabel="Reject request"
+            onPress={() => {
+              onReject().catch(() => {});
+            }}>
+            <Text style={styles.rejectTxt}>Reject Request</Text>
+          </Pressable>
+        </>
 
         {/* Operational Admin action: visible only after SHIPPED */}
         {detail.status === 'SHIPPED' ? (
@@ -426,6 +402,14 @@ const styles = StyleSheet.create({
     marginTop: 4,
     lineHeight: 17,
   },
+  channelTag: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: adminUi.accentOrange,
+    marginTop: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
   rewardCard: {
     backgroundColor: adminUi.cardBg,
     borderRadius: adminUi.radiusLg,
@@ -478,34 +462,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: adminUi.sectionTitle,
     marginTop: 4,
-  },
-  linkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 14,
-    gap: 6,
-  },
-  linkTxt: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: adminUi.accentOrange,
-  },
-  linkExt: { fontSize: 14, color: adminUi.accentOrange, fontWeight: '800' },
-  flagAcct: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
-  },
-  flagEx: {
-    color: adminUi.pointsDebit,
-    fontWeight: '900',
-    fontSize: 16,
-  },
-  flagTxt: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: adminUi.pointsDebit,
   },
   approve: {
     backgroundColor: adminUi.accentOrange,

@@ -4,6 +4,8 @@ import { CustomerSupportScreen } from '../screens/account/CustomerSupportScreen'
 import { DeliveryStatusScreen } from '../screens/account/DeliveryStatusScreen';
 import { GiftDeliveryStatusScreen } from '../screens/account/GiftDeliveryStatusScreen';
 import { TransactionHistoryScreen } from '../screens/account/TransactionHistoryScreen';
+import { LegalDocumentScreen } from '../screens/account/LegalDocumentScreen';
+import { TermsPrivacyHubScreen } from '../screens/account/TermsPrivacyHubScreen';
 import { UserProfileScreen } from '../screens/account/UserProfileScreen';
 import type { ProfileStackParamList } from './types';
 
@@ -23,6 +25,8 @@ export function ProfileNavigator() {
       <Stack.Screen name="CustomerSupport" component={CustomerSupportScreen} />
       <Stack.Screen name="GiftDeliveryStatus" component={GiftDeliveryStatusScreen} />
       <Stack.Screen name="DeliveryStatus" component={DeliveryStatusScreen} />
+      <Stack.Screen name="TermsPrivacyHub" component={TermsPrivacyHubScreen} />
+      <Stack.Screen name="LegalDocument" component={LegalDocumentScreen} />
     </Stack.Navigator>
   );
 }

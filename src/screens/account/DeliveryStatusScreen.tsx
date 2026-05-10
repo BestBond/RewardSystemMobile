@@ -1,4 +1,4 @@
-import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -18,6 +18,11 @@ import { BackArrowLeft, ChevronRight } from '../../assets/svgs';
 import { cancelMyRedemption, listMyRedemptions } from '../../api/rewards';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { colors } from '../../theme/colors';
+import {
+  consumerRedemptionStatusPresentation,
+  redemptionIsDealerPickup,
+} from '../../utils/redemptionUi';
+import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'DeliveryStatus'>;
 type R = RouteProp<ProfileStackParamList, 'DeliveryStatus'>;
@@ -29,20 +34,21 @@ const orange = colors.primaryOrange;
 const bg = '#FFFFFF';
 const cardBorder = '#EEF0F4';
 
-const CANCEL_REASONS = [
+const CANCEL_REASONS_DELIVERY = [
   "I don't want this reward anymore",
   'I will wait for a better reward',
   'Mistake in the address',
 ] as const;
 
-type CancelReason = (typeof CANCEL_REASONS)[number];
+const CANCEL_REASONS_PICKUP = [
+  "I don't want this reward anymore",
+  'I will wait for a better reward',
+  'Submitted by mistake',
+] as const;
 
-function labelCase(s: string) {
-  return s
-    .split('_')
-    .map(w => w.charAt(0) + w.slice(1).toLowerCase())
-    .join(' ');
-}
+type CancelReason =
+  | (typeof CANCEL_REASONS_DELIVERY)[number]
+  | (typeof CANCEL_REASONS_PICKUP)[number];
 
 function formatDateLabel(raw: string | null) {
   if (!raw) return 'TBD';
@@ -73,6 +79,7 @@ export function DeliveryStatusScreen() {
     etaText: string | null;
     addressLabel: string;
     addressSub: string;
+    isDealerPickup: boolean;
   } | null>(null);
 
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -90,18 +97,24 @@ export function DeliveryStatusScreen() {
         setRedemption(null);
         setErr('Order not found.');
       } else {
+        const isDealerPickup = redemptionIsDealerPickup(r);
+        const pres = consumerRedemptionStatusPresentation(r.status, isDealerPickup);
         setRedemption({
           id: r.id,
           title: r.reward.title ?? 'Reward',
           points: r.reward.pointsCost,
           trackingId: r.trackingId,
           statusRaw: r.status,
-          statusLabel: labelCase(r.status),
+          statusLabel: pres.label,
           createdAt: r.createdAt,
           etaText: r.etaText ?? null,
-          // Backend doesn’t return delivery address yet; keep UI shape.
-          addressLabel: r.deliveryLabel ?? 'Delivery',
-          addressSub: r.deliveryAddress ?? '—',
+          addressLabel: isDealerPickup
+            ? 'In-store pickup'
+            : r.deliveryLabel ?? 'Delivery',
+          addressSub: isDealerPickup
+            ? 'There is no courier delivery for dealer rewards. Visit your authorized Best Bond store once operations approves this request; staff will hand over the gift in person.'
+            : r.deliveryAddress ?? '—',
+          isDealerPickup,
         });
       }
     } catch (e) {
@@ -112,16 +125,43 @@ export function DeliveryStatusScreen() {
     }
   }, [route.params.redemptionId]);
 
-  useFocusEffect(
-    useCallback(() => {
-      load().catch(() => {});
-    }, [load]),
-  );
+  useRefreshOnFocusAndForeground(() => load());
 
   const steps = useMemo(() => {
     const raw = redemption?.statusRaw ?? '';
     const created = formatDateLabel(redemption?.createdAt ?? null);
-    const eta = formatDateLabel(redemption?.etaText ?? null);
+    const etaRaw = redemption?.etaText ?? null;
+    const eta = formatDateLabel(etaRaw);
+    const inStore = redemption?.isDealerPickup ?? false;
+
+    if (inStore) {
+      const idx =
+        raw === 'DELIVERED'
+          ? 3
+          : raw === 'SHIPPED'
+            ? 2
+            : raw === 'PROCESSING'
+              ? 1
+              : 0;
+      return [
+        {
+          title: 'Request submitted',
+          date: created,
+          active: idx >= 1 && raw !== 'CANCELLED',
+        },
+        {
+          title: 'Operations approves at the store',
+          date: idx >= 2 ? 'Approved — bring ID if asked' : 'Waiting',
+          active: idx >= 2 && raw !== 'CANCELLED',
+        },
+        {
+          title: 'Collect your gift at the counter',
+          date: idx >= 3 ? 'Completed' : '—',
+          active: idx >= 3,
+        },
+      ];
+    }
+
     const idx =
       raw === 'DELIVERED'
         ? 3
@@ -138,7 +178,33 @@ export function DeliveryStatusScreen() {
       { title: 'Your order is on the way', date: eta, active: idx >= 2 },
       { title: 'Expected delivery', date: eta, active: idx >= 3 },
     ];
-  }, [redemption?.createdAt, redemption?.etaText, redemption?.statusRaw]);
+  }, [
+    redemption?.createdAt,
+    redemption?.etaText,
+    redemption?.statusRaw,
+    redemption?.isDealerPickup,
+  ]);
+
+  const heroHeadline = useMemo(() => {
+    if (!redemption) return '';
+    const raw = redemption.statusRaw;
+    if (redemption.isDealerPickup) {
+      if (raw === 'DELIVERED') return 'Reward collected';
+      if (raw === 'SHIPPED') return 'Visit the store to collect';
+      if (raw === 'CANCELLED') return 'Request cancelled';
+      return 'Waiting for store approval';
+    }
+    if (raw === 'DELIVERED') return 'Delivered';
+    if (raw === 'SHIPPED') return 'On the way';
+    if (raw === 'CANCELLED') return 'Order cancelled';
+    return "We're packing your order";
+  }, [redemption]);
+
+  const cancelReasons = useMemo(
+    () =>
+      redemption?.isDealerPickup ? CANCEL_REASONS_PICKUP : CANCEL_REASONS_DELIVERY,
+    [redemption?.isDealerPickup],
+  );
 
   const canCancelDelivery = redemption?.statusRaw === 'PROCESSING';
 
@@ -154,7 +220,9 @@ export function DeliveryStatusScreen() {
           accessibilityLabel="Back">
           <BackArrowLeft width={24} height={24} />
         </Pressable>
-        <Text style={styles.headerTitle}>Delivery Status</Text>
+        <Text style={styles.headerTitle}>
+          {redemption?.isDealerPickup ? 'Pickup status' : 'Delivery status'}
+        </Text>
       </View>
 
       {loading ? (
@@ -168,7 +236,7 @@ export function DeliveryStatusScreen() {
             { paddingBottom: 24 + insets.bottom },
           ]}
           showsVerticalScrollIndicator={false}>
-          <Text style={styles.hero}>We're packing your order</Text>
+          <Text style={styles.hero}>{heroHeadline}</Text>
 
           {err ? <Text style={styles.err}>{err}</Text> : null}
 
@@ -211,7 +279,7 @@ export function DeliveryStatusScreen() {
 
               <View style={styles.metaRow}>
                 <View style={styles.metaCol}>
-                  <Text style={styles.metaLabel}>TRACKING ID</Text>
+                  <Text style={styles.metaLabel}>REFERENCE ID</Text>
                   <Text style={styles.metaValue}>#{redemption.trackingId}</Text>
                 </View>
                 <View style={styles.metaCol}>
@@ -219,17 +287,31 @@ export function DeliveryStatusScreen() {
                   <Text style={styles.metaValue}>{redemption.statusLabel}</Text>
                 </View>
               </View>
-              <View style={styles.metaRow}>
-                <View style={styles.metaCol}>
-                  <Text style={styles.metaLabel}>EXPECTED DELIVERY</Text>
-                  <Text style={styles.metaValue}>
-                    {formatDateLabel(redemption.etaText)}
-                  </Text>
+              {redemption.isDealerPickup ? (
+                <View style={styles.metaRow}>
+                  <View style={styles.metaColFull}>
+                    <Text style={styles.metaLabel}>STORE INSTRUCTIONS</Text>
+                    <Text style={styles.metaValueBody}>
+                      {redemption.etaText?.trim() ||
+                        'Pending ops approval. Visit your nearest authorized Best Bond store once approved.'}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.metaCol} />
-              </View>
+              ) : (
+                <View style={styles.metaRow}>
+                  <View style={styles.metaCol}>
+                    <Text style={styles.metaLabel}>EXPECTED DELIVERY</Text>
+                    <Text style={styles.metaValue}>
+                      {formatDateLabel(redemption.etaText)}
+                    </Text>
+                  </View>
+                  <View style={styles.metaCol} />
+                </View>
+              )}
 
-              <Text style={styles.sectionLabel}>DELIVERY DETAILS</Text>
+              <Text style={styles.sectionLabel}>
+                {redemption.isDealerPickup ? 'PICKUP DETAILS' : 'DELIVERY DETAILS'}
+              </Text>
               <View style={styles.addressCard}>
                 <Text style={styles.addressTitle}>{redemption.addressLabel}</Text>
                 <Text style={styles.addressSub}>{redemption.addressSub}</Text>
@@ -248,7 +330,11 @@ export function DeliveryStatusScreen() {
                   setCancelOpen(true);
                 }}>
                 <Text style={styles.rowBtnText}>
-                  {canCancelDelivery ? 'Cancel Delivery' : 'Cancellation unavailable'}
+                  {canCancelDelivery
+                    ? redemption.isDealerPickup
+                      ? 'Cancel pickup request'
+                      : 'Cancel delivery'
+                    : 'Cancellation unavailable'}
                 </Text>
                 {canCancelDelivery ? <ChevronRight strokeColor="#94A3B8" /> : null}
               </Pressable>
@@ -275,10 +361,10 @@ export function DeliveryStatusScreen() {
         <Pressable style={styles.modalBackdrop} onPress={() => setCancelOpen(false)}>
           <Pressable style={styles.sheet} onPress={() => {}} accessibilityRole="none">
             <Text style={styles.sheetTitle}>
-              Do you confirm you want to{'\n'}cancel this order?
+              Do you confirm you want to{'\n'}cancel this request?
             </Text>
             <View style={styles.reasonList}>
-              {CANCEL_REASONS.map(r => {
+              {cancelReasons.map(r => {
                 const checked = cancelReason === r;
                 return (
                   <Pressable
@@ -419,8 +505,16 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   metaCol: { flex: 1 },
+  metaColFull: { flex: 1, width: '100%' },
   metaLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 0.8, color: '#9CA3AF' },
   metaValue: { marginTop: 4, fontSize: 16, fontWeight: '900', color: text },
+  metaValueBody: {
+    marginTop: 6,
+    fontSize: 14,
+    fontWeight: '600',
+    color: muted,
+    lineHeight: 20,
+  },
   addressCard: {
     borderWidth: 1,
     borderColor: cardBorder,

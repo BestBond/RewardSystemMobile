@@ -57,9 +57,12 @@ function TxRow({ item }: { item: AdminUserTx }) {
           {item.site ? ` • ${item.site}` : ''}
         </Text>
       </View>
-      <Text style={[styles.txPts, pos ? styles.txPos : styles.txNeg]}>
-        {pos ? '+' : ''}{formatInt(item.pointsDelta)} PTS
-      </Text>
+      <View style={styles.txRight}>
+        <Text style={[styles.txPts, pos ? styles.txPos : styles.txNeg]}>
+          {pos ? '+' : ''}
+          {formatInt(item.pointsDelta)} PTS
+        </Text>
+      </View>
     </View>
   );
 }
@@ -325,7 +328,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: adminUi.cardBg,
     borderRadius: adminUi.radiusMd,
-    padding: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: adminUi.borderSoft,
+    ...adminUi.shadowCard,
+    minHeight: 76,
   },
   txIcon: {
     width: 40,
@@ -339,13 +347,17 @@ const styles = StyleSheet.create({
   txMid: { flex: 1 },
   txTitle: { fontSize: 15, fontWeight: '700', color: adminUi.sectionTitle },
   txSub: { fontSize: 12, color: adminUi.labelMuted, marginTop: 3 },
-  txPts: { fontSize: 13, fontWeight: '800', marginLeft: 8 },
+  txRight: {
+    marginLeft: 10,
+    minWidth: 92,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  txPts: { fontSize: 13, fontWeight: '900' },
   txPos: { color: adminUi.successGreen },
   txNeg: { color: adminUi.pointsDebit },
   sep: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: adminUi.borderSoft,
-    marginLeft: 54,
+    height: 10,
   },
   loadMore: {
     borderWidth: 1,

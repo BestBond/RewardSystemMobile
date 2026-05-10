@@ -1,8 +1,9 @@
-import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Modal,
   Pressable,
   ScrollView,
@@ -13,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { IconReceiptDocOrange, MapPinOrange } from '../../assets/svgs';
 import type { AdminUsersStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -25,17 +27,46 @@ import {
   type AdminUserDetail,
 } from '../../api/adminUsers';
 import { isApiError, userFacingApiMessage } from '../../api/client';
+import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 
 type Props = NativeStackScreenProps<AdminUsersStackParamList, 'AdminUserDetail'>;
 type Nav = NativeStackNavigationProp<AdminUsersStackParamList>;
 
 export function AdminUserDetailScreen(_props: Props) {
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const navigation = useNavigation<Nav>();
   const { params } = useRoute<Props['route']>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [u, setU] = useState<AdminUserDetail | null>(null);
+  const [snack, setSnack] = useState<{ text: string; kind: 'ok' | 'err' } | null>(
+    null,
+  );
+  const snackAnim = useRef(new Animated.Value(0)).current;
+  const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showSnack = useCallback(
+    (text: string, kind: 'ok' | 'err' = 'ok') => {
+      setSnack({ text, kind });
+      if (snackTimer.current) clearTimeout(snackTimer.current);
+      snackAnim.stopAnimation();
+      snackAnim.setValue(0);
+      Animated.timing(snackAnim, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }).start();
+      snackTimer.current = setTimeout(() => {
+        Animated.timing(snackAnim, {
+          toValue: 0,
+          duration: 180,
+          useNativeDriver: true,
+        }).start(() => setSnack(null));
+      }, 2200);
+    },
+    [snackAnim],
+  );
 
   const load = useCallback(async () => {
     setError(null);
@@ -51,12 +82,10 @@ export function AdminUserDetailScreen(_props: Props) {
     }
   }, [params.userId]);
 
-  useFocusEffect(
-    useCallback(() => {
-      setLoading(true);
-      load().catch(() => {});
-    }, [load]),
-  );
+  useRefreshOnFocusAndForeground(() => {
+    setLoading(true);
+    load().catch(() => {});
+  });
 
   const initials = useMemo(() => {
     const name = u?.displayName ?? '';
@@ -82,13 +111,14 @@ export function AdminUserDetailScreen(_props: Props) {
       setU(prev => prev ? { ...prev, status: 'SUSPENDED' } : prev);
       setSuspendOpen(false);
       setSuspendReason('');
+      showSnack('Account suspended', 'ok');
     } catch (e) {
       if (isApiError(e)) setActionError(userFacingApiMessage(e.message));
       else setActionError('Could not suspend account.');
     } finally {
       setSuspendSubmitting(false);
     }
-  }, [u, suspendReason, suspendSubmitting]);
+  }, [u, suspendReason, suspendSubmitting, showSnack]);
 
   const onActivate = useCallback(async () => {
     if (!u || suspendSubmitting) return;
@@ -97,13 +127,14 @@ export function AdminUserDetailScreen(_props: Props) {
     try {
       await activateAdminUser(u.id);
       setU(prev => prev ? { ...prev, status: 'ACTIVE' } : prev);
+      showSnack('Account reactivated', 'ok');
     } catch (e) {
       if (isApiError(e)) setActionError(userFacingApiMessage(e.message));
       else setActionError('Could not activate account.');
     } finally {
       setSuspendSubmitting(false);
     }
-  }, [u, suspendSubmitting]);
+  }, [u, suspendSubmitting, showSnack]);
 
   return (
     <View style={styles.root}>
@@ -112,7 +143,7 @@ export function AdminUserDetailScreen(_props: Props) {
       <ScrollView
         contentContainerStyle={[
           styles.scroll,
-          { paddingBottom: 32 + insets.bottom },
+          { paddingBottom: 32 + insets.bottom + tabBarHeight },
         ]}
         showsVerticalScrollIndicator={false}>
         {loading ? (
@@ -126,35 +157,46 @@ export function AdminUserDetailScreen(_props: Props) {
         {u ? (
           <>
             <View style={[styles.hero, adminUi.shadowCard]}>
-          <View style={styles.heroTop}>
-            <View style={[styles.bigAvatar, { backgroundColor: '#E0E7FF' }]}>
-              <Text style={styles.bigAvatarTxt}>{initials}</Text>
+              <View style={styles.heroRow}>
+                <View style={[styles.bigAvatar, { backgroundColor: '#E0E7FF' }]}>
+                  <Text style={styles.bigAvatarTxt}>{initials}</Text>
+                </View>
+
+                <View style={styles.heroInfo}>
+                  <Text style={styles.name}>{u.displayName}</Text>
+                  <View style={styles.roleRow}>
+                    <MapPinOrange width={18} height={18} />
+                    <Text style={styles.roleTxt}>{u.profession ?? '—'}</Text>
+                  </View>
+
+                  <View
+                    style={[
+                      styles.statusPill,
+                      statusActive
+                        ? styles.statusPillActive
+                        : styles.statusPillSuspended,
+                    ]}>
+                    <View
+                      style={[
+                        styles.statusDot,
+                        statusActive
+                          ? styles.statusDotActive
+                          : styles.statusDotSuspended,
+                      ]}
+                    />
+                    <Text
+                      style={[
+                        styles.statusTxt,
+                        statusActive
+                          ? styles.statusTxtActive
+                          : styles.statusTxtSuspended,
+                      ]}>
+                      STATUS: {statusActive ? 'ACTIVE' : 'SUSPENDED'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
             </View>
-            <Text style={styles.ban} accessibilityLabel="Restrict">
-              {'\u2298'}
-            </Text>
-          </View>
-          <Text style={styles.name}>{u.displayName}</Text>
-          <View style={styles.roleRow}>
-            <MapPinOrange width={18} height={18} />
-            <Text style={styles.roleTxt}>{u.profession ?? '—'}</Text>
-          </View>
-          <View style={[
-            styles.statusPill,
-            statusActive ? styles.statusPillActive : styles.statusPillSuspended,
-          ]}>
-            <View style={[
-              styles.statusDot,
-              statusActive ? styles.statusDotActive : styles.statusDotSuspended,
-            ]} />
-            <Text style={[
-              styles.statusTxt,
-              statusActive ? styles.statusTxtActive : styles.statusTxtSuspended,
-            ]}>
-              STATUS: {statusActive ? 'ACTIVE' : 'SUSPENDED'}
-            </Text>
-          </View>
-        </View>
 
         <View style={[styles.balanceCard, adminUi.shadowCard]}>
           <View style={styles.balanceGlow} pointerEvents="none" />
@@ -202,7 +244,11 @@ export function AdminUserDetailScreen(_props: Props) {
 
         {statusActive ? (
           <Pressable
-            style={[styles.suspendRow, suspendSubmitting && { opacity: 0.5 }]}
+            hitSlop={12}
+            style={[
+              styles.suspendRow,
+              suspendSubmitting && { opacity: 0.5 },
+            ]}
             disabled={suspendSubmitting}
             accessibilityRole="button"
             accessibilityLabel="Suspend account"
@@ -212,6 +258,7 @@ export function AdminUserDetailScreen(_props: Props) {
           </Pressable>
         ) : (
           <Pressable
+            hitSlop={12}
             style={[styles.activateRow, suspendSubmitting && { opacity: 0.5 }]}
             disabled={suspendSubmitting}
             accessibilityRole="button"
@@ -227,6 +274,34 @@ export function AdminUserDetailScreen(_props: Props) {
           </>
         ) : null}
       </ScrollView>
+
+      {snack ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.snackWrap,
+            {
+              bottom: 14 + insets.bottom + tabBarHeight,
+              opacity: snackAnim,
+              transform: [
+                {
+                  translateY: snackAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [10, 0],
+                  }),
+                },
+              ],
+            },
+          ]}>
+          <View
+            style={[
+              styles.snack,
+              snack.kind === 'ok' ? styles.snackOk : styles.snackErr,
+            ]}>
+            <Text style={styles.snackTxt}>{snack.text}</Text>
+          </View>
+        </Animated.View>
+      ) : null}
 
       {/* Suspend modal — matches Figma "Suspend this Account?" */}
       <Modal visible={suspendOpen} transparent animationType="slide">
@@ -253,8 +328,9 @@ export function AdminUserDetailScreen(_props: Props) {
                 styles.modalConfirmBtn,
                 pressed && { opacity: 0.92 },
                 suspendSubmitting && { opacity: 0.6 },
+                !suspendReason.trim() && { opacity: 0.45 },
               ]}
-              disabled={suspendSubmitting}
+              disabled={suspendSubmitting || !suspendReason.trim()}
               accessibilityRole="button"
               accessibilityLabel="Confirm account suspension"
               onPress={() => { onConfirmSuspend().catch(() => {}); }}>
@@ -317,10 +393,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: adminUi.borderSoft,
   },
-  heroTop: {
+  heroRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    gap: 14,
+  },
+  heroInfo: {
+    flex: 1,
+    justifyContent: 'center',
   },
   bigAvatar: {
     width: 72,
@@ -330,12 +411,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   bigAvatarTxt: { fontSize: 22, fontWeight: '800', color: adminUi.navyAlt },
-  ban: { fontSize: 20, color: adminUi.suspendAccent, fontWeight: '700' },
   name: {
     fontSize: 22,
     fontWeight: '800',
     color: adminUi.sectionTitle,
-    marginTop: 12,
+    marginTop: 0,
   },
   roleRow: {
     flexDirection: 'row',
@@ -491,7 +571,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 20,
+    paddingVertical: 12,
     gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(192, 78, 46, 0.25)',
+    borderRadius: 16,
+    backgroundColor: 'rgba(192, 78, 46, 0.08)',
   },
   suspendIcon: { fontSize: 16, color: adminUi.suspendAccent },
   suspendTxt: {
@@ -504,11 +589,41 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 20,
     paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(22, 163, 74, 0.25)',
+    borderRadius: 16,
+    backgroundColor: 'rgba(22, 163, 74, 0.08)',
   },
   activateTxt: {
     fontSize: 15,
     fontWeight: '700',
     color: adminUi.successGreen,
+  },
+  snackWrap: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    alignItems: 'center',
+  },
+  snack: {
+    maxWidth: 520,
+    width: '100%',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    ...adminUi.shadowCard,
+  },
+  snackOk: {
+    backgroundColor: '#0F172A',
+  },
+  snackErr: {
+    backgroundColor: '#7F1D1D',
+  },
+  snackTxt: {
+    color: adminUi.white,
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   actionErr: {
     color: adminUi.pointsDebit,
@@ -558,7 +673,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   modalConfirmBtn: {
-    backgroundColor: '#92400E',
+    backgroundColor: adminUi.suspendAccent,
     borderRadius: adminUi.radiusPill,
     paddingVertical: 16,
     alignItems: 'center',

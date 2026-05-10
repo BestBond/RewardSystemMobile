@@ -9,7 +9,6 @@ export type AuthInitialRoute = keyof Pick<
   RootStackParamList,
   | 'Main'
   | 'AdminMain'
-  | 'ProfileSetup'
   | 'AdminProfileSetup'
   | 'CustomerAuth'
 >;
@@ -36,11 +35,10 @@ export async function resolveInitialRoute(): Promise<AuthInitialRoute> {
     const profile = await getMyProfile();
     const me = await meSnapshot();
     const home = pickHomeRoute(profile, me ?? undefined);
-    return isProfileComplete(profile)
-      ? home
-      : home === 'AdminMain'
-        ? 'AdminProfileSetup'
-        : 'ProfileSetup';
+    if (home === 'AdminMain') {
+      return isProfileComplete(profile) ? home : 'AdminProfileSetup';
+    }
+    return home;
   } catch (e) {
     if (isApiError(e) && e.status === 401) {
       await setAccessToken(null);

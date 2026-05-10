@@ -1,4 +1,4 @@
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import React, { useCallback, useState } from 'react';
 import {
@@ -21,7 +21,11 @@ import { getAuthMe, getMyProfile } from '../../api/users';
 import { isApiError, userFacingApiMessage } from '../../api/client';
 import type { AdminTabParamList } from '../../navigation/types';
 import { adminUi } from '../../theme/adminUi';
-import { isOperationalOnly } from './adminRole';
+import {
+  canAccessAdminDashboardApi,
+  isOperationalOnly,
+} from './adminRole';
+import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 
 type AdminHomeNav = BottomTabNavigationProp<AdminTabParamList, 'AdminHome'>;
 
@@ -118,14 +122,24 @@ export function SuperAdminDashboardScreen() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [profile, d] = await Promise.all([
+      const [profile, meRes] = await Promise.all([
         getMyProfile(),
-        getAdminDashboard(),
+        getAuthMe().catch(() => ({ user: null })),
       ]);
+      const me = meRes.user ?? null;
+      /** `/users/me` is best-effort; permissions also come from `getMyProfile()`. */
+      const rbacSnap = me ?? profile;
       setHeadlineName(displayName(profile.fullName, profile.email));
+      setOperationalOnly(isOperationalOnly(rbacSnap));
+
+      if (!canAccessAdminDashboardApi(rbacSnap)) {
+        setDash(null);
+        setError('You do not have access to the admin dashboard.');
+        return;
+      }
+
+      const d = await getAdminDashboard();
       setDash(d);
-      const me = await getAuthMe().catch(() => ({ user: null }));
-      setOperationalOnly(isOperationalOnly(me.user ?? null));
     } catch (e) {
       if (isApiError(e)) {
         if (e.status === 403 || e.status === 401) {
@@ -145,12 +159,10 @@ export function SuperAdminDashboardScreen() {
     }
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      setLoading(true);
-      load().catch(() => {});
-    }, [load]),
-  );
+  useRefreshOnFocusAndForeground(() => {
+    setLoading(true);
+    load().catch(() => {});
+  });
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -212,12 +224,12 @@ export function SuperAdminDashboardScreen() {
               <View style={styles.actionGlow} pointerEvents="none" />
               <Text style={styles.actionQueueLabel}>ACTION QUEUE</Text>
               <Text style={styles.actionTitle}>
-                {operationalOnly ? 'Dispatch Queue' : 'Pending Approvals'}
+                {operationalOnly ? 'Dealer dispatch' : 'Redemption approvals'}
               </Text>
               <Text style={styles.actionSub}>
                 {operationalOnly
-                  ? 'Coordinate packing and delivery for approved rewards.'
-                  : 'Requires validation for high-value reward redemptions'}
+                  ? 'Confirm delivery of approved dealer store rewards.'
+                  : 'Contractor / painter app and dealer store requests awaiting review.'}
               </Text>
               <View style={styles.actionMetricRow}>
                 <Text style={styles.actionCount}>
@@ -234,7 +246,7 @@ export function SuperAdminDashboardScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Open request queue">
                 <Text style={styles.actionCtaText}>
-                  {operationalOnly ? 'Open Dispatch Queue' : 'Request Queue'}
+                  {operationalOnly ? 'Open queues' : 'Open approval queue'}
                 </Text>
                 <Text style={styles.actionCtaArrow}>{'\u2192'}</Text>
               </Pressable>
@@ -293,6 +305,30 @@ export function SuperAdminDashboardScreen() {
                 {formatInt(dash.pointsRedeemed.totalLast7Days)}
               </Text>
               <TrendFoot percent={dash.pointsRedeemed.percentVsPriorWeek} />
+            </View>
+
+            <View style={[styles.metricCard, styles.metricGap, adminUi.shadowCard]}>
+              <View style={styles.metricTopRow}>
+                <MetricIconWrap>
+                  <TxTicketOrange width={22} height={22} />
+                </MetricIconWrap>
+              </View>
+              <Text style={styles.metricLabel}>TOTAL COUPONS ISSUED</Text>
+              <Text style={styles.metricValue}>
+                {formatInt(dash.totalCouponsIssued ?? 0)}
+              </Text>
+            </View>
+
+            <View style={[styles.metricCard, styles.metricGap, adminUi.shadowCard]}>
+              <View style={styles.metricTopRow}>
+                <MetricIconWrap>
+                  <BasketSmall width={22} height={22} />
+                </MetricIconWrap>
+              </View>
+              <Text style={styles.metricLabel}>TOTAL COUPONS RECEIVED</Text>
+              <Text style={styles.metricValue}>
+                {formatInt(dash.totalCouponsReceived ?? 0)}
+              </Text>
             </View>
 
             <Text style={styles.blockTitle}>User Engagement Metrics</Text>
