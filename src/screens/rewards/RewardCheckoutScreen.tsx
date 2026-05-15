@@ -22,6 +22,7 @@ import {
 import { redeemReward, getReward, type RewardDto } from '../../api/rewards';
 import { getMyProfile } from '../../api/users';
 import { userFacingApiMessage } from '../../api/client';
+import { navigateToProfileEdit } from '../../navigation/rootNavigation';
 import type { CartStackParamList } from '../../navigation/types';
 import { colors } from '../../theme/colors';
 import { RewardImageBlock } from './RewardImageBlock';
@@ -195,11 +196,7 @@ export function RewardCheckoutScreen() {
               {!isDealer ? (
                 <Pressable
                   hitSlop={8}
-                  onPress={() =>
-                    navigation
-                      .getParent()
-                      ?.navigate('Profile', { screen: 'UserProfile' })
-                  }>
+                  onPress={() => navigateToProfileEdit()}>
                   <Text style={styles.edit}>Edit</Text>
                 </Pressable>
               ) : (

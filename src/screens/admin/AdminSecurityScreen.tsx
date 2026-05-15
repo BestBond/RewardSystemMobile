@@ -5,33 +5,30 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { adminUi } from '../../theme/adminUi';
-import { AdminHeader } from './components/AdminHeader';
-import {
-  changeMyPassword,
-  getAdminPreferences,
-  updateAdminPreferences,
-} from '../../api/adminPreferences';
+import { changeMyPassword } from '../../api/adminPreferences';
 import { isApiError, userFacingApiMessage } from '../../api/client';
 import { getAuthMe } from '../../api/users';
+import { EyeToggle } from '../../components/EyeToggle';
+import { adminUi } from '../../theme/adminUi';
+import { AdminHeader } from './components/AdminHeader';
 import { isSuperAdmin } from './adminRole';
 
 export function AdminSecurityScreen() {
   const insets = useSafeAreaInsets();
   const [roleLoading, setRoleLoading] = useState(true);
   const [showSecurityUi, setShowSecurityUi] = useState(false);
-  const [quickPin, setQuickPin] = useState(true);
+  const [showCurPwd, setShowCurPwd] = useState(false);
+  const [showNewPwd, setShowNewPwd] = useState(false);
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
   const [cur, setCur] = useState('');
   const [nw, setNw] = useState('');
   const [cf, setCf] = useState('');
   const [saving, setSaving] = useState(false);
-  const [loadingPrefs, setLoadingPrefs] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -54,25 +51,6 @@ export function AdminSecurityScreen() {
       cancelled = true;
     };
   }, []);
-
-  React.useEffect(() => {
-    if (!showSecurityUi || roleLoading) return;
-    let cancelled = false;
-    setLoadingPrefs(true);
-    getAdminPreferences()
-      .then(prefs => {
-        if (!cancelled) {
-          setQuickPin(prefs.quickLoginPinEnabled);
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setLoadingPrefs(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [showSecurityUi, roleLoading]);
 
   const onUpdatePassword = async () => {
     setError(null);
@@ -162,32 +140,56 @@ export function AdminSecurityScreen() {
             integrity. We recommend complex phrases.
           </Text>
           <Text style={styles.lbl}>CURRENT PASSWORD</Text>
-          <TextInput
-            style={styles.input}
-            secureTextEntry
-            value={cur}
-            onChangeText={setCur}
-            placeholder="••••••••"
-            placeholderTextColor={adminUi.mutedGray}
-          />
+          <View style={styles.inputRow}>
+            <TextInput
+              style={[styles.inputInner, styles.inputFlex]}
+              secureTextEntry={!showCurPwd}
+              value={cur}
+              onChangeText={setCur}
+              placeholder="••••••••"
+              placeholderTextColor={adminUi.mutedGray}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <EyeToggle
+              passwordVisible={showCurPwd}
+              onToggle={() => setShowCurPwd(v => !v)}
+            />
+          </View>
           <Text style={[styles.lbl, styles.gap]}>NEW PASSWORD</Text>
-          <TextInput
-            style={styles.input}
-            secureTextEntry
-            value={nw}
-            onChangeText={setNw}
-            placeholder="••••••••"
-            placeholderTextColor={adminUi.mutedGray}
-          />
+          <View style={styles.inputRow}>
+            <TextInput
+              style={[styles.inputInner, styles.inputFlex]}
+              secureTextEntry={!showNewPwd}
+              value={nw}
+              onChangeText={setNw}
+              placeholder="••••••••"
+              placeholderTextColor={adminUi.mutedGray}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <EyeToggle
+              passwordVisible={showNewPwd}
+              onToggle={() => setShowNewPwd(v => !v)}
+            />
+          </View>
           <Text style={[styles.lbl, styles.gap]}>CONFIRM NEW PASSWORD</Text>
-          <TextInput
-            style={styles.input}
-            secureTextEntry
-            value={cf}
-            onChangeText={setCf}
-            placeholder="••••••••"
-            placeholderTextColor={adminUi.mutedGray}
-          />
+          <View style={styles.inputRow}>
+            <TextInput
+              style={[styles.inputInner, styles.inputFlex]}
+              secureTextEntry={!showConfirmPwd}
+              value={cf}
+              onChangeText={setCf}
+              placeholder="••••••••"
+              placeholderTextColor={adminUi.mutedGray}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <EyeToggle
+              passwordVisible={showConfirmPwd}
+              onToggle={() => setShowConfirmPwd(v => !v)}
+            />
+          </View>
           {error ? <Text style={styles.errTxt}>{error}</Text> : null}
           {success ? <Text style={styles.okTxt}>{success}</Text> : null}
           <Pressable
@@ -208,40 +210,6 @@ export function AdminSecurityScreen() {
               <Text style={styles.updatePwTxt}>Update Password</Text>
             )}
           </Pressable>
-        </View>
-
-        <Text style={styles.h1}>Efficiency</Text>
-        <Text style={styles.desc}>
-          Streamline your workflow with biometric-ready authentication
-          shortcuts.
-        </Text>
-        <View style={[styles.toggleCard, adminUi.shadowCard]}>
-          <View style={styles.toggleMid}>
-            <Text style={styles.toggleTitle}>Quick Login PIN</Text>
-            <Text style={styles.toggleSub}>
-              Use a 4-digit PIN instead of a password
-            </Text>
-          </View>
-          <Switch
-            value={quickPin}
-            disabled={loadingPrefs || saving}
-            onValueChange={v => {
-              setQuickPin(v);
-              setError(null);
-              setSuccess(null);
-              updateAdminPreferences({ quickLoginPinEnabled: v })
-                .then(() => {
-                  setSuccess(v ? 'Quick Login PIN enabled.' : 'Quick Login PIN disabled.');
-                })
-                .catch((e) => {
-                  setQuickPin(prev => !prev);
-                  if (isApiError(e)) setError(userFacingApiMessage(e.message));
-                  else setError('Unable to update quick PIN setting.');
-                });
-            }}
-            trackColor={{ false: '#E5E7EB', true: '#FDBA74' }}
-            thumbColor={quickPin ? adminUi.accentOrange : '#f4f3f4'}
-          />
         </View>
       </ScrollView>
     </View>
@@ -277,12 +245,19 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   gap: { marginTop: 14 },
-  input: {
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 8,
     backgroundColor: adminUi.white,
     borderRadius: adminUi.radiusPill,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    paddingRight: 2,
+    minHeight: 50,
+  },
+  inputFlex: { flex: 1 },
+  inputInner: {
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
@@ -314,25 +289,5 @@ const styles = StyleSheet.create({
     color: adminUi.successGreen,
     marginTop: 10,
     fontWeight: '600',
-  },
-  toggleCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8F9FA',
-    borderRadius: adminUi.radiusLg,
-    padding: 16,
-    marginTop: 8,
-  },
-  toggleMid: { flex: 1, paddingRight: 12 },
-  toggleTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: adminUi.navyAlt,
-  },
-  toggleSub: {
-    fontSize: 13,
-    color: adminUi.labelMuted,
-    marginTop: 4,
-    lineHeight: 18,
   },
 });

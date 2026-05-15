@@ -20,6 +20,7 @@ import type { AdminUsersStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { adminUi } from '../../theme/adminUi';
 import { AdminHeader } from './components/AdminHeader';
+import { isStaffAdminProfessionLabel } from './adminRole';
 import {
   activateAdminUser,
   getAdminUserById,
@@ -96,6 +97,7 @@ export function AdminUserDetailScreen(_props: Props) {
   }, [u?.displayName]);
 
   const statusActive = (u?.status ?? 'ACTIVE') === 'ACTIVE';
+  const suspendAllowed = Boolean(u && !isStaffAdminProfessionLabel(u.profession));
 
   const [suspendOpen, setSuspendOpen] = useState(false);
   const [suspendReason, setSuspendReason] = useState('');
@@ -243,19 +245,24 @@ export function AdminUserDetailScreen(_props: Props) {
         ) : null}
 
         {statusActive ? (
-          <Pressable
-            hitSlop={12}
-            style={[
-              styles.suspendRow,
-              suspendSubmitting && { opacity: 0.5 },
-            ]}
-            disabled={suspendSubmitting}
-            accessibilityRole="button"
-            accessibilityLabel="Suspend account"
-            onPress={() => { setActionError(null); setSuspendOpen(true); }}>
-            <Text style={styles.suspendIcon}>{'\u2298'}</Text>
-            <Text style={styles.suspendTxt}>Suspend Account</Text>
-          </Pressable>
+          suspendAllowed ? (
+            <Pressable
+              hitSlop={12}
+              style={[
+                styles.suspendRow,
+                suspendSubmitting && { opacity: 0.5 },
+              ]}
+              disabled={suspendSubmitting}
+              accessibilityRole="button"
+              accessibilityLabel="Suspend account"
+              onPress={() => {
+                setActionError(null);
+                setSuspendOpen(true);
+              }}>
+              <Text style={styles.suspendIcon}>{'\u2298'}</Text>
+              <Text style={styles.suspendTxt}>Suspend Account</Text>
+            </Pressable>
+          ) : null
         ) : (
           <Pressable
             hitSlop={12}

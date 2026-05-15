@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
+import { resetAuthAfterSessionExpired } from '../navigation/rootNavigation';
 import { API_BASE_URL } from './config';
-import { getAccessToken } from './storage';
+import { clearAuthSession, getAccessToken } from './storage';
 
 export class ApiError extends Error {
   status: number;
@@ -101,13 +102,30 @@ function safeJsonParse(text: string) {
   }
 }
 
-async function buildHeaders(extra?: Record<string, string>) {
+type RequestAuth = { headers: Record<string, string>; hadAccessToken: boolean };
+
+async function buildRequestAuth(extra?: Record<string, string>): Promise<RequestAuth> {
   const token = await getAccessToken();
   return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(extra ?? {}),
+    hadAccessToken: Boolean(token),
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(extra ?? {}),
+    },
   };
+}
+
+async function throwIfNotOk(
+  res: Response,
+  json: unknown,
+  hadAccessToken: boolean,
+): Promise<never> {
+  if (res.status === 401 && hadAccessToken) {
+    await clearAuthSession();
+    resetAuthAfterSessionExpired();
+  }
+  throw new ApiError(messageFromErrorBody(json), res.status, json);
 }
 
 function altLocalhostBase(baseUrl: string) {
@@ -192,12 +210,13 @@ function networkErrorUserMessage(detail: string): string {
 
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   let res: Response;
+  const auth = await buildRequestAuth();
   try {
     // Visible in Metro console to debug connectivity issues.
     console.log(`[API] POST ${API_BASE_URL}${path}`);
     res = await fetchWithLocalFallback(`${API_BASE_URL}${path}`, {
       method: 'POST',
-      headers: await buildHeaders(),
+      headers: auth.headers,
       body: JSON.stringify(body),
     });
   } catch (e) {
@@ -208,18 +227,19 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   const text = await res.text();
   const json = safeJsonParse(text);
   if (!res.ok) {
-    throw new ApiError(messageFromErrorBody(json), res.status, json);
+    await throwIfNotOk(res, json, auth.hadAccessToken);
   }
   return json as T;
 }
 
 export async function apiGet<T>(path: string): Promise<T> {
   let res: Response;
+  const auth = await buildRequestAuth();
   try {
     console.log(`[API] GET ${API_BASE_URL}${path}`);
     res = await fetchWithLocalFallback(`${API_BASE_URL}${path}`, {
       method: 'GET',
-      headers: await buildHeaders(),
+      headers: auth.headers,
       cache: 'no-store',
     });
   } catch (e) {
@@ -230,18 +250,19 @@ export async function apiGet<T>(path: string): Promise<T> {
   const text = await res.text();
   const json = safeJsonParse(text);
   if (!res.ok) {
-    throw new ApiError(messageFromErrorBody(json), res.status, json);
+    await throwIfNotOk(res, json, auth.hadAccessToken);
   }
   return json as T;
 }
 
 export async function apiPut<T>(path: string, body: unknown): Promise<T> {
   let res: Response;
+  const auth = await buildRequestAuth();
   try {
     console.log(`[API] PUT ${API_BASE_URL}${path}`);
     res = await fetchWithLocalFallback(`${API_BASE_URL}${path}`, {
       method: 'PUT',
-      headers: await buildHeaders(),
+      headers: auth.headers,
       body: JSON.stringify(body),
     });
   } catch (e) {
@@ -252,18 +273,19 @@ export async function apiPut<T>(path: string, body: unknown): Promise<T> {
   const text = await res.text();
   const json = safeJsonParse(text);
   if (!res.ok) {
-    throw new ApiError(messageFromErrorBody(json), res.status, json);
+    await throwIfNotOk(res, json, auth.hadAccessToken);
   }
   return json as T;
 }
 
 export async function apiDelete<T>(path: string): Promise<T> {
   let res: Response;
+  const auth = await buildRequestAuth();
   try {
     console.log(`[API] DELETE ${API_BASE_URL}${path}`);
     res = await fetchWithLocalFallback(`${API_BASE_URL}${path}`, {
       method: 'DELETE',
-      headers: await buildHeaders(),
+      headers: auth.headers,
     });
   } catch (e) {
     const detail = String((e as Error)?.message ?? e);
@@ -273,7 +295,7 @@ export async function apiDelete<T>(path: string): Promise<T> {
   const text = await res.text();
   const json = safeJsonParse(text);
   if (!res.ok) {
-    throw new ApiError(messageFromErrorBody(json), res.status, json);
+    await throwIfNotOk(res, json, auth.hadAccessToken);
   }
   return json as T;
 }

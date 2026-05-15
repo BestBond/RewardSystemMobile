@@ -1,6 +1,6 @@
 /**
  * Copies launcher assets from src/assets/AppIcons into native projects.
- * iOS:  Assets.xcassets/AppIcon.appiconset → ios/RewardSystem/Images.xcassets/AppIcon.appiconset
+ * iOS:  Assets.xcassets/AppIcon.appiconset → ios/BestBond/Images.xcassets/AppIcon.appiconset
  * Android: android/mipmap-* → android/app/src/main/res/mipmap-*
  *
  * Run: npm run sync:app-icons
@@ -37,7 +37,7 @@ export function syncAppIconsFromAssets(root = projectRoot) {
   );
   const iosDest = join(
     root,
-    'ios/RewardSystem/Images.xcassets/AppIcon.appiconset',
+    'ios/BestBond/Images.xcassets/AppIcon.appiconset',
   );
   const androidSrc = join(root, 'src/assets/AppIcons/android');
   const androidDest = join(root, 'android/app/src/main/res');
@@ -81,7 +81,7 @@ if (isMain) {
   try {
     syncAppIconsFromAssets(projectRoot);
     console.log(
-      'OK: AppIcons → ios/RewardSystem/Images.xcassets/AppIcon.appiconset, android/app/src/main/res/mipmap-*',
+      'OK: AppIcons → ios/BestBond/Images.xcassets/AppIcon.appiconset, android/app/src/main/res/mipmap-*',
     );
   } catch (e) {
     console.error(e);

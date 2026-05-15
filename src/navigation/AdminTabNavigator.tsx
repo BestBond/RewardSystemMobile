@@ -77,7 +77,6 @@ export function AdminTabNavigator() {
       tabBar={AdminTabBarOuter}
       screenOptions={{
         headerShown: false,
-        lazy: false,
         tabBarHideOnKeyboard: true,
       }}
       initialRouteName="AdminHome">

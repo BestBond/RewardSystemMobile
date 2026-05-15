@@ -200,7 +200,7 @@ export function HomeScreen() {
           <Pressable
             hitSlop={12}
             onPress={() =>
-              navigation.navigate('Rewards', { screen: 'RewardsHome' })
+              navigation.navigate('Profile', { screen: 'TransactionHistory' })
             }>
             <Text style={styles.viewAll}>View All</Text>
           </Pressable>

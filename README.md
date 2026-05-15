@@ -1,4 +1,6 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# BestBond (React Native)
+
+This project is the **BestBond** mobile app, bootstrapped with [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
 # Getting Started
 

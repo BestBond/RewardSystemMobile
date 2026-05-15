@@ -35,8 +35,12 @@ type ScanNav = BottomTabNavigationProp<MainTabParamList, 'Scan'>;
 function tabStateHasAdminShell(navigation: {
   getState: () => { routes: { name: string }[] };
 }) {
-  const state = navigation.getState();
-  return state.routes.some(r => r.name === 'AdminHome');
+  try {
+    const state = navigation.getState();
+    return state.routes.some(r => r.name === 'AdminHome');
+  } catch {
+    return false;
+  }
 }
 
 const VIEWFINDER = 260;
@@ -57,7 +61,31 @@ const CODE_TYPES = [
   'data-matrix',
 ] as const;
 
+/**
+ * Vision Camera hooks must not run while this tab is in the background — that
+ * avoids native camera stack crashes when other tabs are visible.
+ */
 export function ScanScreen() {
+  const isFocused = useIsFocused();
+  if (!isFocused) {
+    return <ScanTabPlaceholder />;
+  }
+  return <ScanScreenWithCamera />;
+}
+
+function ScanTabPlaceholder() {
+  const insets = useSafeAreaInsets();
+  return (
+    <View
+      style={[
+        styles.root,
+        { paddingTop: insets.top, backgroundColor: colors.scanBg },
+      ]}
+    />
+  );
+}
+
+function ScanScreenWithCamera() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<ScanNav>();
   const isFocused = useIsFocused();

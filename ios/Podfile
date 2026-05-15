@@ -5,6 +5,134 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
+require 'fileutils'
+require 'json'
+
+# App Store: never set RCT_SYMBOLICATE_PREBUILT_FRAMEWORKS=1 — RN merges dSYMs inside the React tarball, which
+# triggers "Invalid bundle structure".
+#
+# Instead, stage_react_native_maven_dsyms! downloads Maven *-dSYM-release tarballs and extracts the ios-arm64 slices
+# into ios/build/. The Xcode phase copies those bundles into DWARF_DSYM_FOLDER_PATH so validation finds matching UUIDs
+# without putting dSYMs inside the embedded .framework folders.
+#
+# Prebuilt React.framework (RCT_USE_PREBUILT_RNCORE default) is dynamically linked to ReactNativeDependencies.framework.
+# Do NOT set RCT_USE_RN_DEP=0 unless you also build React from source — otherwise dyld crashes at launch:
+# "Library not loaded: @rpath/ReactNativeDependencies.framework/ReactNativeDependencies"
+#
+# Hermes: stage_hermes_ios_device_dsym! — same pattern as React (see Xcode copy phase).
+ENV['RCT_SYMBOLICATE_PREBUILT_FRAMEWORKS'] = '0'
+# For "iOS App on Apple silicon Mac" compatibility we avoid linking against
+# @rpath/ReactNativeDependencies.framework by building React from source instead of using
+# the prebuilt React.framework bundle.
+ENV['RCT_USE_PREBUILT_RNCORE'] = '0'
+# When building from source, do not use the Maven prebuilt ReactNativeDependencies framework.
+ENV['RCT_USE_RN_DEP'] = '0'
+
+def stage_maven_react_dsym_slice!(project_root, maven_repo, version, artifact_suffix, slice_in_tarball, dest_folder_name)
+  url = "#{maven_repo}/com/facebook/react/react-native-artifacts/#{version}/react-native-artifacts-#{version}-#{artifact_suffix}.tar.gz"
+  out_dsym = File.join(project_root, 'ios', 'build', dest_folder_name)
+  require 'tmpdir'
+  Dir.mktmpdir('rn-maven-dsym') do |tmp|
+    tar_gz = File.join(tmp, 'dsyms.tar.gz')
+    unless system('curl', '-sfL', url, '-o', tar_gz)
+      Pod::UI.warn("[RN dSYM] Download failed: #{url}")
+      next
+    end
+    system('tar', '-xzf', tar_gz, '-C', tmp, slice_in_tarball)
+    src = File.join(tmp, slice_in_tarball)
+    unless File.directory?(src)
+      Pod::UI.warn("[RN dSYM] #{slice_in_tarball} not found in tarball (artifact #{artifact_suffix}).")
+      next
+    end
+    FileUtils.rm_rf(out_dsym)
+    FileUtils.mkdir_p(File.dirname(out_dsym))
+    FileUtils.cp_r(src, out_dsym)
+    Pod::UI.puts "[RN dSYM] Staged ios/build/#{dest_folder_name}".green
+  end
+end
+
+def stage_react_native_maven_dsyms!(installer)
+  # Only relevant when using prebuilt React/ReactNativeDependencies frameworks.
+  return if ENV['RCT_USE_PREBUILT_RNCORE'] == '0'
+
+  pods_root = installer.sandbox.root
+  project_root = File.expand_path('../..', pods_root)
+  rn_pkg = File.join(project_root, 'node_modules', 'react-native', 'package.json')
+  unless File.exist?(rn_pkg)
+    Pod::UI.warn('[RN dSYM] Missing node_modules/react-native/package.json')
+    return
+  end
+  version = JSON.parse(File.read(rn_pkg))['version']
+  maven_repo = ENV['ENTERPRISE_REPOSITORY'].to_s.strip
+  maven_repo = 'https://repo1.maven.org/maven2' if maven_repo.empty?
+
+  # Device archive uses the same arm64 slice as physical iPhones (matches embedded Release frameworks).
+  stage_maven_react_dsym_slice!(
+    project_root,
+    maven_repo,
+    version,
+    'reactnative-core-dSYM-release',
+    'ios-arm64/React.framework.dSYM',
+    'React.framework.dSYM',
+  )
+  stage_maven_react_dsym_slice!(
+    project_root,
+    maven_repo,
+    version,
+    'reactnative-dependencies-dSYM-release',
+    'ios-arm64/ReactNativeDependencies.framework.dSYM',
+    'ReactNativeDependencies.framework.dSYM',
+  )
+end
+
+def stage_hermes_ios_device_dsym!(installer)
+  pods_root = installer.sandbox.root
+  # sandbox.root is .../ios/Pods; repo root is two levels up.
+  project_root = File.expand_path('../..', pods_root)
+  props_path = File.join(project_root, 'node_modules', 'react-native', 'sdks', 'hermes-engine', 'version.properties')
+  unless File.exist?(props_path)
+    Pod::UI.warn("[Hermes dSYM] Missing #{props_path}; skip.")
+    return
+  end
+
+  props = {}
+  File.read(props_path).each_line do |line|
+    k, v = line.strip.split('=', 2)
+    props[k] = v if k && v
+  end
+  hermes_version = ENV['RCT_HERMES_V1_ENABLED'] == '0' ? props['HERMES_VERSION_NAME'] : props['HERMES_V1_VERSION_NAME']
+  if hermes_version.nil? || hermes_version.empty?
+    Pod::UI.warn('[Hermes dSYM] Could not read Hermes version; skip.')
+    return
+  end
+
+  maven_repo = ENV['ENTERPRISE_REPOSITORY'].to_s.strip
+  maven_repo = 'https://repo1.maven.org/maven2' if maven_repo.empty?
+  url = "#{maven_repo}/com/facebook/hermes/hermes-ios/#{hermes_version}/hermes-ios-#{hermes_version}-hermes-framework-dSYM-release.tar.gz"
+
+  out_dsym = File.join(project_root, 'ios', 'build', 'hermesvm.framework.dSYM')
+  require 'tmpdir'
+  Dir.mktmpdir('hermes-dsym') do |tmp|
+    tar_gz = File.join(tmp, 'dsyms.tar.gz')
+    unless system('curl', '-sfL', url, '-o', tar_gz)
+      Pod::UI.warn("[Hermes dSYM] Download failed: #{url}")
+      next
+    end
+    # Device archive matches iphoneos slice from Maven dSYM bundle.
+    system('tar', '-xzf', tar_gz, '-C', tmp, 'iphoneos/hermesvm.framework.dSYM')
+    src = File.join(tmp, 'iphoneos', 'hermesvm.framework.dSYM')
+    unless File.directory?(src)
+      Pod::UI.warn('[Hermes dSYM] iphoneos/hermesvm.framework.dSYM not found in tarball.')
+      next
+    end
+
+    FileUtils.rm_rf(out_dsym)
+    FileUtils.mkdir_p(File.dirname(out_dsym))
+    FileUtils.cp_r(src, out_dsym)
+    Pod::UI.puts '[Hermes dSYM] Staged ios/build/hermesvm.framework.dSYM for Xcode archive.'.green
+  end
+end
+
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
@@ -14,7 +142,7 @@ if linkage != nil
   use_frameworks! :linkage => linkage.to_sym
 end
 
-target 'RewardSystem' do
+target 'BestBond' do
   config = use_native_modules!
 
   use_react_native!(
@@ -30,5 +158,33 @@ target 'RewardSystem' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+    stage_react_native_maven_dsyms!(installer)
+    stage_hermes_ios_device_dsym!(installer)
+
+    # Xcode enables user script sandboxing by default; the CocoaPods "Embed Pods Frameworks"
+    # phase only lists the Mach-O as an input, not every file inside each .framework bundle.
+    # With sandboxing on, rsync can fail to copy ReactNativeDependencies / React / Hermes fully,
+    # causing dyld: Library not loaded @rpath/ReactNativeDependencies.framework at launch.
+    disable_script_sandbox = lambda do |project|
+      project.build_configurations.each do |cfg|
+        cfg.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
+      end
+      project.native_targets.each do |t|
+        t.build_configurations.each do |cfg|
+          cfg.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
+        end
+      end
+      project.save
+    end
+    disable_script_sandbox.call(installer.pods_project)
+    installer.aggregate_targets.each do |aggregate_target|
+      disable_script_sandbox.call(aggregate_target.user_project)
+    end
+
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |cfg|
+        cfg.build_settings['DEBUG_INFORMATION_FORMAT'] = 'dwarf-with-dsym'
+      end
+    end
   end
 end

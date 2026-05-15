@@ -45,6 +45,22 @@ export function isOperationalOnly(
   return isOperationalAdmin(snap) && !isSuperAdmin(snap);
 }
 
+/**
+ * User profile UI: profession labels for staff accounts that cannot be suspended
+ * (aligned with backend SUPERADMIN / OPERATIONAL_ADMIN roles).
+ */
+export function isStaffAdminProfessionLabel(
+  profession: string | null | undefined,
+): boolean {
+  if (!profession?.trim()) return false;
+  const n = profession.trim().toLowerCase();
+  if (n.includes('super admin')) return true;
+  if (n.includes('superadmin')) return true;
+  if (n.includes('operational admin')) return true;
+  if (n.includes('operational_admin')) return true;
+  return false;
+}
+
 /** Matches GET /admin/dashboard — backend allows users.manage, dealer.redemptions.manage, or rbac.manage. */
 export function canAccessAdminDashboardApi(
   snap: AdminRoleSnapshot | null | undefined,

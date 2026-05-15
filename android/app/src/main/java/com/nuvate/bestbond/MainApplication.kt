@@ -1,4 +1,4 @@
-package com.rewardsystem
+package com.nuvate.bestbond
 
 import android.app.Application
 import com.facebook.react.PackageList

@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BackArrowLeft } from '../assets/svgs';
 import { AppButton, AppFieldLabel, AppPillInput } from '../components/ui';
 import type { RootStackScreenProps } from '../navigation/types';
 import { colors } from '../theme/colors';
@@ -26,6 +27,8 @@ export function ProfileSetupScreen({
 }: RootStackScreenProps<'ProfileSetup'>) {
   const insets = useSafeAreaInsets();
   const edit = route.params?.edit === true;
+  /** First-time incomplete setup may skip; returning users / edit flow may not. */
+  const [showSkipButton, setShowSkipButton] = useState(() => !edit);
   const [fullName, setFullName] = useState('');
   const [address, setAddress] = useState('');
   /** Profession is chosen at signup; profile edit only updates name/address. */
@@ -35,6 +38,14 @@ export function ProfileSetupScreen({
   const bg = colors.offWhite;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      goHome().catch(() => {});
+    }
+  };
 
   const goHome = async () => {
     try {
@@ -74,6 +85,7 @@ export function ProfileSetupScreen({
         }
         const pro = p.profession?.trim();
         if (pro) setProfessionToKeep(pro);
+        setShowSkipButton(!edit && !isProfileComplete(p));
       })
       .catch(() => {});
   }, [edit]);
@@ -148,14 +160,24 @@ export function ProfileSetupScreen({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           <View style={styles.topBar}>
-            <View style={styles.topSpacer} />
             <Pressable
+              style={styles.backBtn}
               hitSlop={12}
-              onPress={() => {
-                goHome().catch(() => {});
-              }}>
-              <Text style={styles.skip}>Skip</Text>
+              onPress={handleBack}
+              accessibilityRole="button"
+              accessibilityLabel="Back">
+              <BackArrowLeft width={24} height={24} />
             </Pressable>
+            <View style={styles.topSpacer} />
+            {showSkipButton ? (
+              <Pressable
+                hitSlop={12}
+                onPress={() => {
+                  goHome().catch(() => {});
+                }}>
+                <Text style={styles.skip}>Skip</Text>
+              </Pressable>
+            ) : null}
           </View>
 
           <Text style={styles.title}>Complete Your Profile</Text>
@@ -209,9 +231,13 @@ const styles = StyleSheet.create({
   },
   topBar: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
     alignItems: 'center',
     marginBottom: 8,
+    minHeight: 44,
+  },
+  backBtn: {
+    width: 44,
+    justifyContent: 'center',
   },
   topSpacer: { flex: 1 },
   skip: {

@@ -106,7 +106,7 @@ export function AdminProfileHomeScreen() {
             </View>
             <View style={styles.menuMid}>
               <Text style={styles.menuTitle}>Security & Preferences</Text>
-              <Text style={styles.menuSub}>Manage credentials and PIN</Text>
+              <Text style={styles.menuSub}>Manage credentials</Text>
             </View>
             <ChevronRight width={20} height={20} strokeColor="#94A3B8" />
           </Pressable>

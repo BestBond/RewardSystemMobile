@@ -215,11 +215,13 @@ export function UserProfileScreen() {
             <Text style={styles.logoutText}>Log Out</Text>
           </Pressable>
 
-          <Text style={styles.version}>APP VERSION {APP_VERSION}</Text>
-          <Text style={styles.developer}>
-            Developed by{' '}
-            <Text style={styles.developerAccent}>Nuvate</Text>
-          </Text>
+          <View style={styles.footerRow}>
+            <Text style={styles.version}>APP VERSION {APP_VERSION}</Text>
+            <Text style={styles.developer}>
+              Developed by{' '}
+              <Text style={styles.developerAccent}>Nuvate</Text>
+            </Text>
+          </View>
         </ScrollView>
       )}
     </View>
@@ -388,17 +390,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: figma.textBody,
   },
-  version: {
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginTop: 20,
-    textAlign: 'center',
+    gap: 8,
+  },
+  version: {
+    flex: 1,
+    minWidth: 0,
+    textAlign: 'left',
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0.5,
     color: '#B0B4BC',
   },
   developer: {
-    marginTop: 8,
-    textAlign: 'center',
+    flex: 1,
+    minWidth: 0,
+    textAlign: 'right',
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0.5,

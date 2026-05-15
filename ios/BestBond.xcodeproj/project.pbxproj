@@ -8,22 +8,22 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		1F208EE30CE8263DDD827159 /* libPods-BestBond.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 531EB0EA07C88D52E1D56486 /* libPods-BestBond.a */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		C1BC2BBD1B2780CC6C34CEA1 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
-		CDBD067833D6081C7308A604 /* libPods-RewardSystem.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AD9B34FA29B954F2A9BBED54 /* libPods-RewardSystem.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		13B07F961A680F5B00A75B9A /* RewardSystem.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RewardSystem.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = RewardSystem/Images.xcassets; sourceTree = "<group>"; };
-		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = RewardSystem/Info.plist; sourceTree = "<group>"; };
-		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = RewardSystem/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = RewardSystem/AppDelegate.swift; sourceTree = "<group>"; };
-		7ACA9523ABB63AD18408A330 /* Pods-RewardSystem.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RewardSystem.release.xcconfig"; path = "Target Support Files/Pods-RewardSystem/Pods-RewardSystem.release.xcconfig"; sourceTree = "<group>"; };
-		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = RewardSystem/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		8646F8D7DB5DF3691193E742 /* Pods-RewardSystem.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RewardSystem.debug.xcconfig"; path = "Target Support Files/Pods-RewardSystem/Pods-RewardSystem.debug.xcconfig"; sourceTree = "<group>"; };
-		AD9B34FA29B954F2A9BBED54 /* libPods-RewardSystem.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-RewardSystem.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		09D9A500A91F1500DB827685 /* Pods-BestBond.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-BestBond.release.xcconfig"; path = "Target Support Files/Pods-BestBond/Pods-BestBond.release.xcconfig"; sourceTree = "<group>"; };
+		13B07F961A680F5B00A75B9A /* BestBond.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BestBond.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = BestBond/Images.xcassets; sourceTree = "<group>"; };
+		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = BestBond/Info.plist; sourceTree = "<group>"; };
+		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = BestBond/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		531EB0EA07C88D52E1D56486 /* libPods-BestBond.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-BestBond.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = BestBond/AppDelegate.swift; sourceTree = "<group>"; };
+		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = BestBond/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		C311C8AE67D11C24698001A6 /* Pods-BestBond.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-BestBond.debug.xcconfig"; path = "Target Support Files/Pods-BestBond/Pods-BestBond.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -32,14 +32,14 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CDBD067833D6081C7308A604 /* libPods-RewardSystem.a in Frameworks */,
+				1F208EE30CE8263DDD827159 /* libPods-BestBond.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		13B07FAE1A68108700A75B9A /* RewardSystem */ = {
+		13B07FAE1A68108700A75B9A /* BestBond */ = {
 			isa = PBXGroup;
 			children = (
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
@@ -48,14 +48,14 @@
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
 			);
-			name = RewardSystem;
+			name = BestBond;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				AD9B34FA29B954F2A9BBED54 /* libPods-RewardSystem.a */,
+				531EB0EA07C88D52E1D56486 /* libPods-BestBond.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -70,7 +70,7 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
-				13B07FAE1A68108700A75B9A /* RewardSystem */,
+				13B07FAE1A68108700A75B9A /* BestBond */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
@@ -84,7 +84,7 @@
 		83CBBA001A601CBA00E9B192 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				13B07F961A680F5B00A75B9A /* RewardSystem.app */,
+				13B07F961A680F5B00A75B9A /* BestBond.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -92,8 +92,8 @@
 		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				8646F8D7DB5DF3691193E742 /* Pods-RewardSystem.debug.xcconfig */,
-				7ACA9523ABB63AD18408A330 /* Pods-RewardSystem.release.xcconfig */,
+				C311C8AE67D11C24698001A6 /* Pods-BestBond.debug.xcconfig */,
+				09D9A500A91F1500DB827685 /* Pods-BestBond.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -101,25 +101,27 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		13B07F861A680F5B00A75B9A /* RewardSystem */ = {
+		13B07F861A680F5B00A75B9A /* BestBond */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "RewardSystem" */;
+			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "BestBond" */;
 			buildPhases = (
-				76E6F0C3E04A67858BEBEEF2 /* [CP] Check Pods Manifest.lock */,
+				2C7F07CD264412674B2327BE /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
-				3B5B143A4EB32B1D12C440F6 /* [CP] Embed Pods Frameworks */,
-				D0B4499CA045806F43F18F36 /* [CP] Copy Pods Resources */,
+				B424FCDFE2533B323571934E /* [CP] Embed Pods Frameworks */,
+				D7E8F9A01B2C3D4E5F607182 /* Verify prebuilt RN frameworks embedded */,
+				C5E6D7F8091A2B3C4D5E6F7A /* Copy Maven dSYMs to archive & strip nested framework dSYMs */,
+				9815E28286102F8F7A73FE47 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = RewardSystem;
-			productName = RewardSystem;
-			productReference = 13B07F961A680F5B00A75B9A /* RewardSystem.app */;
+			name = BestBond;
+			productName = BestBond;
+			productReference = 13B07F961A680F5B00A75B9A /* BestBond.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -135,7 +137,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "RewardSystem" */;
+			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "BestBond" */;
 			compatibilityVersion = "Xcode 12.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -148,7 +150,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				13B07F861A680F5B00A75B9A /* RewardSystem */,
+				13B07F861A680F5B00A75B9A /* BestBond */,
 			);
 		};
 /* End PBXProject section */
@@ -183,28 +185,7 @@
 			shellPath = /bin/sh;
 			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"$REACT_NATIVE_PATH/scripts/react-native-xcode.sh\"\n\n/bin/sh -c \"\\\"$WITH_ENVIRONMENT\\\" \\\"$REACT_NATIVE_XCODE\\\"\"\n";
 		};
-		3B5B143A4EB32B1D12C440F6 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-RewardSystem/Pods-RewardSystem-frameworks-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			inputPaths = (
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-RewardSystem/Pods-RewardSystem-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-RewardSystem/Pods-RewardSystem-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		76E6F0C3E04A67858BEBEEF2 /* [CP] Check Pods Manifest.lock */ = {
+		2C7F07CD264412674B2327BE /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -219,32 +200,86 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-RewardSystem-checkManifestLockResult.txt",
+				"$(DERIVED_FILE_DIR)/Pods-BestBond-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		D0B4499CA045806F43F18F36 /* [CP] Copy Pods Resources */ = {
+		9815E28286102F8F7A73FE47 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-RewardSystem/Pods-RewardSystem-resources-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-BestBond/Pods-BestBond-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-RewardSystem/Pods-RewardSystem-resources-${CONFIGURATION}-output-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-BestBond/Pods-BestBond-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-BestBond/Pods-BestBond-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		B424FCDFE2533B323571934E /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-BestBond/Pods-BestBond-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-BestBond/Pods-BestBond-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-BestBond/Pods-BestBond-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		C5E6D7F8091A2B3C4D5E6F7A /* Copy Maven dSYMs to archive & strip nested framework dSYMs */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${SRCROOT}/build/React.framework.dSYM/Contents/Info.plist",
+				"${SRCROOT}/build/ReactNativeDependencies.framework.dSYM/Contents/Info.plist",
+				"${SRCROOT}/build/hermesvm.framework.dSYM/Contents/Info.plist",
+			);
+			name = "Copy Maven dSYMs to archive & strip nested framework dSYMs";
+			outputFileListPaths = (
 			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-RewardSystem/Pods-RewardSystem-resources.sh\"\n";
+			shellScript = "set -e\nAPP_FW=\"${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Frameworks\"\nSTAGING=\"${SRCROOT}/build\"\n# One destination only — copying dSYMs to 4 paths duplicated ~1GB+ per archive and caused \"No space left on device\".\n# When DWARF_DSYM_FOLDER_PATH is unset (common in Run Script), use the product dir (same place as BestBond.app.dSYM).\nSYM_OUT=\"${DWARF_DSYM_FOLDER_PATH}\"\n[ -n \"$SYM_OUT\" ] || SYM_OUT=\"${TARGET_BUILD_DIR}\"\nmkdir -p \"$SYM_OUT\"\nfor STAGED in \"${STAGING}/React.framework.dSYM\" \"${STAGING}/ReactNativeDependencies.framework.dSYM\" \"${STAGING}/hermesvm.framework.dSYM\"; do\n  if [ -d \"$STAGED\" ]; then\n    BNAME=$(basename \"$STAGED\")\n    rm -rf \"${SYM_OUT}/${BNAME}\"\n    cp -R \"$STAGED\" \"$SYM_OUT/\"\n  fi\ndone\nif [ -d \"$APP_FW\" ]; then\n  find \"$APP_FW\" -type d -name \"dSYMs\" 2>/dev/null | while IFS= read -r DDIR; do\n    case \"$DDIR\" in\n      *.framework/dSYMs)\n        for bundle in \"$DDIR\"/*.dSYM; do\n          [ -d \"$bundle\" ] || continue\n          BNAME=$(basename \"$bundle\")\n          rm -rf \"${SYM_OUT}/${BNAME}\"\n          cp -R \"$bundle\" \"$SYM_OUT/\"\n        done\n        rm -rf \"$DDIR\"\n        ;;\n    esac\n  done\nfi\n";
+			showEnvVarsInLog = 0;
+		};
+		D7E8F9A01B2C3D4E5F607182 /* Verify prebuilt RN frameworks embedded */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Verify prebuilt RN frameworks embedded";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nAPP_FW=\"${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Frameworks\"\n\n# If React is built from source (Podfile sets RCT_USE_PREBUILT_RNCORE=0), React.framework and\n# ReactNativeDependencies.framework will not be present/embedded. In that mode, skip this check.\nif [ ! -d \"$APP_FW/React.framework\" ]; then\n  echo \"[RN] React.framework not present; assuming source-built RN core. Skipping prebuilt framework checks.\"\n  exit 0\nfi\n\nif [ ! -d \"$APP_FW\" ]; then\n  echo \"error: Missing Frameworks folder (embed failed or wrong product). Open BestBond.xcworkspace, run cd ios && pod install, Clean Build Folder.\" >&2\n  exit 1\nfi\n\nfor fw in React.framework ReactNativeDependencies.framework hermesvm.framework; do\n  if [ ! -d \"$APP_FW/$fw\" ]; then\n    echo \"error: $fw not in app bundle — typical causes: User Script Sandboxing (run pod install) or opening .xcodeproj instead of .xcworkspace.\" >&2\n    exit 1\n  fi\ndone\n\n# dSYM staging is only required for prebuilt frameworks; skip if not present.\nif [ \"$CONFIGURATION\" = \"Release\" ]; then\n  for need in React.framework.dSYM ReactNativeDependencies.framework.dSYM hermesvm.framework.dSYM; do\n    if [ -d \"${SRCROOT}/build/$need\" ]; then\n      :\n    fi\n  done\nfi\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -263,15 +298,20 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 8646F8D7DB5DF3691193E742 /* Pods-RewardSystem.debug.xcconfig */;
+			baseConfigurationReference = C311C8AE67D11C24698001A6 /* Pods-BestBond.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = J22N5WHHN9;
 				ENABLE_BITCODE = NO;
-				INFOPLIST_FILE = RewardSystem/Info.plist;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				INFOPLIST_FILE = BestBond/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BestBond;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -284,7 +324,7 @@
 					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.nuvate.bestbond;
-				PRODUCT_NAME = RewardSystem;
+				PRODUCT_NAME = BestBond;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -295,14 +335,19 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 7ACA9523ABB63AD18408A330 /* Pods-RewardSystem.release.xcconfig */;
+			baseConfigurationReference = 09D9A500A91F1500DB827685 /* Pods-BestBond.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = J22N5WHHN9;
-				INFOPLIST_FILE = RewardSystem/Info.plist;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				INFOPLIST_FILE = BestBond/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = BestBond;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -315,7 +360,7 @@
 					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.nuvate.bestbond;
-				PRODUCT_NAME = RewardSystem;
+				PRODUCT_NAME = BestBond;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -356,6 +401,7 @@
 				COPY_PHASE_STRIP = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = "";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -438,6 +484,7 @@
 				COPY_PHASE_STRIP = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = "";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -482,7 +529,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "RewardSystem" */ = {
+		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "BestBond" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				13B07F941A680F5B00A75B9A /* Debug */,
@@ -491,7 +538,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "RewardSystem" */ = {
+		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "BestBond" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				83CBBA201A601CBA00E9B192 /* Debug */,

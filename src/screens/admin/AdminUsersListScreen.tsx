@@ -16,7 +16,9 @@ import type { AdminUsersStackParamList } from '../../navigation/types';
 import { adminUi } from '../../theme/adminUi';
 import { listAdminUsers, type AdminUserListItem } from '../../api/adminUsers';
 import { isApiError, userFacingApiMessage } from '../../api/client';
+import { getAuthMe } from '../../api/users';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
+import { isSuperAdmin } from './adminRole';
 
 type Nav = NativeStackNavigationProp<AdminUsersStackParamList, 'AdminUsersList'>;
 
@@ -91,6 +93,8 @@ export function AdminUsersListScreen() {
   const [items, setItems] = useState<AdminUserListItem[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [total, setTotal] = useState<number | null>(null);
+  const [meId, setMeId] = useState<string | null>(null);
+  const [listHideSelf, setListHideSelf] = useState(false);
 
   const take = 20;
 
@@ -131,6 +135,27 @@ export function AdminUsersListScreen() {
     load('reset').catch(() => {});
   });
 
+  React.useEffect(() => {
+    let cancelled = false;
+    getAuthMe()
+      .then(r => {
+        const user = r.user ?? null;
+        if (!cancelled) {
+          setMeId(user?.id ?? null);
+          setListHideSelf(isSuperAdmin(user));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMeId(null);
+          setListHideSelf(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const rows = useMemo(() => {
     const palette = ['#E0E7FF', '#DCFCE7', '#FFE4E6', '#E0F2FE', '#FEF3C7'];
     const safe = (s: string) => {
@@ -138,12 +163,16 @@ export function AdminUsersListScreen() {
       for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
       return h;
     };
-    return items.map(u => ({
+    const mapped = items.map(u => ({
       ...u,
       avatarColor: palette[safe(u.id) % palette.length] ?? '#E5E7EB',
       roleLabel: u.profession ?? '—',
     }));
-  }, [items]);
+    if (listHideSelf && meId) {
+      return mapped.filter(u => u.id !== meId);
+    }
+    return mapped;
+  }, [items, listHideSelf, meId]);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -226,7 +255,7 @@ export function AdminUsersListScreen() {
               )}
             </Pressable>
             <Text style={styles.footerHint}>
-              Showing {items.length} of {total ?? items.length} users.
+              Showing {rows.length} of {total ?? rows.length} users.
             </Text>
           </View>
         }

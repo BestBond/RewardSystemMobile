@@ -21,7 +21,8 @@ export function MainTabNavigator() {
       tabBar={MainTabBarOuter}
       screenOptions={{
         headerShown: false,
-        lazy: false,
+        // lazy: true (default) — do not mount Scan (VisionCamera) until the user opens that tab;
+        // eager mounting caused native crashes on launch for some devices / permission states.
         tabBarHideOnKeyboard: true,
       }}
       initialRouteName="Home">

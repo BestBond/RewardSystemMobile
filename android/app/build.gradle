@@ -77,9 +77,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.rewardsystem"
+    namespace "com.nuvate.bestbond"
     defaultConfig {
-        applicationId "com.rewardsystem"
+        applicationId "com.nuvate.bestbond"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

@@ -7,13 +7,16 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { AppNavigator } from './src/navigation/AppNavigator';
 
 function App() {
   return (
     <View style={styles.root}>
       <SafeAreaProvider>
-        <AppNavigator />
+        <ErrorBoundary>
+          <AppNavigator />
+        </ErrorBoundary>
       </SafeAreaProvider>
     </View>
   );

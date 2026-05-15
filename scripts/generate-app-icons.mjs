@@ -93,6 +93,9 @@ const iosFiles = {
   'Icon-80.png': 80,
   'Icon-120.png': 120,
   'Icon-180.png': 180,
+  /** iPad (required when TARGETED_DEVICE_FAMILY includes iPad) */
+  'Icon-152.png': 152,
+  'Icon-167.png': 167,
   'Icon-1024.png': 1024,
 };
 
@@ -145,6 +148,18 @@ const iosContents = {
       idiom: 'iphone',
       scale: '3x',
       filename: 'Icon-180.png',
+    },
+    {
+      size: '76x76',
+      idiom: 'ipad',
+      scale: '2x',
+      filename: 'Icon-152.png',
+    },
+    {
+      size: '83.5x83.5',
+      idiom: 'ipad',
+      scale: '2x',
+      filename: 'Icon-167.png',
     },
     {
       size: '1024x1024',

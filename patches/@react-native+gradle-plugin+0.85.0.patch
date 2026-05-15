@@ -1,0 +1,28 @@
+diff --git a/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/build.gradle.kts b/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/build.gradle.kts
+index 85dadeb..4b6d425 100644
+--- a/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/build.gradle.kts
++++ b/node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/build.gradle.kts
+@@ -17,8 +17,8 @@ plugins {
+ }
+ 
+ repositories {
+-  google()
+   mavenCentral()
++  google()
+ }
+ 
+ gradlePlugin {
+diff --git a/node_modules/@react-native/gradle-plugin/settings-plugin/build.gradle.kts b/node_modules/@react-native/gradle-plugin/settings-plugin/build.gradle.kts
+index 2fbeafd..7912c4b 100644
+--- a/node_modules/@react-native/gradle-plugin/settings-plugin/build.gradle.kts
++++ b/node_modules/@react-native/gradle-plugin/settings-plugin/build.gradle.kts
+@@ -17,8 +17,8 @@ plugins {
+ }
+ 
+ repositories {
+-  google()
+   mavenCentral()
++  google()
+ }
+ 
+ gradlePlugin {
