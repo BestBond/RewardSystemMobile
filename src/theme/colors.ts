@@ -1,7 +1,8 @@
 export const colors = {
   /** Figma primary (SuperAdmin + consumer accents) */
-  primaryOrange: '#EF8441',
-  splashOrange: '#FF7F11',
+  primaryOrange: '#fa8432',
+  splashOrange: '#F97316',
+  gradientBg: 'linear-gradient(0deg, rgba(177, 182, 190, 1) 0%, rgba(249, 133, 53, 1) 100%)',
   navy: '#1A1C2E',
   navyAlt: '#1A2B48',
   white: '#FFFFFF',
@@ -21,7 +22,7 @@ export const colors = {
   progressFill: '#1A2B48',
   scanBg: '#000000',
   scanSurface: '#2A2A2A',
-  scanLine: '#EF8441',
+  scanLine: '#fde6d7ff',
   modalOverlay: 'rgba(0,0,0,0.55)',
   confettiPink: '#EC4899',
   confettiPurple: '#A855F7',

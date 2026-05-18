@@ -22,6 +22,7 @@ import { getMyProfile } from '../api/users';
 import { setAccessToken } from '../api/storage';
 import { isProfileComplete } from '../auth/profileCompletion';
 import { pickHomeRoute } from '../auth/roleRouting';
+import { Image } from 'react-native';
 
 const COUNTRY_CODE = '+91';
 const RESEND_SECONDS = 30;
@@ -150,13 +151,21 @@ export function AdminLoginScreen({
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar  />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           contentContainerStyle={[styles.scroll, { paddingBottom: 28 + insets.bottom }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
-          <Text style={styles.title}>Management Login</Text>
+
+                      <View style={styles.logoWrapper} >
+                        <Image
+                          source={require("../assets/svgs/originals/manWithPhone.png")}
+                          style={{ width: 300, height: 300 }}
+                          resizeMode="contain"
+                        />
+                      </View>
+          {/* <Text style={styles.title}>Management Login</Text> */}
           <Text style={styles.sub}>
             {loginKind === 'super'
               ? 'Super Admin: enter OTP and your account password (8+ characters).'
@@ -201,6 +210,7 @@ export function AdminLoginScreen({
             </Pressable>
           </View>
 
+                <View style={styles.formContainer}>
           <AppFieldLabel text="MOBILE NUMBER" />
           <AppPhoneInput
             countryCode={COUNTRY_CODE}
@@ -254,6 +264,8 @@ export function AdminLoginScreen({
 
           <AppButton text={loading ? 'Logging in...' : 'Log In'} onPress={onLogin} disabled={loading} style={styles.cta} />
 
+</View>
+
           <View style={styles.row}>
             <Text style={styles.muted}>New Ops Admin? </Text>
             <Pressable onPress={() => navigation.navigate('OpsAdminSignUp')} hitSlop={8}>
@@ -274,11 +286,11 @@ export function AdminLoginScreen({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.white },
+  root: { flex: 1, backgroundColor: colors.primaryOrange },
   flex: { flex: 1 },
   scroll: { paddingHorizontal: 24, paddingTop: 40 },
   title: { fontSize: 28, fontWeight: '900', color: figma.textTitle, marginBottom: 10 },
-  sub: { fontSize: 14, color: colors.mutedGray, lineHeight: 20, marginBottom: 16 },
+  sub: { fontSize: 18, color: colors.white, textAlign: 'center', lineHeight: 20, marginBottom: 16 },
   kindRow: {
     flexDirection: 'row',
     gap: 10,
@@ -313,9 +325,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   otpMuted: { fontSize: 12, color: colors.mutedGray, marginBottom: 2 },
-  otpAction: { fontSize: 12, color: colors.primaryOrange, fontWeight: '700', marginBottom: 2 },
+  otpAction: { fontSize: 12, color: colors.primaryOrange, fontWeight: '700', marginBottom: 12 },
   pwBlock: { marginTop: 20 },
-  pwHint: { fontSize: 12, color: colors.mutedGray, marginTop: -4, marginBottom: 10 },
+  pwHint: { fontSize: 12, color: colors.navy, marginTop: -4, marginBottom: 10 },
   pwInput: {
     borderWidth: 1,
     borderColor: '#E5E7EB',
@@ -329,7 +341,18 @@ const styles = StyleSheet.create({
   cta: { marginTop: 34 },
   error: { marginTop: 10, fontSize: 13, color: '#D14343', textAlign: 'center' },
   row: { marginTop: 14, flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
-  muted: { color: colors.mutedGray, fontSize: 14 },
-  link: { color: colors.primaryOrange, fontSize: 14, fontWeight: '800' },
+  muted: { color: colors.navy, fontSize: 14 },
+  link: { color: colors.white, fontSize: 14, fontWeight: '800' },
+    formContainer: {
+    paddingVertical: 24,
+    padding: 18,
+    backgroundColor: colors.white,
+    borderRadius: 22,
+  },
+    logoWrapper: {
+    marginBottom: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
 

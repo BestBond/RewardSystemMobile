@@ -2,7 +2,6 @@ import React, { useCallback, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -224,7 +223,7 @@ function RoleCard({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.offWhite },
+  root: { flex: 1, backgroundColor: colors.white },
   flex: { flex: 1 },
   scroll: {
     paddingHorizontal: 20,

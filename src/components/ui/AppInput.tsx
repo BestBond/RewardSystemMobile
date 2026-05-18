@@ -20,7 +20,7 @@ export function AppPillInput({ containerStyle, ...props }: PillInputProps) {
       <TextInput
         {...props}
         style={[styles.pillInput, props.style]}
-        placeholderTextColor={props.placeholderTextColor ?? colors.lightGray}
+        placeholderTextColor={props.placeholderTextColor ?? colors.mutedGray}
       />
     </View>
   );
@@ -51,7 +51,7 @@ export function AppPhoneInput({
       <TextInput
         style={styles.phoneInput}
         placeholder={placeholder}
-        placeholderTextColor={colors.lightGray}
+        placeholderTextColor={colors.borderGray}
         keyboardType="phone-pad"
         maxLength={maxLength}
         value={value}
@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
   pillWrap: {
     borderWidth: 1,
     borderColor: colors.borderInput,
-    borderRadius: 26,
+    borderRadius: 16,
     backgroundColor: colors.white,
     overflow: 'hidden',
   },
@@ -81,15 +81,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.borderInput,
-    borderRadius: 28,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: colors.white,
   },
   country: {
-    backgroundColor: colors.codeBg,
-    paddingHorizontal: 14,
-    borderTopLeftRadius: 28,
-    borderBottomLeftRadius: 28,
+    backgroundColor: colors.scanLine,
+    paddingHorizontal: 10,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+
   },
   countryText: {
     fontSize: 17,

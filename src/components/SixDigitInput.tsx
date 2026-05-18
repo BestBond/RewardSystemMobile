@@ -126,16 +126,16 @@ const styles = StyleSheet.create({
   cellWrap: {
     position: 'relative',
     flex: 1,
-    maxWidth: 56,
-    height: 48,
+    maxWidth: 40,
+    height: 30,
     alignItems: 'center',
     justifyContent: 'center',
     marginHorizontal: 3,
   },
   circle: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 40,
+    height: 40,
+    borderRadius: 15,
     borderWidth: 1,
     backgroundColor: colors.white,
     alignItems: 'center',
@@ -146,10 +146,10 @@ const styles = StyleSheet.create({
   },
   circleFilled: {
     borderColor: '#0B0F14',
-    borderWidth: 2,
+    borderWidth: 1,
   },
   circleActive: {
-    borderColor: '#16A34A',
+    borderColor: colors.primaryOrange,
     borderWidth: 2,
   },
   digitText: {

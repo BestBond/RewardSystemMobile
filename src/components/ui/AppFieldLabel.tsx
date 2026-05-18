@@ -13,10 +13,10 @@ export function AppFieldLabel({ text, compact = false }: Props) {
 
 const styles = StyleSheet.create({
   label: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '600',
     letterSpacing: 0.6,
-    color: colors.labelGray,
+    color: colors.navy,
     marginBottom: 10,
   },
   compact: {

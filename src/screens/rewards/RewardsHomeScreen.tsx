@@ -13,10 +13,21 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, {
+  Defs,
+  LinearGradient as SvgLinear,
+  Rect,
+  Stop,
+  RadialGradient,
+  Circle,
+} from 'react-native-svg';
 import {
   BackArrowLeft,
-  LockClosed,
-  RewardsActive,
+  CardStar,
+  Earbud,
+  IconGiftOrange,
+  Leveling,
+  Lifting,
   TrendArrowUp,
 } from '../../assets/svgs';
 import {
@@ -25,12 +36,15 @@ import {
   type RewardDto,
 } from '../../api/rewards';
 import { getMyProfile } from '../../api/users';
-import type { MainTabParamList, RewardsStackParamList } from '../../navigation/types';
+import type {
+  MainTabParamList,
+  RewardsStackParamList,
+} from '../../navigation/types';
 import { colors } from '../../theme/colors';
 import { figma } from '../../theme/figmaTokens';
-import { RewardImageBlock } from './RewardImageBlock';
-import { balanceCaption } from './rewardPointsUtils';
+import { loyaltyTierFromPoints } from '../../utils/loyaltyTier';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
+import { AppCard, AppChip } from '../../components/ui';
 
 type Nav = CompositeNavigationProp<
   NativeStackNavigationProp<RewardsStackParamList, 'RewardsHome'>,
@@ -39,17 +53,38 @@ type Nav = CompositeNavigationProp<
 
 type PointFilterId = 'all' | `slab-${number}`;
 
+function RecommendedIcon({ title }: { title: string }) {
+  const size = 120;
+  const t = title.toLowerCase();
+  if (t.includes('boat') || t.includes('earbud')) {
+    return <Earbud width={size} height={size} />;
+  }
+  if (t.includes('levelling') || t.includes('leveling')) {
+    return <Leveling width={size} height={size} />;
+  }
+  if (t.includes('lifting')) {
+    return <Lifting width={size} height={size} />;
+  }
+  return <Earbud width={size} height={size} />;
+}
+
 export function RewardsHomeScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const [filter, setFilter] = useState<PointFilterId>('all');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [rewardsError, setRewardsError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
+  const [_rewardsError, setRewardsError] = useState<string | null>(null);
   const [balance, setBalance] = useState(0);
-  const [slabs, setSlabs] = useState<number[]>([]);
+  const [_slabs, setSlabs] = useState<number[]>([]);
   const [allRewards, setAllRewards] = useState<RewardDto[]>([]);
-  const [isDealer, setIsDealer] = useState(false);
+  const [_isDealer, setIsDealer] = useState(false);
+  const [selectedRewardId, setSelectedRewardId] = useState<string | null>(null);
+  const [tierInfo, setTierInfo] = useState({
+    tierLabel: 'Worker',
+    pointsToNextReward: 0,
+    progress: 0,
+  });
 
   const load = useCallback(async () => {
     setError(null);
@@ -58,15 +93,12 @@ export function RewardsHomeScreen() {
       const profile = await getMyProfile();
       const pts = Number(profile.loyaltyPoints ?? 0);
       setBalance(Number.isFinite(pts) ? pts : 0);
+      setTierInfo(loyaltyTierFromPoints(pts));
       setIsDealer(
-        (profile.roles ?? []).some(
-          r => String(r).toUpperCase() === 'DEALER',
-        ),
+        (profile.roles ?? []).some(r => String(r).toUpperCase() === 'DEALER'),
       );
     } catch (e) {
-      setError(
-        (e as Error)?.message ?? 'Could not load your profile. Pull to retry.',
-      );
+      setError((e as Error)?.message ?? 'Could not load profile');
       setLoading(false);
       return;
     }
@@ -77,15 +109,15 @@ export function RewardsHomeScreen() {
         getWorkerRedemptionSlabs(),
       ]);
       setSlabs(
-        [...new Set((slabValues ?? []).filter((x) => Number.isFinite(x) && x > 0))].sort(
-          (a, b) => a - b,
-        ),
+        [
+          ...new Set(
+            (slabValues ?? []).filter(x => Number.isFinite(x) && x > 0),
+          ),
+        ].sort((a, b) => a - b),
       );
       setAllRewards(rewards);
     } catch (e) {
-      setRewardsError(
-        (e as Error)?.message ?? 'Could not load rewards. Pull to retry.',
-      );
+      setRewardsError((e as Error)?.message ?? 'Could not load rewards');
       setAllRewards([]);
       setSlabs([]);
     } finally {
@@ -98,331 +130,392 @@ export function RewardsHomeScreen() {
     load().catch(() => {});
   });
 
-  const caption = useMemo(
-    () => balanceCaption(balance, allRewards),
-    [balance, allRewards],
-  );
   const visibleRewards = useMemo(() => {
     if (filter === 'all') return allRewards;
     const pts = Number(filter.replace('slab-', ''));
     if (!Number.isFinite(pts)) return allRewards;
-    return allRewards.filter((r) => r.pointsCost === pts);
+    return allRewards.filter(r => r.pointsCost === pts);
   }, [allRewards, filter]);
+
   const filterOptions = useMemo(
     () => [
-      { id: 'all' as const, label: 'All' },
-      ...slabs.map((s) => ({ id: `slab-${s}` as const, label: `${s.toLocaleString()} Pts` })),
+      { id: 'all' as const, label: 'All Rewards' },
+      { id: 'slab-1000' as const, label: 'Worker' },
+      { id: 'slab-2000' as const, label: 'Contractor' },
     ],
-    [slabs],
+    [],
   );
 
-  const goCheckout = (rewardId: string) => {
-    navigation.navigate('Cart', {
-      screen: 'RewardCheckout',
-      params: { rewardId },
-    });
-  };
+  const openRewardDetail = useCallback(
+    (rewardId: string) => {
+      setSelectedRewardId(rewardId);
+      navigation.navigate('Cart', {
+        screen: 'RewardCheckout',
+        params: { rewardId },
+      });
+    },
+    [navigation],
+  );
+
+  const confirmSelectedReward = useCallback(() => {
+    const rewardId =
+      selectedRewardId ??
+      visibleRewards.find(reward => balance >= reward.pointsCost)?.id ??
+      visibleRewards[0]?.id;
+
+    if (rewardId) {
+      openRewardDetail(rewardId);
+    }
+  }, [balance, openRewardDetail, selectedRewardId, visibleRewards]);
 
   return (
-    <View
-      style={[styles.root, { paddingTop: insets.top, backgroundColor: figma.screenMuted }]}>
+    <View style={styles.root}>
+      <Svg style={StyleSheet.absoluteFill}>
+        <Defs>
+          <SvgLinear id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="rgba(249,133,53,1)" stopOpacity="1" />
+            <Stop offset="1" stopColor="rgb(255, 248, 241)" stopOpacity="1" />
+          </SvgLinear>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill="url(#bgGrad)" />
+      </Svg>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
-        <View style={styles.headerSide}>
-          {navigation.canGoBack() ? (
-            <Pressable
-              hitSlop={12}
-              onPress={() => navigation.goBack()}
-              accessibilityRole="button"
-              accessibilityLabel="Back">
-              <BackArrowLeft width={22} height={22} />
-            </Pressable>
-          ) : (
-            <View style={styles.headerSpacer} />
-          )}
-        </View>
-        <Text style={styles.headerTitle}>Rewards</Text>
-        <View style={[styles.headerSide, styles.headerSideRight]}>
-          <View style={styles.ptsPill}>
-            <RewardsActive width={16} height={16} />
-            <Text style={styles.ptsPillText}>
-              {balance.toLocaleString()} Pts
-            </Text>
-          </View>
+      <View style={styles.headerOverlay} pointerEvents="none" />
+
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+        <Pressable
+          hitSlop={12}
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+        >
+          <BackArrowLeft width={24} height={24} />
+          <Text style={styles.headerTitle}>Rewards</Text>
+        </Pressable>
+        <View style={styles.ptsBadge}>
+          <CardStar width={16} height={16} />
+          <AppChip
+            text={`${balance.toLocaleString()} Pts`}
+            variant="accent"
+            style={styles.pointsChip}
+          />
         </View>
       </View>
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={colors.primaryOrange} />
-        </View>
-      ) : error ? (
-        <View style={styles.center}>
-          <Text style={styles.errText}>{error}</Text>
-          <Pressable style={styles.retry} onPress={() => load().catch(() => {})}>
-            <Text style={styles.retryText}>Retry</Text>
-          </Pressable>
+          <ActivityIndicator color={colors.white} />
         </View>
       ) : (
         <ScrollView
           contentContainerStyle={[
             styles.scroll,
-            { paddingBottom: 100 + insets.bottom },
+            { paddingBottom: 120 + insets.bottom },
           ]}
-          showsVerticalScrollIndicator={false}>
-          {rewardsError ? (
-            <View style={styles.rewardsErrBanner}>
-              <Text style={styles.rewardsErrText}>{rewardsError}</Text>
-              <Pressable
-                onPress={() => load().catch(() => {})}
-                accessibilityRole="button"
-                accessibilityLabel="Retry loading rewards">
-                <Text style={styles.retryText}>Retry</Text>
-              </Pressable>
-            </View>
-          ) : null}
-          {isDealer ? (
-            <View style={styles.dealerBanner}>
-              <Text style={styles.dealerBannerTitle}>Dealer account</Text>
-              <Text style={styles.dealerBannerBody}>
-                Submit redemptions in the app; operations will approve them. After
-                approval, collect your reward at your nearest authorized Best Bond
-                store.
-              </Text>
-            </View>
-          ) : null}
-
-          <View style={styles.balanceCard}>
-            <View style={styles.balanceGradient} pointerEvents="none" />
+          showsVerticalScrollIndicator={false}
+        >
+          <AppCard style={styles.balanceCard} variant="elevated">
+            <Svg
+              style={styles.balanceAccentSvg}
+              width={160}
+              height={160}
+              viewBox="0 0 160 160"
+              preserveAspectRatio="xMidYMid slice"
+            >
+              <Defs>
+                <RadialGradient
+                  id="accentGradR"
+                  cx="1.75"
+                  cy="1.25"
+                  rx="0.6"
+                  ry="0.6"
+                >
+                  <Stop
+                    offset="0"
+                    stopColor={colors.scanLine}
+                    stopOpacity="1"
+                  />
+                  <Stop
+                    offset="1"
+                    stopColor={colors.scanLine}
+                    stopOpacity="1"
+                  />
+                </RadialGradient>
+              </Defs>
+              <Circle cx="120" cy="50" r="80" fill="url(#accentGradR)" />
+              <Circle cx="106" cy="34" r="24" fill={colors.scanLine} />
+            </Svg>
             <Text style={styles.yourBalance}>YOUR BALANCE</Text>
             <View style={styles.balanceNums}>
-              <Text style={styles.balanceBig}>
-                {balance.toLocaleString()}
-              </Text>
+              <Text style={styles.balanceBig}>{balance.toLocaleString()}</Text>
               <Text style={styles.balancePtsSuffix}> PTS</Text>
             </View>
-            <Text style={styles.balanceCaption}>{caption}</Text>
+            <Text style={styles.balanceCaption}>
+              You're only {tierInfo.pointsToNextReward.toLocaleString()} points
+              away from the next tier rewards. Keep building your legacy.
+            </Text>
+
+            <View style={styles.tierLabelsRow}>
+              <Text style={styles.tierLabelSmall}>
+                CURRENT TIER: <Text style={styles.tierLabel}>Worker</Text>
+              </Text>
+              <Text style={styles.tierLabelSmallRight}>
+                NEXT:{' '}
+                <Text
+                  style={[styles.tierLabel, { color: colors.primaryOrange }]}
+                >
+                  Contractor
+                </Text>
+              </Text>
+            </View>
+
+            <View style={styles.progressTrack}>
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${tierInfo.progress * 100}%` },
+                ]}
+              />
+            </View>
+            <View style={styles.progressBottom}>
+              <Text style={styles.nextPtsText}>1,20,000 pts</Text>
+            </View>
+
             <Pressable
               style={({ pressed }) => [
                 styles.viewHistoryBtn,
                 pressed && styles.pressed,
               ]}
               onPress={() =>
-                navigation.navigate('Profile', {
-                  screen: 'TransactionHistory',
-                })
-              }>
+                navigation.navigate('Profile', { screen: 'TransactionHistory' })
+              }
+            >
               <Text style={styles.viewHistoryText}>View History</Text>
               <TrendArrowUp width={16} height={16} />
             </Pressable>
+          </AppCard>
+
+          <View style={styles.filterContainer}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterRow}
+            >
+              {filterOptions.map(tab => {
+                const selected = filter === tab.id;
+                return (
+                  <Pressable
+                    key={tab.id}
+                    onPress={() => setFilter(tab.id)}
+                    style={[
+                      styles.filterChip,
+                      selected
+                        ? styles.filterChipActive
+                        : styles.filterChipInactive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        selected && styles.filterChipTextActive,
+                      ]}
+                    >
+                      {tab.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
           </View>
 
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterRow}>
-            {filterOptions.map(tab => {
-              const selected = filter === tab.id;
+            contentContainerStyle={styles.rewardList}
+          >
+            {(visibleRewards.length > 0
+              ? visibleRewards
+              : [
+                  {
+                    id: 'r1',
+                    title: 'Levelling System',
+                    pointsCost: 1000,
+                    description:
+                      'Heavy-duty 18V brushless motor with 3 modes and hard-case carry set.',
+                  },
+                  {
+                    id: 'r2',
+                    title: 'Lifting Adjuster',
+                    pointsCost: 10000,
+                    description:
+                      'Precision lifting tool for professional construction use.',
+                  },
+                ]
+            ).map(item => {
+              const isUnlocked = balance >= item.pointsCost;
+              const progress = Math.min(balance / item.pointsCost, 1);
+
               return (
                 <Pressable
-                  key={tab.id}
-                  onPress={() => setFilter(tab.id)}
-                  style={[
-                    styles.filterChip,
-                    selected
-                      ? {
-                          backgroundColor: colors.navyAlt,
-                          borderColor: colors.navyAlt,
-                        }
-                      : styles.filterChipOutline,
-                  ]}>
-                  <Text
-                    style={[
-                      styles.filterChipText,
-                      selected && styles.filterChipTextOnDark,
-                    ]}>
-                    {tab.label}
-                  </Text>
+                  key={item.id}
+                  onPress={() => openRewardDetail(item.id)}
+                  style={({ pressed }) => [
+                    styles.rewardCard,
+                    selectedRewardId === item.id && styles.rewardCardSelected,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  {/* IMAGE */}
+                  <View style={styles.cardImageContainer}>
+                    <View style={styles.lockedImageWrap}>
+                      <View style={{ transform: [{ scale: 1.08 }] }}>
+                        <RecommendedIcon title={item.title} />
+                      </View>
+
+                      {/* {!isUnlocked && (
+                        <View style={styles.lockOverlay}>
+                          <View style={styles.lockBox}>
+                            <LockClosed width={36} height={46}  />
+                          </View>
+                        </View>
+                      )} */}
+                    </View>
+                  </View>
+
+                  {/* CONTENT */}
+                  <View style={styles.cardContent}>
+                    <Text style={styles.cardTitle}>{item.title}</Text>
+                    <Text style={styles.cardDesc} numberOfLines={3}>
+                      {item.description ||
+                        'Professional grade tool for your construction needs.'}
+                    </Text>
+
+                    {!isUnlocked && (
+                      <View style={styles.cardProgressTrack}>
+                        <View
+                          style={[
+                            styles.cardProgressFill,
+                            { width: `${progress * 100}%` },
+                          ]}
+                        />
+                      </View>
+                    )}
+
+                    {/* FOOTER */}
+                    <View style={styles.cardFooter}>
+                      <Text style={styles.requiresText}>
+                        Requires {item.pointsCost.toLocaleString()} Pts
+                      </Text>
+
+                      {isUnlocked ? (
+                        <Pressable
+                          style={styles.selectedBtn}
+                          onPress={() => openRewardDetail(item.id)}
+                        >
+                          <Text style={styles.selectedText}>Selected</Text>
+                        </Pressable>
+                      ) : (
+                        <View style={styles.lockedBtn}>
+                          <Text style={styles.lockedBtnText}>Locked</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
                 </Pressable>
               );
             })}
           </ScrollView>
-
-          {visibleRewards.length === 0 ? (
-            <Text style={styles.emptyFilter}>No rewards in this range.</Text>
-          ) : (
-            visibleRewards.map(reward => {
-              const unlocked = balance >= reward.pointsCost;
-              const progress = Math.min(
-                1,
-                balance / Math.max(1, reward.pointsCost),
-              );
-
-              return (
-                <View
-                  key={reward.id}
-                  style={[styles.rewardCard, !unlocked && styles.lockedCard]}>
-                  {unlocked ? (
-                    <>
-                      <View style={styles.rewardImageBlock}>
-                        <View style={styles.unlockedBadge}>
-                          <Text style={styles.unlockedBadgeText}>UNLOCKED</Text>
-                        </View>
-                        <View style={styles.imgPad}>
-                          <RewardImageBlock imageUrl={reward.imageUrl} />
-                        </View>
-                      </View>
-                      <View style={styles.rewardBody}>
-                        <Text style={styles.rewardTitle}>{reward.title}</Text>
-                        <Text style={styles.rewardDesc}>
-                          {reward.description ?? ''}
-                        </Text>
-                        <View style={styles.rewardFooter}>
-                          <View style={styles.priceRow}>
-                            <Text style={styles.priceNum}>
-                              {reward.pointsCost.toLocaleString()}
-                            </Text>
-                            <Text style={styles.pricePts}> PTS</Text>
-                          </View>
-                          <Pressable
-                            style={({ pressed }) => [
-                              styles.selectBtn,
-                              pressed && styles.pressed,
-                            ]}
-                            onPress={() => goCheckout(reward.id)}>
-                            <Text style={styles.selectBtnText}>Select</Text>
-                          </Pressable>
-                        </View>
-                      </View>
-                    </>
-                  ) : (
-                    <>
-                      <View style={styles.lockedImageWrap}>
-                        <RewardImageBlock imageUrl={reward.imageUrl} />
-                        <View style={styles.lockedOverlay} />
-                        <View style={styles.lockIconWrap}>
-                          <LockClosed width={36} height={36} />
-                        </View>
-                      </View>
-                      <View style={styles.rewardBody}>
-                        <Text style={styles.rewardTitle}>{reward.title}</Text>
-                        <Text style={styles.rewardDesc}>
-                          {reward.description ?? ''}
-                        </Text>
-                        <View style={styles.progressTrack}>
-                          <View
-                            style={[
-                              styles.progressFill,
-                              { width: `${progress * 100}%` },
-                            ]}
-                          />
-                        </View>
-                        <View style={styles.lockedFooter}>
-                          <Text style={styles.requiresPts}>
-                            Requires {reward.pointsCost.toLocaleString()} Pts
-                          </Text>
-                          <View style={styles.lockedPill}>
-                            <Text style={styles.lockedPillText}>Locked</Text>
-                          </View>
-                        </View>
-                      </View>
-                    </>
-                  )}
-                </View>
-              );
-            })
-          )}
         </ScrollView>
       )}
+
+      <View
+        style={[styles.stickyFooter, { paddingBottom: insets.bottom + 10 }]}
+      >
+        <Pressable
+          style={({ pressed }) => [
+            styles.confirmBtn,
+            pressed && styles.pressed,
+          ]}
+          onPress={confirmSelectedReward}
+        >
+          <Text style={styles.confirmText}>Confirm Reward</Text>
+          <IconGiftOrange width={20} height={20} color={colors.white} />
+        </Pressable>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
+  root: { flex: 1, position: 'relative' },
+  headerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 180,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
+    zIndex: 0,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginTop: 10,
+    zIndex: 10,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.navyAlt,
+  },
+  ptsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: colors.white,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+    ...figma.shadowSoft,
+  },
+  pointsChip: { paddingVertical: 5, paddingHorizontal: 10 },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
-  },
-  errText: { color: colors.mutedGray, textAlign: 'center' },
-  retry: { marginTop: 12 },
-  retryText: { color: colors.primaryOrange, fontWeight: '700' },
-  rewardsErrBanner: {
-    marginBottom: 12,
-    padding: 14,
-    borderRadius: 12,
-    backgroundColor: '#FFF4ED',
-    borderWidth: 1,
-    borderColor: 'rgba(242, 101, 34, 0.25)',
-  },
-  rewardsErrText: {
-    color: colors.navyAlt,
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: figma.screenMuted,
-  },
-  headerSide: {
-    width: 88,
-    justifyContent: 'center',
-  },
-  headerSideRight: { alignItems: 'flex-end' },
-  headerSpacer: { width: 22 },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.navyAlt,
-  },
-  ptsPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.badgeTint,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 4,
-  },
-  ptsPillText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.navyAlt,
   },
   scroll: {
-    paddingHorizontal: 16,
-    paddingTop: 4,
+    paddingTop: 20,
   },
   balanceCard: {
+    marginHorizontal: 20,
+    padding: 25,
+    borderRadius: 48,
     backgroundColor: colors.white,
-    borderRadius: 20,
-    padding: 20,
+    ...figma.shadowActionCard,
+    position: 'relative',
     overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderInput,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
   },
-  balanceGradient: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: colors.primaryOrange,
-    opacity: 0.07,
-    borderTopRightRadius: 120,
+  balanceAccentSvg: {
+    position: 'absolute',
+    top: -30,
+    right: -30,
+    width: 160,
+    height: 160,
+    zIndex: 0,
   },
   yourBalance: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '700',
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
     color: colors.labelGray,
   },
   balanceNums: {
@@ -431,221 +524,271 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   balanceBig: {
-    fontSize: 36,
-    fontWeight: '800',
+    fontSize: 48,
+    fontWeight: '900',
     color: colors.navyAlt,
   },
   balancePtsSuffix: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.lightGray,
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.mutedGray,
+    marginLeft: 4,
   },
   balanceCaption: {
-    marginTop: 12,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 18,
     color: colors.mutedGray,
+    lineHeight: 25,
+    marginTop: 20,
+    fontWeight: '300',
   },
-  viewHistoryBtn: {
-    alignSelf: 'center',
-    marginTop: 18,
+  tierLabelsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.white,
-    paddingHorizontal: 22,
-    paddingVertical: 12,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: colors.borderGray,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  viewHistoryText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.primaryOrange,
-  },
-  dealerBanner: {
-    backgroundColor: '#FFF4E8',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(242, 101, 34, 0.25)',
-  },
-  dealerBannerTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: colors.navyAlt,
-  },
-  dealerBannerBody: {
-    marginTop: 6,
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.mutedGray,
-  },
-  filterRow: {
-    gap: 10,
-    paddingVertical: 18,
-    paddingRight: 8,
-  },
-  filterChip: {
-    paddingHorizontal: 18,
-    paddingVertical: 11,
-    borderRadius: 24,
-    borderWidth: 1,
-  },
-  filterChipOutline: {
-    backgroundColor: colors.white,
-    borderColor: colors.borderGray,
-  },
-  filterChipText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.navyAlt,
-  },
-  filterChipTextOnDark: {
-    color: colors.white,
-  },
-  rewardCard: {
-    backgroundColor: colors.white,
-    borderRadius: 24,
-    marginBottom: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.borderGray,
-  },
-  lockedCard: {
-    marginTop: 0,
-  },
-  rewardImageBlock: {
-    backgroundColor: '#ECECEC',
-    padding: 12,
-    position: 'relative',
-  },
-  imgPad: { marginTop: 4 },
-  unlockedBadge: {
-    position: 'absolute',
-    top: 18,
-    left: 18,
-    zIndex: 2,
-    backgroundColor: '#FFE8D6',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-  },
-  unlockedBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.primaryOrange,
-    letterSpacing: 0.3,
-  },
-  rewardBody: {
-    padding: 16,
-  },
-  rewardTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: colors.navyAlt,
-  },
-  rewardDesc: {
-    marginTop: 6,
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.mutedGray,
-  },
-  rewardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 16,
+    alignItems: 'center',
+    marginTop: 20,
   },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+  tierLabelSmall: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.mutedGray,
   },
-  priceNum: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.navyAlt,
-  },
-  pricePts: {
-    fontSize: 14,
+  tierLabel: {
+    fontSize: 13,
     fontWeight: '700',
     color: colors.navyAlt,
   },
-  selectBtn: {
-    backgroundColor: colors.primaryOrange,
-    paddingHorizontal: 28,
-    paddingVertical: 12,
-    borderRadius: 24,
-    minWidth: 96,
-    alignItems: 'center',
-  },
-  selectBtnText: {
-    color: colors.white,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  lockedImageWrap: {
-    height: 148,
-    borderRadius: 16,
-    margin: 12,
-    overflow: 'hidden',
-    backgroundColor: '#F2F2F2',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  lockedOverlay: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(255,255,255,0.72)',
-  },
-  lockIconWrap: {
-    zIndex: 1,
+  tierLabelSmallRight: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: colors.mutedGray,
   },
   progressTrack: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#E5E7EB',
-    marginTop: 12,
+    height: 8,
+    borderRadius: 6,
+    backgroundColor: colors.progressTrack,
+    marginTop: 10,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 3,
-    backgroundColor: colors.primaryOrange,
+    backgroundColor: colors.splashOrange,
+    borderRadius: 4,
   },
-  lockedFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 14,
+  progressBottom: {
+    alignItems: 'flex-end',
+    marginTop: 6,
   },
-  requiresPts: {
-    fontSize: 13,
+  nextPtsText: {
+    fontSize: 12,
     color: colors.mutedGray,
     fontWeight: '500',
   },
-  lockedPill: {
-    backgroundColor: '#E8EEF6',
-    paddingHorizontal: 18,
+  viewHistoryBtn: {
+    marginTop: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.offWhite,
+    paddingHorizontal: 34,
     paddingVertical: 10,
-    borderRadius: 100,
+    paddingBottom: 11,
+    borderRadius: 30,
+    width: '100%',
   },
-  lockedPillText: {
+  viewHistoryText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.primaryOrange,
+  },
+  filterContainer: {
+    marginTop: 30,
+  },
+  filterRow: {
+    paddingHorizontal: 20,
+    gap: 8,
+    paddingBottom: 20,
+  },
+  filterChip: {
+    paddingHorizontal: 24,
+    paddingVertical: 9,
+    borderRadius: 30,
+    backgroundColor: colors.white,
+    ...figma.shadowSoft,
+  },
+  filterChipActive: {
+    backgroundColor: colors.navyAlt,
+  },
+  filterChipInactive: {
+    backgroundColor: colors.white,
+  },
+  filterChipText: {
     fontSize: 14,
+    fontWeight: '800',
+    color: colors.navyAlt,
+  },
+  filterChipTextActive: {
+    color: colors.white,
+  },
+  rewardList: {
+    paddingHorizontal: 20,
+    gap: 16,
+    paddingBottom: 20,
+  },
+  rewardCard: {
+    width: 285,
+    backgroundColor: '#F3F4F8',
+    borderRadius: 34,
+    padding: 20,
+    paddingBottom: 18,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    elevation: 3,
+  },
+  rewardCardSelected: {
+    borderWidth: 2,
+    borderColor: colors.primaryOrange,
+  },
+  cardImageContainer: {
+    height: 160,
+    borderRadius: 28,
+    backgroundColor: colors.white,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  lockedImageWrap: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [{ scale: 1.03 }],
+  },
+  lockOverlay: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.45)', // Frosted glass effect simulation
+    zIndex: 100,
+  },
+  lockBox: {
+    padding: 16,
+    borderRadius: 20,
+    ...figma.shadowSoft,
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+    elevation: 8,
+    zIndex: 110,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardContent: {
+    paddingHorizontal: 4,
+  },
+  cardTitle: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '800',
+    color: '#4B5563',
+    marginBottom: 10,
+  },
+  cardDesc: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: '#9CA3AF',
+    fontWeight: '500',
+    marginBottom: 22,
+  },
+  cardProgressTrack: {
+    height: 6,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 999,
+    overflow: 'hidden',
+    marginBottom: 22,
+  },
+  cardProgressFill: {
+    height: '100%',
+    backgroundColor: '#F97316',
+    borderRadius: 999,
+  },
+
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  requiresText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#9CA3AF',
     fontWeight: '600',
-    color: '#6B7280',
+    marginRight: 12,
   },
-  emptyFilter: {
-    textAlign: 'center',
-    color: colors.mutedGray,
-    marginTop: 24,
-    fontSize: 15,
+
+  lockedBtn: {
+    backgroundColor: '#DDE1E8',
+    borderRadius: 999,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    minWidth: 104,
+    alignItems: 'center',
   },
-  pressed: { opacity: 0.92 },
+
+  lockedBtnText: {
+    color: '#94A3B8',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+
+  selectedBtn: {
+    backgroundColor: '#FFF7ED',
+    borderRadius: 999,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    minWidth: 104,
+    alignItems: 'center',
+  },
+
+  selectedText: {
+    color: '#F97316',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  stickyFooter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    backgroundColor: 'transparent',
+  },
+  confirmBtn: {
+    backgroundColor: colors.primaryOrange,
+    paddingVertical: 18,
+    borderRadius: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    ...figma.shadowCta,
+  },
+  confirmText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  pressed: {
+    opacity: 0.9,
+  },
 });

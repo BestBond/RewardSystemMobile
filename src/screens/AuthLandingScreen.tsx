@@ -47,7 +47,7 @@ export function AuthLandingScreen({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: colors.primaryOrange,
     paddingHorizontal: 24,
   },
   header: {

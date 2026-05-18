@@ -1,9 +1,8 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Platform,
   Pressable,
   ScrollView,
   StatusBar,
@@ -12,15 +11,17 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Defs, LinearGradient as SvgLinear, Rect, Stop } from 'react-native-svg';
 import {
   BackArrowLeft,
+  BestBondMan,
   ChevronRight,
   IconGiftOrange,
   IconHeadsetOrange,
   IconReceiptDocOrange,
   IconTermsAlertOrange,
   LogOutDoor,
-  MapPinOrange,
+  UserAvatar,
 } from '../../assets/svgs';
 import { getAuthMe, getMyProfile, type MyProfile } from '../../api/users';
 import { redirectStaffToAdminShellIfNeeded } from '../../auth/staffShellRedirect';
@@ -32,32 +33,17 @@ import { figma } from '../../theme/figmaTokens';
 import { MENU_SUBTITLES } from './accountFigmaData';
 import packageJson from '../../../package.json';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
+import { loyaltyTierFromPoints } from '../../utils/loyaltyTier';
 
 const APP_VERSION = packageJson.version;
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'UserProfile'>;
-
-function initials(name: string | null): string {
-  const parts = (name ?? '').trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return '?';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0] ?? ''}${parts[parts.length - 1][0] ?? ''}`.toUpperCase();
-}
-
-function roleLabel(p: MyProfile): string {
-  const pro = p.profession?.trim();
-  if (pro) return pro;
-  return 'Dealer';
-}
 
 export function UserProfileScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<MyProfile | null>(null);
-
-  const isDealerUser = (p: MyProfile | null) =>
-    (p?.roles ?? []).some(role => String(role).toUpperCase() === 'DEALER');
 
   const load = useCallback(async () => {
     try {
@@ -78,61 +64,75 @@ export function UserProfileScreen() {
 
   useRefreshOnFocusAndForeground(() => {
     setLoading(true);
-    load().catch(() => {});
+    load().catch(() => { });
   });
 
+  const tierInfo = useMemo(() => {
+    return loyaltyTierFromPoints(profile?.loyaltyPoints ?? 0);
+  }, [profile?.loyaltyPoints]);
+
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={styles.root}>
+      <Svg style={StyleSheet.absoluteFill}>
+        <Defs>
+          <SvgLinear id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="rgba(249,133,53,1)" stopOpacity="1" />
+            <Stop offset="1" stopColor="rgb(255, 248, 241)" stopOpacity="1" />
+          </SvgLinear>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill="url(#bgGrad)" />
+      </Svg>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
-        {navigation.canGoBack() ? (
-          <Pressable
-            style={styles.backBtn}
-            hitSlop={12}
-            onPress={() => navigation.goBack()}
-            accessibilityRole="button"
-            accessibilityLabel="Back">
-            <BackArrowLeft width={24} height={24} />
-          </Pressable>
-        ) : (
-          <View style={styles.backBtn} />
-        )}
+
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+        <Pressable
+          style={styles.backBtn}
+          hitSlop={12}
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Back">
+          <BackArrowLeft width={24} height={24} />
+        </Pressable>
         <Text style={styles.headerTitle}>User Profile</Text>
       </View>
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={colors.primaryOrange} />
+          <ActivityIndicator color={colors.white} />
         </View>
       ) : (
         <ScrollView
           contentContainerStyle={[
             styles.scroll,
-            { paddingBottom: 100 + insets.bottom },
+            { paddingBottom: 40 + insets.bottom },
           ]}
           showsVerticalScrollIndicator={false}>
+
           <View style={styles.profileCard}>
-            <Pressable
-              style={styles.editBtn}
-              onPress={() => navigateToProfileEdit()}
-              hitSlop={8}>
-              <Text style={styles.editText}>Edit</Text>
-            </Pressable>
-            <View style={styles.profileRow}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarInitials}>
-                  {initials(profile?.fullName ?? null)}
-                </Text>
+            <View style={styles.profileHeader}>
+              <View style={styles.avatarWrap}>
+                <UserAvatar width={90} height={90} />
               </View>
-              <View style={styles.profileText}>
-                <Text style={styles.name}>
-                  {profile?.fullName?.trim() || 'Member'}
-                </Text>
-                <View style={styles.roleRow}>
-                  <MapPinOrange width={18} height={18} />
-                  <Text style={styles.role}>{profile ? roleLabel(profile) : '—'}</Text>
-                </View>
+              <View style={styles.profileInfo}>
+                <Text style={styles.name}>{profile?.fullName?.trim() || ''}</Text>
+                <Pressable
+                  style={styles.editBtn}
+                  onPress={() => navigateToProfileEdit()}
+                  hitSlop={8}>
+                  <Text style={styles.editText}>Edit</Text>
+                </Pressable>
               </View>
+            </View>
+
+            <View style={styles.tierSection}>
+              <View style={styles.tierLabels}>
+                <Text style={styles.tierLabelSmall}>CURRENT TIER: <Text style={styles.tierLabelBold}>Worker</Text></Text>
+                <Text style={styles.tierLabelSmall}>NEXT: <Text style={styles.tierLabelOrange}>Contractor</Text></Text>
+              </View>
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressFill, { width: `${3 / 5 * 100}%` }]} />
+              </View>
+              <Text style={styles.nextPtsText}>1,20,000 pts</Text>
             </View>
           </View>
 
@@ -140,70 +140,70 @@ export function UserProfileScreen() {
             <View style={styles.statCard}>
               <Text style={styles.statLabel}>LOYALTY POINTS</Text>
               <Text style={styles.statValue}>
-                {(profile?.loyaltyPoints ?? 0).toLocaleString()}
+                {(profile?.loyaltyPoints ?? 5000).toLocaleString()}
               </Text>
             </View>
             <View style={styles.statCard}>
               <Text style={styles.statLabel}>MEMBER SINCE</Text>
               <Text style={styles.statValue}>
-                {profile?.memberSinceYear != null
-                  ? String(profile.memberSinceYear)
-                  : '—'}
+                {profile?.memberSinceYear ?? '2021'}
               </Text>
             </View>
           </View>
 
-          <Pressable
-            style={({ pressed }) => [styles.menuCard, pressed && styles.pressed]}
-            onPress={() => navigation.navigate('GiftDeliveryStatus')}>
-            <IconGiftOrange width={24} height={24} />
-            <View style={styles.menuTextCol}>
-              <Text style={styles.menuTitle}>
-                {isDealerUser(profile)
-                  ? 'In-store reward status'
-                  : 'Gift delivery status'}
-              </Text>
-              <Text style={styles.menuSub}>
-                {isDealerUser(profile)
-                  ? MENU_SUBTITLES.giftDealer
-                  : MENU_SUBTITLES.gift}
-              </Text>
-            </View>
-            <ChevronRight strokeColor="#64748B" />
-          </Pressable>
+          <View style={styles.menuContainer}>
+            <Pressable
+              style={({ pressed }) => [styles.menuItem, pressed && styles.pressed]}
+              onPress={() => navigation.navigate('GiftDeliveryStatus')}>
+              <View style={styles.menuIconWrap}>
+                <IconGiftOrange width={22} height={22} />
+              </View>
+              <View style={styles.menuTextCol}>
+                <Text style={styles.menuTitle}>Gift Delivery Status</Text>
+                <Text style={styles.menuSub}>{MENU_SUBTITLES.gift}</Text>
+              </View>
+              <ChevronRight width={20} height={20} color="#1A1C1E" />
+            </Pressable>
 
-          <Pressable
-            style={({ pressed }) => [styles.menuCard, pressed && styles.pressed]}
-            onPress={() => navigation.navigate('TransactionHistory')}>
-            <IconReceiptDocOrange width={24} height={24} />
-            <View style={styles.menuTextCol}>
-              <Text style={styles.menuTitle}>Transaction History</Text>
-              <Text style={styles.menuSub}>{MENU_SUBTITLES.tx}</Text>
-            </View>
-            <ChevronRight strokeColor="#64748B" />
-          </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.menuItem, pressed && styles.pressed]}
+              onPress={() => navigation.navigate('TransactionHistory')}>
+              <View style={styles.menuIconWrap}>
+                <IconReceiptDocOrange width={22} height={22} />
+              </View>
+              <View style={styles.menuTextCol}>
+                <Text style={styles.menuTitle}>Transaction History</Text>
+                <Text style={styles.menuSub}>{MENU_SUBTITLES.tx}</Text>
+              </View>
+              <ChevronRight width={20} height={20} color="#1A1C1E" />
+            </Pressable>
 
-          <Pressable
-            style={({ pressed }) => [styles.menuCard, pressed && styles.pressed]}
-            onPress={() => navigation.navigate('CustomerSupport')}>
-            <IconHeadsetOrange width={24} height={24} />
-            <View style={styles.menuTextCol}>
-              <Text style={styles.menuTitle}>Help / Contact Support</Text>
-              <Text style={styles.menuSub}>{MENU_SUBTITLES.help}</Text>
-            </View>
-            <ChevronRight strokeColor="#64748B" />
-          </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.menuItem, pressed && styles.pressed]}
+              onPress={() => navigation.navigate('CustomerSupport')}>
+              <View style={styles.menuIconWrap}>
+                <IconHeadsetOrange width={22} height={22} />
+              </View>
+              <View style={styles.menuTextCol}>
+                <Text style={styles.menuTitle}>Help / Contact Support</Text>
+                <Text style={styles.menuSub}>{MENU_SUBTITLES.help}</Text>
+              </View>
+              <ChevronRight width={20} height={20} color="#1A1C1E" />
+            </Pressable>
 
-          <Pressable
-            style={({ pressed }) => [styles.menuCard, pressed && styles.pressed]}
-            onPress={() => navigation.navigate('TermsPrivacyHub')}>
-            <IconTermsAlertOrange width={24} height={24} />
-            <View style={styles.menuTextCol}>
-              <Text style={styles.menuTitle}>Terms & Privacy Policies</Text>
-              <Text style={styles.menuSub}>{MENU_SUBTITLES.legal}</Text>
-            </View>
-            <ChevronRight strokeColor="#64748B" />
-          </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.menuItem, pressed && styles.pressed]}
+              onPress={() => navigation.navigate('TermsPrivacyHub')}>
+              <View style={styles.menuIconWrap}>
+                <IconTermsAlertOrange width={22} height={22} />
+              </View>
+              <View style={styles.menuTextCol}>
+                <Text style={styles.menuTitle}>Terms & Privacy Policies</Text>
+                <Text style={styles.menuSub}>{MENU_SUBTITLES.legal}</Text>
+              </View>
+              <ChevronRight width={20} height={20} color="#1A1C1E" />
+            </Pressable>
+          </View>
 
           <Pressable
             style={({ pressed }) => [styles.logoutBtn, pressed && styles.pressed]}
@@ -211,15 +211,14 @@ export function UserProfileScreen() {
               await clearAuthSession();
               resetToLogin();
             }}>
-            <LogOutDoor width={22} height={22} />
+            <LogOutDoor width={20} height={20} color="#1A1C1E" />
             <Text style={styles.logoutText}>Log Out</Text>
           </Pressable>
 
           <View style={styles.footerRow}>
             <Text style={styles.version}>APP VERSION {APP_VERSION}</Text>
             <Text style={styles.developer}>
-              Developed by{' '}
-              <Text style={styles.developerAccent}>Nuvate</Text>
+              Developed by <Text style={styles.developerAccent}>Nuvate</Text>
             </Text>
           </View>
         </ScrollView>
@@ -229,195 +228,202 @@ export function UserProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: figma.consumerHomeBg },
+  root: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingBottom: 8,
-    minHeight: 48,
+    paddingHorizontal: 20,
+    height: 56,
   },
   backBtn: {
-    width: 44,
+    width: 40,
+    height: 40,
+    alignItems: 'flex-start',
     justifyContent: 'center',
   },
   headerTitle: {
-    marginLeft: 4,
-    fontSize: 19,
+    fontSize: 22,
     fontWeight: '800',
-    color: figma.textBody,
+    color: '#1A1C1E',
   },
   scroll: {
-    paddingHorizontal: figma.spaceGutter,
-    paddingTop: 8,
+    paddingHorizontal: 24,
+    paddingTop: 10,
   },
   profileCard: {
     backgroundColor: colors.white,
-    borderRadius: figma.radiusScreenCard,
-    paddingHorizontal: 20,
-    paddingVertical: 22,
-    marginBottom: 16,
-    position: 'relative',
-    borderWidth: 1,
-    borderColor: figma.borderSoft,
+    borderRadius: 48,
+    padding: 24,
+    marginBottom: 20,
     ...figma.shadowSoft,
   },
-  editBtn: {
-    position: 'absolute',
-    top: 18,
-    right: 18,
-    zIndex: 2,
-  },
-  editText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.primaryOrange,
-  },
-  profileRow: {
+  profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 4,
   },
-  avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: '#E2E8F0',
+  avatarWrap: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
-  avatarInitials: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: figma.textBody,
-  },
-  profileText: {
-    marginLeft: 16,
+  profileInfo: {
     flex: 1,
+    marginLeft: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   name: {
-    fontSize: 22,
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#1A1C1E',
+    lineHeight: 38,
+    flex: 1,
+    marginRight: 10,
+  },
+  editBtn: {
+    paddingTop: 4,
+  },
+  editText: {
+    fontSize: 16,
     fontWeight: '800',
-    color: figma.textBody,
+    color: colors.primaryOrange,
   },
-  roleRow: {
+  tierSection: {
+    marginTop: 24,
+  },
+  tierLabels: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
-    gap: 4,
+    justifyContent: 'space-between',
+    marginBottom: 10,
   },
-  role: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: figma.roleAccent,
+  tierLabelSmall: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.labelGray,
+  },
+  tierLabelBold: {
+    color: '#1A1C1E',
+    fontWeight: '800',
+  },
+  tierLabelOrange: {
+    color: colors.primaryOrange,
+    fontWeight: '800',
+  },
+  progressTrack: {
+    height: 8,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.primaryOrange,
+    borderRadius: 4,
+  },
+  nextPtsText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.labelGray,
+    textAlign: 'right',
+    marginTop: 6,
   },
   statsRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
+    gap: 16,
+    marginBottom: 24,
   },
   statCard: {
     flex: 1,
-    backgroundColor: colors.badgeTint,
-    borderRadius: figma.radiusScreenCard,
-    paddingVertical: 16,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: figma.borderSoft,
+    backgroundColor: '#EFF2F7',
+    borderRadius: 36,
+    padding: 20,
+    paddingVertical: 24,
   },
   statLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    color: figma.textMuted,
+    fontSize: 16,
+    fontWeight: '400',
+    color: colors.labelGray,
+    letterSpacing: 0.5,
   },
   statValue: {
-    marginTop: 8,
-    fontSize: 22,
-    fontWeight: '800',
-    color: figma.textBody,
+    fontSize: 36,
+    fontWeight: '900',
+    color: '#1A1C1E',
+    marginTop: 12,
   },
-  menuCard: {
+  menuContainer: {
+    gap: 12,
+    marginBottom: 24,
+  },
+  menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.white,
-    borderRadius: figma.radiusScreenCard,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    marginBottom: 12,
-    gap: 14,
-    borderWidth: 1,
-    borderColor: figma.borderSoft,
+    borderRadius: 40,
+    padding: 16,
+    paddingVertical: 18,
     ...figma.shadowSoft,
+  },
+  menuIconWrap: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   menuTextCol: {
     flex: 1,
+    marginLeft: 12,
   },
   menuTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: figma.textBody,
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#1A1C1E',
   },
   menuSub: {
-    marginTop: 4,
     fontSize: 13,
-    color: figma.textMuted,
+    color: colors.mutedGray,
+    marginTop: 2,
+    fontWeight: '500',
   },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    marginTop: 8,
-    paddingVertical: 16,
-    borderRadius: figma.radiusLargeButton,
     backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: figma.borderSoft,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 6,
-      },
-      android: { elevation: 2 },
-    }),
+    borderRadius: 30,
+    paddingVertical: 16,
+    gap: 10,
+    ...figma.shadowSoft,
+    marginBottom: 40,
   },
   logoutText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: figma.textBody,
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#1A1C1E',
   },
   footerRow: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 20,
     gap: 8,
   },
   version: {
-    flex: 1,
-    minWidth: 0,
-    textAlign: 'left',
     fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    fontWeight: '700',
     color: '#B0B4BC',
+    letterSpacing: 0.8,
   },
   developer: {
-    flex: 1,
-    minWidth: 0,
-    textAlign: 'right',
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-    color: '#B0B4BC',
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1A1C1E',
   },
   developerAccent: {
     color: colors.primaryOrange,
-    fontWeight: '700',
   },
-  pressed: { opacity: 0.92 },
+  pressed: { opacity: 0.8 },
 });

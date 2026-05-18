@@ -1,0 +1,12 @@
+diff --git a/node_modules/react-native-vision-camera/android/CMakeLists.txt b/node_modules/react-native-vision-camera/android/CMakeLists.txt
+index 17097c1..b852139 100644
+--- a/node_modules/react-native-vision-camera/android/CMakeLists.txt
++++ b/node_modules/react-native-vision-camera/android/CMakeLists.txt
+@@ -61,6 +61,7 @@ target_link_libraries(
+         android                             # <-- Android JNI core
+         ReactAndroid::jsi                   # <-- RN: JSI
+         fbjni::fbjni                        # <-- fbjni
++        c++_shared                          # <-- Force link C++ STL
+ )
+ 
+ # Link react-native (different prefab between RN 0.75 and RN 0.76)

@@ -123,6 +123,7 @@ export function OpsAdminSignUpScreen({
             Create your account with OTP. A Super Admin must approve it before you can access management.
           </Text>
 
+            <View style={styles.formContainer} >
           <AppFieldLabel text="FULL NAME" />
           <AppPillInput placeholder="Enter your full name" value={fullName} onChangeText={setFullName} />
 
@@ -181,6 +182,7 @@ export function OpsAdminSignUpScreen({
               <Text style={styles.link}>Log in</Text>
             </Pressable>
           </View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -188,11 +190,11 @@ export function OpsAdminSignUpScreen({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.white },
+  root: { flex: 1, backgroundColor: colors.primaryOrange },
   flex: { flex: 1 },
   scroll: { paddingHorizontal: 24, paddingTop: 26 },
   title: { fontSize: 28, fontWeight: '900', color: figma.textTitle },
-  sub: { marginTop: 10, fontSize: 14, color: colors.mutedGray, lineHeight: 20, marginBottom: 18 },
+  sub: { marginTop: 10, fontSize: 14, color: colors.white, lineHeight: 20, marginBottom: 18 },
   gap: { marginTop: 16 },
   otpHeader: {
     marginTop: 18,
@@ -207,6 +209,17 @@ const styles = StyleSheet.create({
   error: { marginTop: 10, fontSize: 13, color: '#D14343', textAlign: 'center' },
   row: { marginTop: 18, flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
   muted: { color: colors.mutedGray, fontSize: 14 },
-  link: { color: colors.primaryOrange, fontSize: 14, fontWeight: '800' },
+  link: { color: colors.primaryOrange, fontSize: 14, fontWeight: '800'   },
+    logoWrapper: {
+    marginBottom: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+    formContainer: {
+    paddingVertical: 24,
+    padding: 18,
+    backgroundColor: colors.white,
+    borderRadius: 22,
+  },
 });
 

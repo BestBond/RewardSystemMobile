@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
-  Platform,
   StatusBar,
   StyleSheet,
   Text,
@@ -12,14 +11,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { resolveInitialRoute } from '../auth/resolveInitialRoute';
 import type { RootStackScreenProps } from '../navigation/types';
 import { colors } from '../theme/colors';
+import { BestBondMan } from '../assets/svgs';
 
-const MIN_SPLASH_MS = 1600;
+const MIN_SPLASH_MS = 2000;
 
 export function SplashScreen({
   navigation,
 }: RootStackScreenProps<'Splash'>) {
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const [bootError, setBootError] = useState<string | null>(null);
   const dotA = useRef(new Animated.Value(0.35)).current;
   const dotB = useRef(new Animated.Value(0.35)).current;
@@ -67,10 +67,10 @@ export function SplashScreen({
         if (!cancelled) navigation.replace(next);
       } catch {
         if (!cancelled) {
-          setBootError('Unable to start. Check connection and try again.');
+          setBootError('Unable to start. Check connection.');
           setTimeout(() => {
             if (!cancelled) navigation.replace('CustomerAuth');
-          }, 1200);
+          }, 1500);
         }
       }
     })();
@@ -79,27 +79,24 @@ export function SplashScreen({
     };
   }, [navigation]);
 
-  const logoScale = Math.min(1, (width - 48) / 320);
+  // Image is 306x460 (0.66 aspect ratio)
+  const logoWidth = Math.min(width * 0.6, 130);
+  const logoHeight = logoWidth * (300 / 206);
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
-      <View style={[styles.statusShim, { height: insets.top }]} />
-      <View style={styles.orange}>
-        <View style={styles.center}>
-          <View style={[styles.brandBlock, { transform: [{ scale: logoScale }] }]}>
-            <Text style={styles.tmRow}>
-              <Text style={styles.bestSm}>BEST</Text>
-              <Text style={styles.tm}>™</Text>
-            </Text>
-            <Text style={styles.bondLg}>BOND</Text>
-            <Text style={styles.since}>since 2003</Text>
-            <Text style={styles.cert}>
-              ISI 9001:2008 Certified • IS 15477 Compliant
-            </Text>
-          </View>
+      <StatusBar barStyle="light-content" backgroundColor={colors.splashOrange} />
+      
+      <View style={styles.content}>
+        <View style={styles.logoWrapper}>
+          <BestBondMan width={logoWidth} height={logoHeight} />
         </View>
-        <View style={[styles.loading, { paddingBottom: 40 + insets.bottom }]}>
+
+        <Text style={styles.certText}>
+          ISI 9001:2008 Certified • IS 15477 Compliant
+        </Text>
+
+        <View style={styles.loadingArea}>
           <View style={styles.dotsRow}>
             <Animated.View style={[styles.dot, { opacity: dotA }]} />
             <Animated.View style={[styles.dot, { opacity: dotB }]} />
@@ -110,6 +107,12 @@ export function SplashScreen({
           </Text>
         </View>
       </View>
+
+      <View style={[styles.footer, { paddingBottom: 20 + insets.bottom }]}>
+        <Text style={styles.footerText}>
+          Developed by <Text style={styles.footerBrand}>Nuvate</Text>
+        </Text>
+      </View>
     </View>
   );
 }
@@ -117,95 +120,56 @@ export function SplashScreen({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.white,
-  },
-  statusShim: {
-    backgroundColor: colors.white,
-  },
-  orange: {
-    flex: 1,
     backgroundColor: colors.splashOrange,
-    justifyContent: 'space-between',
   },
-  center: {
+  content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
   },
-  brandBlock: {
+  logoWrapper: {
+    marginBottom: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  tmRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  bestSm: {
-    color: colors.white,
-    fontSize: 36,
-    fontWeight: '700',
-    fontStyle: 'italic',
-    letterSpacing: 1,
-    ...Platform.select({
-      ios: { fontFamily: 'Georgia' },
-      android: { fontFamily: 'serif' },
-    }),
-  },
-  tm: {
-    color: colors.white,
-    fontSize: 12,
-    marginLeft: 2,
-    marginTop: 4,
-    fontWeight: '600',
-  },
-  bondLg: {
-    color: colors.white,
-    fontSize: 52,
-    fontWeight: '700',
-    fontStyle: 'italic',
-    letterSpacing: 2,
-    marginTop: -4,
-    ...Platform.select({
-      ios: { fontFamily: 'Georgia' },
-      android: { fontFamily: 'serif' },
-    }),
-  },
-  since: {
-    color: colors.white,
-    fontSize: 20,
-    fontStyle: 'italic',
-    marginTop: 12,
-    ...Platform.select({
-      ios: { fontFamily: 'Georgia' },
-      android: { fontFamily: 'serif' },
-    }),
-  },
-  cert: {
-    color: colors.white,
-    fontSize: 11,
+  certText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 14,
     textAlign: 'center',
-    marginTop: 20,
-    opacity: 0.95,
-    paddingHorizontal: 8,
-    lineHeight: 16,
+    fontWeight: '500',
   },
-  loading: {
+  loadingArea: {
+    marginTop: 60,
     alignItems: 'center',
   },
   dotsRow: {
     flexDirection: 'row',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: colors.white,
-    marginHorizontal: 5,
+    marginHorizontal: 4,
   },
   loadingText: {
     color: colors.white,
-    fontWeight: '700',
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  footer: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  footerText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 14,
+  },
+  footerBrand: {
+    fontWeight: 'bold',
+    color: colors.white,
   },
 });

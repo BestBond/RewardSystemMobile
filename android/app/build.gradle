@@ -85,11 +85,11 @@ android {
         versionCode 1
         versionName "1.0"
 
-        // Windows builds can sometimes fail to link VisionCamera with missing C++ runtime symbols
+        // Windows builds can sometimes fail to link VisionCamera and other native modules with missing C++ runtime symbols
         // (operator new, __cxa_throw, std::mutex, ...). Force libc++_shared linking.
         externalNativeBuild {
             cmake {
-                arguments "-DANDROID_STL=c++_shared"
+                arguments "-DANDROID_STL=c++_shared", "-DCMAKE_SHARED_LINKER_FLAGS=-lc++_shared"
             }
         }
     }

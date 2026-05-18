@@ -35,7 +35,7 @@ export function ProfileSetupScreen({
   const [professionToKeep, setProfessionToKeep] =
     useState<string>('Contractor/Painter');
 
-  const bg = colors.offWhite;
+  const bg = colors.primaryOrange;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -196,6 +196,7 @@ export function ProfileSetupScreen({
           <View style={styles.labelGap}>
             <AppFieldLabel text="DELIVERY ADDRESS" />
           </View>
+          
           <TextInput
             style={styles.inputArea}
             placeholder="Enter your address"

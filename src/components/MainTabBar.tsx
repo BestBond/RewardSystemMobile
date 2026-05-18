@@ -14,7 +14,6 @@ import {
   ScannerWhite,
 } from '../assets/svgs';
 import type { MainTabParamList } from '../navigation/types';
-import { colors } from '../theme/colors';
 import { tabBarTokens } from '../theme/tabBarTokens';
 
 const activeColor = tabBarTokens.activeColor;

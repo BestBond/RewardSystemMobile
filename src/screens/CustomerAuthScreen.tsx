@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -8,6 +9,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +23,7 @@ import { loginCustomerWithOtp, requestOtp, signupCustomerWithOtp } from '../api/
 import { getMyProfile } from '../api/users';
 import { setAccessToken } from '../api/storage';
 import { pickHomeRoute } from '../auth/roleRouting';
+import { BestBondManWithMobile } from '../assets/svgs';
 
 const COUNTRY_CODE = '+91';
 const RESEND_SECONDS = 30;
@@ -44,6 +47,8 @@ export function CustomerAuthScreen({
   const [email, setEmail] = useState('');
   const [trade, setTrade] = useState<Trade>('contractor_painter');
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const { width, height } = useWindowDimensions();
+
 
   const title = useMemo(
     () => (mode === 'login' ? 'Log In' : 'Sign Up'),
@@ -118,20 +123,20 @@ export function CustomerAuthScreen({
       const r =
         mode === 'signup'
           ? await signupCustomerWithOtp({
-              phone: digits,
-              countryCode: COUNTRY_CODE,
-              code: otp,
-              fullName: fullName.trim(),
-              email: email.trim() || null,
-              profession:
-                trade === 'dealer' ? 'Dealer' : 'Contractor/Painter',
-              deliveryAddress: deliveryAddress.trim(),
-            })
+            phone: digits,
+            countryCode: COUNTRY_CODE,
+            code: otp,
+            fullName: fullName.trim(),
+            email: email.trim() || null,
+            profession:
+              trade === 'dealer' ? 'Dealer' : 'Contractor/Painter',
+            deliveryAddress: deliveryAddress.trim(),
+          })
           : await loginCustomerWithOtp({
-              phone: digits,
-              countryCode: COUNTRY_CODE,
-              code: otp,
-            });
+            phone: digits,
+            countryCode: COUNTRY_CODE,
+            code: otp,
+          });
 
       await setAccessToken(r.accessToken);
       const profile = await getMyProfile();
@@ -150,6 +155,10 @@ export function CustomerAuthScreen({
     }
   };
 
+  // Image is 306x460 (0.66 aspect ratio)
+  const logoWidth = Math.min(width * 0.6, 130);
+  const logoHeight = logoWidth * (300 / 206);
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" />
@@ -158,8 +167,17 @@ export function CustomerAuthScreen({
           contentContainerStyle={[styles.scroll, { paddingBottom: 28 + insets.bottom }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.sub}>Continue with OTP on your mobile number.</Text>
+          {/* <Text style={styles.title}>{title}</Text> */}
+          {/* <Text style={styles.sub}>Continue with OTP on your mobile number.</Text> */}
+          {mode !== 'signup' && (
+          <View style={styles.logoWrapper} >
+            <Image
+              source={require("../assets/svgs/originals/manWithPhone.png")}
+              style={{ width: 300, height: 300 }}
+              resizeMode="contain"
+            />
+          </View>
+          )}
 
           <View style={styles.switchRow}>
             <Pressable
@@ -183,7 +201,7 @@ export function CustomerAuthScreen({
           </View>
 
           {mode === 'signup' ? (
-            <>
+            <View style={[styles.formContainer, { marginBottom: 18 }]}>
               <AppFieldLabel text="FULL NAME" />
               <AppPillInput placeholder="Enter your full name" value={fullName} onChangeText={setFullName} />
 
@@ -231,57 +249,63 @@ export function CustomerAuthScreen({
                 multiline
                 textAlignVertical="top"
               />
-            </>
+            </View>
           ) : null}
 
-          <View style={styles.gap}>
-            <AppFieldLabel text="MOBILE NUMBER" />
+          <View style={styles.formContainer}>
+
+            <View >
+              <AppFieldLabel text="YOUR PHONE NUMBER" />
+            </View>
+            <AppPhoneInput
+              countryCode={COUNTRY_CODE}
+              value={phone}
+              autoFocus
+              onChangeText={(t) => {
+                setPhone(t.replace(/\D/g, '').slice(0, 10));
+                if (error) setError(null);
+              }}
+            />
+
+
+            <View style={styles.otpHeader}>
+              <AppFieldLabel text="VERIFICATION CODE" compact />
+              {!otpSent ? (
+                <Pressable onPress={onSendOtp} disabled={sendingOtp}>
+                  <Text style={styles.otpAction}>{sendingOtp ? 'Sending OTP...' : 'Send OTP'}</Text>
+                </Pressable>
+              ) : secondsLeft > 0 ? (
+                <Text style={styles.otpMuted}>Resend OTP in {fmt(secondsLeft)}</Text>
+              ) : (
+                <Pressable onPress={onSendOtp} disabled={sendingOtp}>
+                  <Text style={styles.otpAction}>Resend OTP</Text>
+                </Pressable>
+              )}
+            </View>
+            <SixDigitInput value={otp} onChange={setOtp} />
+
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+
+            <AppButton
+              text={loading ? 'Please wait...' : mode === 'signup' ? 'Create Account' : 'Continue'}
+              onPress={onContinue}
+              disabled={loading}
+              style={styles.cta}
+            />
           </View>
-          <AppPhoneInput
-            countryCode={COUNTRY_CODE}
-            value={phone}
-            autoFocus
-            onChangeText={(t) => {
-              setPhone(t.replace(/\D/g, '').slice(0, 10));
-              if (error) setError(null);
-            }}
-          />
-
-          <View style={styles.otpHeader}>
-            <AppFieldLabel text="VERIFICATION CODE" compact />
-            {!otpSent ? (
-              <Pressable onPress={onSendOtp} disabled={sendingOtp}>
-                <Text style={styles.otpAction}>{sendingOtp ? 'Sending OTP...' : 'Send OTP'}</Text>
-              </Pressable>
-            ) : secondsLeft > 0 ? (
-              <Text style={styles.otpMuted}>Resend OTP in {fmt(secondsLeft)}</Text>
-            ) : (
-              <Pressable onPress={onSendOtp} disabled={sendingOtp}>
-                <Text style={styles.otpAction}>Resend OTP</Text>
-              </Pressable>
-            )}
-          </View>
-          <SixDigitInput value={otp} onChange={setOtp} />
-
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-
-          <AppButton
-            text={loading ? 'Please wait...' : mode === 'signup' ? 'Create Account' : 'Continue'}
-            onPress={onContinue}
-            disabled={loading}
-            style={styles.cta}
-          />
-
           <View style={styles.bottomRow}>
-            <Text style={styles.muted}>Need management access? </Text>
+            <Text style={styles.muted}>By logging in, you agree to our Terms of Service and Privacy Policy. </Text>
             <Pressable onPress={() => navigation.reset({ index: 0, routes: [{ name: 'AdminLogin' }] })} hitSlop={8}>
-              <Text style={styles.link}>Go to Management</Text>
+              <Text style={[styles.link , {textDecorationLine:'underline'}]}>Go to Management</Text>
             </Pressable>
           </View>
 
-          <View style={styles.bottomRow}>
-            <Text style={styles.muted}>Back </Text>
-            <Pressable onPress={() => navigation.reset({ index: 0, routes: [{ name: 'CustomerAuth' }] })} hitSlop={8}>
+          <View style={[  styles.bottomRow, { justifyContent: 'space-between' }]}>
+
+            <Pressable  hitSlop={8}>
+            <Text style={styles.link}>Back </Text>
+            </Pressable> 
+           <Pressable onPress={() => navigation.reset({ index: 0, routes: [{ name: 'CustomerAuth' }] })} hitSlop={8}>
               <Text style={styles.link}>Reset</Text>
             </Pressable>
           </View>
@@ -325,20 +349,26 @@ function TradeCard({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.white },
+  root: { flex: 1, backgroundColor: colors.primaryOrange },
   flex: { flex: 1 },
   scroll: { paddingHorizontal: 24, paddingTop: 40 },
-  title: { fontSize: 28, fontWeight: '900', color: figma.textTitle, marginBottom: 10 },
+  title: { fontSize: 20, fontWeight: '900', color: figma.textTitle, marginBottom: 10 },
   sub: { fontSize: 14, color: colors.mutedGray, lineHeight: 20, marginBottom: 18 },
   switchRow: {
     flexDirection: 'row',
     gap: 10,
     backgroundColor: colors.offWhite,
-    borderRadius: 999,
+    borderRadius: 22,
     padding: 6,
     borderWidth: 1,
     borderColor: '#E6EAF0',
     marginBottom: 18,
+  },
+  signupLogo:{ display:'none'},
+  logoWrapper: {
+    marginBottom: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   switchPill: {
     flex: 1,
@@ -346,12 +376,12 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
   },
+  gap: { marginTop: 16 },
   switchPillOn: {
     backgroundColor: colors.white,
   },
   switchText: { fontWeight: '800', color: colors.mutedGray },
   switchTextOn: { color: figma.textTitle },
-  gap: { marginTop: 16 },
   addressInput: {
     borderWidth: 1,
     borderColor: '#E6EAF0',
@@ -371,7 +401,6 @@ const styles = StyleSheet.create({
     borderColor: '#E6EAF0',
     borderRadius: 16,
     padding: 14,
-    paddingTop: 20,
     backgroundColor: colors.white,
     minHeight: 148,
   },
@@ -404,11 +433,17 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   otpMuted: { fontSize: 12, color: colors.mutedGray, marginBottom: 2 },
-  otpAction: { fontSize: 12, color: colors.primaryOrange, fontWeight: '700', marginBottom: 2 },
+  otpAction: { fontSize: 12, color: colors.primaryOrange, fontWeight: '700', marginBottom: 10 },
   cta: { marginTop: 26 },
   error: { marginTop: 10, fontSize: 13, color: '#D14343', textAlign: 'center' },
   bottomRow: { marginTop: 16, flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
-  muted: { color: colors.mutedGray, fontSize: 13 },
-  link: { color: colors.primaryOrange, fontSize: 13, fontWeight: '900' },
+  muted: { color: colors.white, fontSize: 15, marginHorizontal:15, textAlign:'center', width:"70%", lineHeight:22 },
+  link: { color: colors.white, fontSize: 16, fontWeight: '900' },
+  formContainer: {
+    paddingVertical: 24,
+    padding: 18,
+    backgroundColor: colors.white,
+    borderRadius: 22,
+  }
 });
 

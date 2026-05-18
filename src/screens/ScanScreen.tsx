@@ -24,6 +24,7 @@ import {
   useCodeScanner,
 } from 'react-native-vision-camera';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Flashlight } from '../assets/svgs';
 import { ScanSuccessModal } from '../components/ScanSuccessModal';
 import { redeemCoupon } from '../api/coupons';
 import { isApiError, userFacingApiMessage } from '../api/client';
@@ -291,9 +292,11 @@ function ScanScreenWithCamera() {
             hitSlop={16}
             onPress={() => setFlashOn(f => !f)}
             disabled={!device || !hasPermission}>
-            <Text style={[styles.flashIcon, flashOn && styles.flashOn]}>
-              {'\uD83D\uDD26'}
-            </Text>
+            <Flashlight
+              width={26}
+              height={26}
+              fill={flashOn ? '#FFEB3B' : colors.white}
+            />
           </Pressable>
         </View>
 
@@ -515,15 +518,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
   },
-  flashIcon: {
-    fontSize: 22,
-    opacity: 0.9,
-  },
-  flashOn: {
-    opacity: 1,
-    textShadowColor: '#FFEB3B',
-    textShadowRadius: 8,
-  },
   cameraSection: {
     flex: 1,
     overflow: 'hidden',
@@ -592,19 +586,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 12,
     right: 12,
-    height: 3,
+    height: 2,
     borderRadius: 2,
-    backgroundColor: colors.scanLine,
+    backgroundColor: colors.splashOrange,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,
     shadowRadius: 10,
     elevation: 4,
   },
   scanLineGlow: {
-    shadowColor: colors.scanLine,
+    shadowColor: colors.primaryOrange,
   },
   scanLineFlash: {
-    shadowColor: '#FFEB3B',
+    shadowColor: colors.primaryOrange,
   },
   manualBlock: {
     backgroundColor: colors.scanBg,
@@ -612,16 +606,17 @@ const styles = StyleSheet.create({
   },
   manualHeading: {
     color: colors.white,
-    fontSize: 17,
+    fontSize: 22,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 14,
+    marginBottom: 34,
   },
   manualRow: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    gap: 10,
+    gap: 6,
     alignItems: 'center',
+    marginBottom: 14,
   },
   manualInput: {
     flex: 1,
@@ -636,10 +631,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.scanSurface,
     paddingHorizontal: 18,
     paddingVertical: 14,
-    borderRadius: 14,
-    minWidth: 72,
+    borderRadius: 24,
+    minWidth: 100,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderGray,
   },
   enterDisabled: { opacity: 0.6 },
   enterPressed: { opacity: 0.85 },

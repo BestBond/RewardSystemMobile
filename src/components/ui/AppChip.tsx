@@ -10,28 +10,12 @@ type Props = {
   style?: StyleProp<ViewStyle>;
 };
 
-export function AppChip({ text, variant = 'muted', style }: Props) {
+export function AppChip({ text }: Props) {
   return (
-    <View
-      style={[
-        styles.base,
-        variant === 'accent' && styles.accent,
-        variant === 'muted' && styles.muted,
-        variant === 'success' && styles.success,
-        variant === 'danger' && styles.danger,
-        style,
-      ]}>
-      <Text
-        style={[
-          styles.text,
-          variant === 'accent' && styles.accentText,
-          variant === 'muted' && styles.mutedText,
-          variant === 'success' && styles.successText,
-          variant === 'danger' && styles.dangerText,
-        ]}>
+     
+      <Text style={styles.text}>
         {text}
       </Text>
-    </View>
   );
 }
 
@@ -42,7 +26,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   text: {
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: '700',
   },
   accent: { backgroundColor: colors.badgeTint },

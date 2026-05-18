@@ -11,8 +11,7 @@ const NativeSourceCode = require('react-native/Libraries/NativeModules/specs/Nat
  * Optional manual override when script URL host cannot be read (unusual dev setups).
  * Example: your Mac’s Wi‑Fi IP from `ipconfig getifaddr en0` — `192.168.1.42`
  */
-const DEV_API_HOST_OVERRIDE: string | null = null;
-
+const DEV_API_HOST_OVERRIDE: string | null = '10.149.73.173';
 /**
  * Dev base URLs.
  * - Physical device: hostname comes from the Metro bundle URL (same LAN as your machine).
@@ -42,6 +41,10 @@ function computeApiBaseUrl(): string {
   const metroHost = getMetroHost();
 
   if (__DEV__ && metroHost && metroHost !== '0.0.0.0') {
+    // Android emulators cannot use 'localhost' to reach the host machine.
+    if (Platform.OS === 'android' && (metroHost === 'localhost' || metroHost === '127.0.0.1')) {
+      return 'http://10.0.2.2:3000';
+    }
     return `http://${metroHost}:3000`;
   }
 
@@ -51,3 +54,6 @@ function computeApiBaseUrl(): string {
 }
 
 export const API_BASE_URL = computeApiBaseUrl();
+
+// export const API_BASE_URL = 'https://api.bestbond.in';
+

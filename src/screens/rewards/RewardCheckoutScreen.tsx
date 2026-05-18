@@ -5,6 +5,7 @@ import React, { useCallback, useState } from 'react';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StatusBar,
@@ -13,9 +14,19 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, {
+  Defs,
+  LinearGradient as SvgLinear,
+  Rect,
+  Stop,
+} from 'react-native-svg';
 import {
   BackArrowLeft,
   BasketSmall,
+  CardStar,
+  Earbud,
+  Leveling,
+  Lifting,
   MapPin,
   RewardsActive,
 } from '../../assets/svgs';
@@ -25,14 +36,36 @@ import { userFacingApiMessage } from '../../api/client';
 import { navigateToProfileEdit } from '../../navigation/rootNavigation';
 import type { CartStackParamList } from '../../navigation/types';
 import { colors } from '../../theme/colors';
-import { RewardImageBlock } from './RewardImageBlock';
 import { splitDeliveryAddress } from './rewardPointsUtils';
+import { AppChip } from '../../components/ui';
 
 type Nav = NativeStackNavigationProp<CartStackParamList, 'RewardCheckout'>;
 type R = RouteProp<CartStackParamList, 'RewardCheckout'>;
 
-const screenBg = '#F2F2F7';
+const screenBg = '#FFF3EA';
 const navy = '#1A2B48';
+
+function RewardVisual({ reward }: { reward: RewardDto }) {
+  if (reward.imageUrl) {
+    return (
+      <Image
+        source={{ uri: reward.imageUrl }}
+        style={styles.productImage}
+        resizeMode="cover"
+      />
+    );
+  }
+
+  const size = 132;
+  const title = reward.title.toLowerCase();
+  if (title.includes('lifting')) {
+    return <Lifting width={size} height={size} />;
+  }
+  if (title.includes('levelling') || title.includes('leveling')) {
+    return <Leveling width={size} height={size} />;
+  }
+  return <Earbud width={size} height={size} />;
+}
 
 export function RewardCheckoutScreen() {
   const insets = useSafeAreaInsets();
@@ -107,25 +140,44 @@ export function RewardCheckoutScreen() {
   };
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top, backgroundColor: screenBg }]}>
+    <View style={styles.root}>
+      <Svg style={StyleSheet.absoluteFill}>
+        <Defs>
+          <SvgLinear id="checkoutBg" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={colors.primaryOrange} stopOpacity="1" />
+            <Stop
+              offset="0.34"
+              stopColor={colors.primaryOrange}
+              stopOpacity="1"
+            />
+            <Stop offset="0.34" stopColor={screenBg} stopOpacity="1" />
+            <Stop offset="1" stopColor={screenBg} stopOpacity="1" />
+          </SvgLinear>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill="url(#checkoutBg)" />
+      </Svg>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
-        <View style={styles.headerSide}>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.headerLeft}>
           <Pressable
             hitSlop={12}
             onPress={() => navigation.goBack()}
             accessibilityRole="button"
-            accessibilityLabel="Back">
+            accessibilityLabel="Back"
+            style={styles.backHit}
+          >
             <BackArrowLeft width={22} height={22} />
+            <Text style={styles.headerTitle}>Checkout</Text>
           </Pressable>
         </View>
-        <Text style={styles.headerTitle}>Checkout</Text>
-        <View style={[styles.headerSide, styles.headerSideRight]}>
+        <View style={styles.headerRight}>
           <View style={styles.ptsPill}>
-            <RewardsActive width={16} height={16} />
-            <Text style={styles.ptsPillText}>
-              {balance.toLocaleString()} Pts
-            </Text>
+          <CardStar width={16} height={16} />
+          <AppChip
+            text={`${balance.toLocaleString()} Pts`}
+            variant="accent"
+            style={styles.pointsChip}
+          />
           </View>
         </View>
       </View>
@@ -137,7 +189,10 @@ export function RewardCheckoutScreen() {
       ) : error && !reward ? (
         <View style={styles.center}>
           <Text style={styles.errText}>{error}</Text>
-          <Pressable style={styles.retry} onPress={() => load().catch(() => {})}>
+          <Pressable
+            style={styles.retry}
+            onPress={() => load().catch(() => {})}
+          >
             <Text style={styles.retryText}>Retry</Text>
           </Pressable>
         </View>
@@ -148,14 +203,17 @@ export function RewardCheckoutScreen() {
               styles.scroll,
               { paddingBottom: 120 + insets.bottom },
             ]}
-            showsVerticalScrollIndicator={false}>
+            showsVerticalScrollIndicator={false}
+          >
             <View style={styles.card}>
-              <View style={styles.triptychCard}>
-                <RewardImageBlock imageUrl={reward.imageUrl} minHeight={160} />
+              <View style={styles.productFrame}>
+                <RewardVisual reward={reward} />
               </View>
               <View style={styles.cardPad}>
                 <Text style={styles.productTitle}>{reward.title}</Text>
-                <Text style={styles.productDesc}>{reward.description ?? ''}</Text>
+                <Text style={styles.productDesc}>
+                  {reward.description ?? ''}
+                </Text>
                 <View style={styles.pointsRow}>
                   <Text style={styles.pointsBig}>{pts.toLocaleString()}</Text>
                   <Text style={styles.pointsWord}> POINTS</Text>
@@ -182,8 +240,9 @@ export function RewardCheckoutScreen() {
                     <Text style={styles.placeName}>Visit nearest store</Text>
                     <Text style={styles.address}>
                       Dealer reward redemptions are reviewed by operations. Once
-                      approved, collect your reward at your nearest authorized Best
-                      Bond store. No delivery to your profile address applies.
+                      approved, collect your reward at your nearest authorized
+                      Best Bond store. No delivery to your profile address
+                      applies.
                     </Text>
                   </>
                 ) : (
@@ -194,9 +253,7 @@ export function RewardCheckoutScreen() {
                 )}
               </View>
               {!isDealer ? (
-                <Pressable
-                  hitSlop={8}
-                  onPress={() => navigateToProfileEdit()}>
+                <Pressable hitSlop={8} onPress={() => navigateToProfileEdit()}>
                   <Text style={styles.edit}>Edit</Text>
                 </Pressable>
               ) : (
@@ -207,7 +264,9 @@ export function RewardCheckoutScreen() {
             <View style={styles.summaryCard}>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLeft}>Item Total</Text>
-                <Text style={styles.summaryRight}>{pts.toLocaleString()} pts</Text>
+                <Text style={styles.summaryRight}>
+                  {pts.toLocaleString()} pts
+                </Text>
               </View>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLeft}>
@@ -220,19 +279,20 @@ export function RewardCheckoutScreen() {
               <View style={styles.summaryDivider} />
               <View style={styles.summaryRow}>
                 <Text style={styles.totalLeft}>Total Redemption</Text>
-                <Text style={styles.totalRight}>{pts.toLocaleString()} pts</Text>
+                <Text style={styles.totalRight}>
+                  {pts.toLocaleString()} pts
+                </Text>
               </View>
             </View>
-            {error ? (
-              <Text style={styles.inlineErr}>{error}</Text>
-            ) : null}
+            {error ? <Text style={styles.inlineErr}>{error}</Text> : null}
           </ScrollView>
 
           <View
             style={[
               styles.footer,
               { paddingBottom: Math.max(insets.bottom, 12) },
-            ]}>
+            ]}
+          >
             <Pressable
               style={({ pressed }) => [
                 styles.confirmBtn,
@@ -242,13 +302,16 @@ export function RewardCheckoutScreen() {
               disabled={!canAfford || submitting}
               onPress={() => {
                 onConfirm().catch(() => {});
-              }}>
+              }}
+            >
               {submitting ? (
                 <ActivityIndicator color={colors.white} />
               ) : (
                 <>
                   <Text style={styles.confirmText}>
-                    {isDealer ? 'Confirm Redemption' : 'Submit redemption request'}
+                    {isDealer
+                      ? 'Confirm Redemption'
+                      : 'Submit redemption request'}
                   </Text>
                   <BasketSmall width={22} height={22} />
                 </>
@@ -262,7 +325,7 @@ export function RewardCheckoutScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
+  root: { flex: 1, backgroundColor: screenBg },
   center: {
     flex: 1,
     alignItems: 'center',
@@ -287,48 +350,73 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: screenBg,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+    marginTop:10
   },
-  headerSide: { width: 100, justifyContent: 'center' },
-  headerSideRight: { alignItems: 'flex-end' },
+  headerLeft: { flex: 1, justifyContent: 'center' ,  },
+  headerRight: { alignItems: 'flex-end' },
+  backHit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 8,
+  },
   headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
     color: navy,
   },
   ptsPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.badgeTint,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    backgroundColor: colors.white,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 18,
     gap: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 2,
   },
+    pointsChip: { paddingVertical: 5, paddingHorizontal: 10 },
+
   ptsPillText: {
     fontSize: 12,
     fontWeight: '700',
     color: navy,
   },
-  scroll: { paddingHorizontal: 16, paddingTop: 8 },
+  scroll: { paddingHorizontal: 14, paddingTop: 4 },
   card: {
     backgroundColor: colors.white,
-    borderRadius: 18,
+    borderRadius: 32,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.borderGray,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    elevation: 3,
   },
-  triptychCard: {
-    backgroundColor: '#E8E8E8',
-    padding: 12,
+  productFrame: {
+    height: 200,
+    margin: 14,
+    marginBottom: 4,
+    borderRadius: 22,
+    backgroundColor: '#F7F8F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  cardPad: { padding: 16 },
+  productImage: {
+    width: '100%',
+    height: '100%',
+  },
+  cardPad: { padding: 16, paddingTop: 10 },
   productTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
     color: navy,
   },
@@ -344,8 +432,8 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   pointsBig: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 30,
+    fontWeight: '900',
     color: colors.primaryOrange,
   },
   pointsWord: {
@@ -358,42 +446,45 @@ const styles = StyleSheet.create({
     marginTop: 22,
     marginBottom: 10,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
     letterSpacing: 0.7,
-    color: colors.labelGray,
+    color: navy,
   },
   deliveryCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.white,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.borderGray,
+    borderRadius: 18,
     padding: 14,
     gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2,
   },
   pinCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#F4F4F4',
     alignItems: 'center',
     justifyContent: 'center',
   },
   deliveryText: { flex: 1 },
   placeName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: navy,
   },
   address: {
     marginTop: 4,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 17,
     color: colors.mutedGray,
   },
   edit: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '700',
     color: colors.primaryOrange,
   },
@@ -401,10 +492,13 @@ const styles = StyleSheet.create({
   summaryCard: {
     marginTop: 16,
     backgroundColor: colors.white,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.borderGray,
+    borderRadius: 18,
     padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -446,8 +540,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: screenBg,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.borderGray,
     paddingHorizontal: 16,
     paddingTop: 10,
   },
