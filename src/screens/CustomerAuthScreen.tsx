@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
@@ -19,14 +19,16 @@ import { SixDigitInput } from '../components/SixDigitInput';
 import { colors } from '../theme/colors';
 import { figma } from '../theme/figmaTokens';
 import { isApiError, userFacingApiMessage } from '../api/client';
-import { loginCustomerWithOtp, requestOtp, signupCustomerWithOtp } from '../api/auth';
+import {
+  loginCustomerWithPasscode,
+  signupCustomerWithPasscode,
+} from '../api/auth';
 import { getMyProfile } from '../api/users';
 import { setAccessToken } from '../api/storage';
 import { pickHomeRoute } from '../auth/roleRouting';
 import { BestBondManWithMobile } from '../assets/svgs';
 
 const COUNTRY_CODE = '+91';
-const RESEND_SECONDS = 30;
 
 type Mode = 'login' | 'signup';
 type Trade = 'dealer' | 'contractor_painter';
@@ -37,10 +39,8 @@ export function CustomerAuthScreen({
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<Mode>('login');
   const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
-  const [sendingOtp, setSendingOtp] = useState(false);
+  const [passcode, setPasscode] = useState('');
+  const [confirmPasscode, setConfirmPasscode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fullName, setFullName] = useState('');
@@ -55,44 +55,9 @@ export function CustomerAuthScreen({
     [mode],
   );
 
-  useEffect(() => {
-    if (!otpSent) return;
-    const id = setInterval(() => setSecondsLeft((s) => (s <= 0 ? 0 : s - 1)), 1000);
-    return () => clearInterval(id);
-  }, [otpSent]);
-
-  const fmt = (s: number) => {
-    const m = Math.floor(s / 60);
-    const r = s % 60;
-    return `${m}:${r.toString().padStart(2, '0')}`;
-  };
-
-  const resetOtpState = () => {
-    setOtp('');
-    setOtpSent(false);
-    setSecondsLeft(RESEND_SECONDS);
-  };
-
-  const onSendOtp = async () => {
-    const digits = phone.replace(/\D/g, '').slice(0, 10);
-    if (digits.length !== 10) {
-      setError('Enter a valid 10-digit mobile number.');
-      return;
-    }
-    setSendingOtp(true);
-    setError(null);
-    try {
-      const r = await requestOtp({ phone: digits, countryCode: COUNTRY_CODE });
-      setOtpSent(true);
-      setSecondsLeft(RESEND_SECONDS);
-      setOtp('');
-      if (r.devCode) setOtp(String(r.devCode));
-    } catch (e) {
-      if (isApiError(e)) setError(userFacingApiMessage(e.message));
-      else setError('Unable to send OTP. Please try again.');
-    } finally {
-      setSendingOtp(false);
-    }
+  const resetPasscodeState = () => {
+    setPasscode('');
+    setConfirmPasscode('');
   };
 
   const onContinue = async () => {
@@ -101,12 +66,16 @@ export function CustomerAuthScreen({
       setError('Enter a valid 10-digit mobile number.');
       return;
     }
-    if (!otpSent) {
-      setError('Please send OTP first.');
+    if (passcode.length !== 6) {
+      setError('Enter a valid 6-digit passcode.');
       return;
     }
-    if (otp.length !== 6) {
-      setError('Enter a valid 6-digit OTP.');
+    if (mode === 'signup' && confirmPasscode.length !== 6) {
+      setError('Confirm your 6-digit passcode.');
+      return;
+    }
+    if (mode === 'signup' && passcode !== confirmPasscode) {
+      setError('Passcodes do not match.');
       return;
     }
     if (mode === 'signup' && !fullName.trim()) {
@@ -122,20 +91,21 @@ export function CustomerAuthScreen({
     try {
       const r =
         mode === 'signup'
-          ? await signupCustomerWithOtp({
+          ? await signupCustomerWithPasscode({
             phone: digits,
             countryCode: COUNTRY_CODE,
-            code: otp,
+            passcode,
+            confirmPasscode,
             fullName: fullName.trim(),
             email: email.trim() || null,
             profession:
               trade === 'dealer' ? 'Dealer' : 'Contractor/Painter',
             deliveryAddress: deliveryAddress.trim(),
           })
-          : await loginCustomerWithOtp({
+          : await loginCustomerWithPasscode({
             phone: digits,
             countryCode: COUNTRY_CODE,
-            code: otp,
+            passcode,
           });
 
       await setAccessToken(r.accessToken);
@@ -183,7 +153,7 @@ export function CustomerAuthScreen({
             <Pressable
               onPress={() => {
                 setMode('login');
-                resetOtpState();
+                resetPasscodeState();
                 setError(null);
               }}
               style={[styles.switchPill, mode === 'login' && styles.switchPillOn]}>
@@ -192,7 +162,7 @@ export function CustomerAuthScreen({
             <Pressable
               onPress={() => {
                 setMode('signup');
-                resetOtpState();
+                resetPasscodeState();
                 setError(null);
               }}
               style={[styles.switchPill, mode === 'signup' && styles.switchPillOn]}>
@@ -268,21 +238,21 @@ export function CustomerAuthScreen({
             />
 
 
-            <View style={styles.otpHeader}>
-              <AppFieldLabel text="VERIFICATION CODE" compact />
-              {!otpSent ? (
-                <Pressable onPress={onSendOtp} disabled={sendingOtp}>
-                  <Text style={styles.otpAction}>{sendingOtp ? 'Sending OTP...' : 'Send OTP'}</Text>
-                </Pressable>
-              ) : secondsLeft > 0 ? (
-                <Text style={styles.otpMuted}>Resend OTP in {fmt(secondsLeft)}</Text>
-              ) : (
-                <Pressable onPress={onSendOtp} disabled={sendingOtp}>
-                  <Text style={styles.otpAction}>Resend OTP</Text>
-                </Pressable>
-              )}
-            </View>
-            <SixDigitInput value={otp} onChange={setOtp} />
+            <AppFieldLabel text="PASSCODE" />
+            <SixDigitInput value={passcode} onChange={setPasscode} secure />
+
+            {mode === 'signup' ? (
+              <>
+                <View style={styles.gap}>
+                  <AppFieldLabel text="CONFIRM PASSCODE" />
+                </View>
+                <SixDigitInput
+                  value={confirmPasscode}
+                  onChange={setConfirmPasscode}
+                  secure
+                />
+              </>
+            ) : null}
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
 

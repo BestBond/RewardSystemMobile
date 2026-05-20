@@ -28,6 +28,7 @@ import { formatBatchCreatedLabel } from './couponGenerationUtils';
 import { ChevronRight, Scanner, TxTicketOrange } from '../../../assets/svgs';
 import CouponPhoneScan from '../../../assets/svgs/originals/coupon_phone_scan.svg';
 import BestBondManLogo from '../../../assets/svgs/originals/BestBondman.svg';
+import { getCouponTierTheme } from '../../../constants/couponTiers';
 
 type Nav = NativeStackNavigationProp<
   AdminCouponStackParamList,
@@ -52,8 +53,9 @@ export function AdminCouponPreviewScreen() {
   const moreCount = Math.max(0, quantity - visibleCodes.length);
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
 
+  const tierTheme = useMemo(() => getCouponTierTheme(slabPts), [slabPts]);
+
   const redeemPointsLabel = useMemo(() => {
-    // Match PDF copy: "5,000 Points" (locale-formatted slab value).
     return `${formatInt(slabPts)} Points`;
   }, [slabPts]);
 
@@ -183,8 +185,38 @@ export function AdminCouponPreviewScreen() {
               <View
                 style={[
                   styles.couponLeft,
-                  { width: leftW, paddingTop: 14 * scale },
+                  {
+                    width: leftW,
+                    paddingTop: 14 * scale,
+                    backgroundColor: tierTheme.gradientColors
+                      ? undefined
+                      : tierTheme.leftBg,
+                    borderRightWidth: 1,
+                    borderRightColor: tierTheme.leftBorder,
+                  },
                 ]}>
+                {tierTheme.gradientColors ? (
+                  <Svg
+                    width={leftW}
+                    height={bannerH}
+                    style={StyleSheet.absoluteFill}
+                    preserveAspectRatio="none">
+                    <Defs>
+                      <LinearGradient
+                        id="tierLeftGrad"
+                        x1="0"
+                        y1="0"
+                        x2={String(leftW)}
+                        y2={String(bannerH)}
+                        gradientUnits="userSpaceOnUse">
+                        <Stop offset="0" stopColor={tierTheme.gradientColors[0]} />
+                        <Stop offset="0.5" stopColor={tierTheme.gradientColors[1]} />
+                        <Stop offset="1" stopColor={tierTheme.gradientColors[2]} />
+                      </LinearGradient>
+                    </Defs>
+                    <Rect width={leftW} height={bannerH} fill="url(#tierLeftGrad)" />
+                  </Svg>
+                ) : null}
                 <View style={styles.couponLeftTop}>
                   <CouponPhoneScan width={28 * scale} height={28 * scale} />
                 </View>
@@ -194,7 +226,7 @@ export function AdminCouponPreviewScreen() {
                       value={selectedCode}
                       size={150 * scale}
                       quietZone={2}
-                      backgroundColor="#FFFFFF"
+                      backgroundColor="transparent"
                       color="#111827"
                     />
                   ) : null}
@@ -259,8 +291,40 @@ export function AdminCouponPreviewScreen() {
                         width: 330 * scale,
                         height: 74 * scale,
                         borderRadius: 37 * scale,
+                        backgroundColor: tierTheme.gradientColors
+                          ? undefined
+                          : tierTheme.pillBg,
+                        borderWidth: 2,
+                        borderColor: tierTheme.pillBorder,
+                        overflow: 'hidden',
                       },
                     ]}>
+                    {tierTheme.gradientColors ? (
+                      <Svg
+                        width={330 * scale}
+                        height={74 * scale}
+                        style={StyleSheet.absoluteFill}
+                        preserveAspectRatio="none">
+                        <Defs>
+                          <LinearGradient
+                            id="tierPillGrad"
+                            x1="0"
+                            y1="0"
+                            x2={String(330 * scale)}
+                            y2={String(74 * scale)}
+                            gradientUnits="userSpaceOnUse">
+                            <Stop offset="0" stopColor={tierTheme.gradientColors[0]} />
+                            <Stop offset="0.5" stopColor={tierTheme.gradientColors[1]} />
+                            <Stop offset="1" stopColor={tierTheme.gradientColors[2]} />
+                          </LinearGradient>
+                        </Defs>
+                        <Rect
+                          width={330 * scale}
+                          height={74 * scale}
+                          fill="url(#tierPillGrad)"
+                        />
+                      </Svg>
+                    ) : null}
                     <Text
                       style={[styles.pointsPillText, { fontSize: 36 * scale }]}>
                       {redeemPointsLabel}
@@ -462,9 +526,10 @@ const styles = StyleSheet.create({
   modalCloseText: { fontSize: 22, fontWeight: '800', color: '#111827' },
 
   couponLeft: {
-    backgroundColor: adminUi.white,
     alignItems: 'center',
     paddingHorizontal: 8,
+    overflow: 'hidden',
+    position: 'relative',
   },
   couponLeftTop: {
     alignItems: 'center',
@@ -498,9 +563,9 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   pointsPill: {
-    backgroundColor: adminUi.white,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
   pointsPillText: {
     fontWeight: '900',

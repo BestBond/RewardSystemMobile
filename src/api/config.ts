@@ -2,21 +2,28 @@ import { Platform } from 'react-native';
 
 type SourceCodeModule = { getConstants: () => { scriptURL: string } };
 
-// Same implementation RN uses for `getDevServer()` — works on physical devices (LAN IP in script URL).
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const NativeSourceCode = require('react-native/Libraries/NativeModules/specs/NativeSourceCode')
   .default as SourceCodeModule;
 
+/** Production API (admin + mobile release builds). */
+export const PROD_API_BASE_URL = 'https://api.bestbond.in';
+
 /**
- * Optional manual override when script URL host cannot be read (unusual dev setups).
- * Example: your Mac’s Wi‑Fi IP from `ipconfig getifaddr en0` — `192.168.1.42`
+ * Dev builds: when true, use PROD_API_BASE_URL (same as admin.bestbond.in).
+ * When false, use local Nest on port 3000 (emulator: 10.0.2.2).
  */
-const DEV_API_HOST_OVERRIDE: string | null = '10.149.73.173';
+const USE_PROD_API_IN_DEV = false;
+
 /**
- * Dev base URLs.
- * - Physical device: hostname comes from the Metro bundle URL (same LAN as your machine).
- * - iOS simulator: localhost * - Android emulator: 10.0.2.2
+ * Only used when USE_PROD_API_IN_DEV is false.
+ * Set to your Mac LAN IP (e.g. `ipconfig getifaddr en0`) for a physical device on Wi‑Fi.
+ * Leave null to derive host from the Metro bundle URL.
  */
+const DEV_API_HOST_OVERRIDE: string | null = null;
+
+const DEV_API_PORT = 3000;
+
 function getMetroHost(): string | null {
   if (DEV_API_HOST_OVERRIDE?.trim()) {
     return DEV_API_HOST_OVERRIDE.trim();
@@ -25,35 +32,41 @@ function getMetroHost(): string | null {
     const scriptURL = NativeSourceCode.getConstants().scriptURL;
     if (typeof scriptURL !== 'string' || scriptURL.length === 0) return null;
     const u = new URL(scriptURL);
-    const host = u.hostname;
-    return host || null;
+    return u.hostname || null;
   } catch {
     return null;
   }
 }
 
-function computeApiBaseUrl(): string {
-  // Production / release builds
-  if (!__DEV__) {
-    return 'https://api.bestbond.in';
-  }
-
+function computeLocalDevApiBaseUrl(): string {
   const metroHost = getMetroHost();
 
-  if (__DEV__ && metroHost && metroHost !== '0.0.0.0') {
-    // Android emulators cannot use 'localhost' to reach the host machine.
-    if (Platform.OS === 'android' && (metroHost === 'localhost' || metroHost === '127.0.0.1')) {
-      return 'http://10.0.2.2:3000';
+  if (metroHost && metroHost !== '0.0.0.0') {
+    if (
+      Platform.OS === 'android' &&
+      (metroHost === 'localhost' || metroHost === '127.0.0.1')
+    ) {
+      return `http://10.0.2.2:${DEV_API_PORT}`;
     }
-    return `http://${metroHost}:3000`;
+    return `http://${metroHost}:${DEV_API_PORT}`;
   }
 
-  if (Platform.OS === 'android') return 'http://10.0.2.2:3000';
-  // iOS simulator / fallback — never use 0.0.0.0 (invalid as a client URL on device).
-  return 'http://localhost:3000';
+  if (Platform.OS === 'android') return `http://10.0.2.2:${DEV_API_PORT}`;
+  return `http://localhost:${DEV_API_PORT}`;
+}
+
+function computeApiBaseUrl(): string {
+  if (!__DEV__) {
+    return PROD_API_BASE_URL;
+  }
+  if (USE_PROD_API_IN_DEV) {
+    return PROD_API_BASE_URL;
+  }
+  return computeLocalDevApiBaseUrl();
 }
 
 export const API_BASE_URL = computeApiBaseUrl();
 
-// export const API_BASE_URL = 'https://api.bestbond.in';
-
+export function isProductionApiBaseUrl(): boolean {
+  return API_BASE_URL.startsWith('https://api.bestbond.in');
+}

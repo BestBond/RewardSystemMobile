@@ -16,9 +16,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   CardStar,
   CartInactive,
-  Earbud,
-  Leveling,
-  Lifting,
   RewardsActive,
   RewardsInactive,
   ScannerWhite,
@@ -27,10 +24,17 @@ import { AppCard, AppChip } from '../components/ui';
 import { getAuthMe, getMyProfile } from '../api/users';
 import { redirectStaffToAdminShellIfNeeded } from '../auth/staffShellRedirect';
 import { getMyTransactions } from '../api/transactions';
+import {
+  getMyGiftTier,
+  listRewards,
+  type GiftTier,
+  type RewardDto,
+} from '../api/rewards';
 import type { MainTabParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
 import { figma } from '../theme/figmaTokens';
-import { loyaltyTierFromPoints } from '../utils/loyaltyTier';
+import { formatPointsCompact } from '../utils/formatPointsCompact';
+import { RewardImageBlock } from './rewards/RewardImageBlock';
 import {
   activityIconFromType,
   activitySubtitle,
@@ -56,18 +60,10 @@ function ActivityRowIcon({ name }: { name: ActivityIconName }) {
   }
 }
 
-function RecommendedIcon({ title }: { title: string }) {
-  const size = 52;
-  if (title.toLowerCase().includes('boat') || title.toLowerCase().includes('earbud')) {
-    return <Earbud width={size} height={size} />;
-  }
-  if (title.toLowerCase().includes('levelling') || title.toLowerCase().includes('leveling')) {
-    return <Leveling width={size} height={size} />;
-  }
-  if (title.toLowerCase().includes('lifting')) {
-    return <Lifting width={size} height={size} />;
-  }
-  return <Earbud width={size} height={size} />;
+const CONTRACTOR_THRESHOLD = 2_000_000;
+
+function giftTierLabel(tier: GiftTier): string {
+  return tier === 'CONTRACTOR' ? 'Contractor' : 'Worker';
 }
 
 function greetingLabel(): string {
@@ -92,9 +88,12 @@ export function HomeScreen() {
   const [error, setError] = useState<string | null>(null);
   const [balance, setBalance] = useState(0);
   const [userLabel, setUserLabel] = useState('Member');
-  const [tierLabel, setTierLabel] = useState('Bronze Member Tier');
-  const [tierProgress, setTierProgress] = useState(50);
+  const [giftTier, setGiftTier] = useState<GiftTier>('WORKER');
+  const [tierProgress, setTierProgress] = useState(0);
   const [ptsToNext, setPtsToNext] = useState(0);
+  const [recommendedRewards, setRecommendedRewards] = useState<RewardDto[]>(
+    [],
+  );
   const [activities, setActivities] = useState<
     {
       id: string;
@@ -111,21 +110,39 @@ export function HomeScreen() {
     else setLoading(true);
     setError(null);
     try {
-      const [profile, tx, me] = await Promise.all([
+      const [profile, tx, me, tierInfo, rewards] = await Promise.all([
         getMyProfile(),
         getMyTransactions({ period: 'ALL', limit: 5 }),
         getAuthMe()
           .then(r => r.user)
           .catch(() => null),
+        getMyGiftTier().catch(() => null),
+        listRewards().catch(() => [] as RewardDto[]),
       ]);
       if (redirectStaffToAdminShellIfNeeded(profile, me)) return;
       const pts = profile.loyaltyPoints ?? 0;
       setBalance(pts);
       setUserLabel(displayName(profile.fullName));
-      const tier = loyaltyTierFromPoints(pts);
-      setTierLabel(tier.tierLabel);
-      setTierProgress(tier.progress);
-      setPtsToNext(tier.pointsToNextReward);
+
+      const tier = tierInfo?.giftTier ?? 'WORKER';
+      const threshold =
+        tierInfo?.contractorThreshold ?? CONTRACTOR_THRESHOLD;
+      setGiftTier(tier);
+      if (tier === 'CONTRACTOR') {
+        setTierProgress(100);
+        setPtsToNext(0);
+      } else {
+        const toContractor = Math.max(0, threshold - pts);
+        setPtsToNext(toContractor);
+        setTierProgress(Math.min(100, (pts / threshold) * 100));
+      }
+
+      const sorted = [...rewards].sort(
+        (a, b) =>
+          (a.sortOrder ?? 0) - (b.sortOrder ?? 0) ||
+          a.pointsCost - b.pointsCost,
+      );
+      setRecommendedRewards(sorted.slice(0, 3));
 
       setActivities(
         tx.transactions.map(t => {
@@ -168,7 +185,10 @@ export function HomeScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.scroll,
-          { paddingBottom: 100 + insets.bottom },
+          {
+            paddingTop: insets.top + 12,
+            paddingBottom: 100 + insets.bottom,
+          },
         ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -176,6 +196,7 @@ export function HomeScreen() {
             refreshing={refreshing}
             onRefresh={() => load(true)}
             tintColor={colors.primaryOrange}
+            progressViewOffset={insets.top}
           />
         }>
         {loading && !refreshing ? (
@@ -219,17 +240,34 @@ export function HomeScreen() {
             </View>
           </View>
           <View style={styles.tierLabelsRow}>
-            <Text style={styles.tierLabelSmall}>CURRENT TIER: <Text style={styles.tierLabel}>{tierLabel}</Text></Text>
-            <Text style={styles.tierLabelSmallRight}>NEXT: <Text style={[styles.tierLabel, { color: colors.primaryOrange }]}>{'Contractor'}</Text></Text>
+            <Text style={styles.tierLabelSmall}>
+              CURRENT TIER:{' '}
+              <Text style={styles.tierLabel}>{giftTierLabel(giftTier)}</Text>
+            </Text>
+            {giftTier === 'WORKER' ? (
+              <Text style={styles.tierLabelSmallRight}>
+                NEXT:{' '}
+                <Text
+                  style={[styles.tierLabel, { color: colors.primaryOrange }]}>
+                  Contractor
+                </Text>
+              </Text>
+            ) : null}
           </View>
           <View style={styles.progressTrack}>
             <View
               style={[styles.progressFill, { width: `${tierProgress}%` }]}
             />
           </View>
-          <View style={styles.balanceRight}>
-            <Text style={styles.tierRightSmall}>{ptsToNext.toLocaleString()} pts</Text>
-          </View>
+          {giftTier === 'WORKER' ? (
+            <View style={styles.balanceRight}>
+              <Text style={styles.tierRightSmall}>
+                {ptsToNext > 0
+                  ? `${ptsToNext.toLocaleString()} pts to ${formatPointsCompact(CONTRACTOR_THRESHOLD)}`
+                  : formatPointsCompact(CONTRACTOR_THRESHOLD)}
+              </Text>
+            </View>
+          ) : null}
         </AppCard>
 
         <Pressable
@@ -247,26 +285,39 @@ export function HomeScreen() {
         </View>
 
         <View style={styles.recommendedList}>
-          {/* Placeholder recommended items - map the first 3 activities or placeholders */}
-          {(activities.length ? activities.slice(0, 3) : [
-            { id: 'r1', title: 'Boat Headphones', sub: '', points: '1,000 pts', positive: true, icon: 'rewardsEarn',  },
-            { id: 'r2', title: 'Levelling System', sub: '', points: '1,000 pts', positive: true, icon: 'rewardsEarn',  },
-            { id: 'r3', title: 'Lifting Adjuster', sub: '', points: '1,000 pts', positive: true, icon: 'rewardsEarn',},
-          ]).map(item => (
-            <AppCard key={item.id} style={styles.recoCard} compact>
-              <View style={styles.recoLeft}>
-                <RecommendedIcon title={item.title} />
-              </View>
-              <View style={styles.recoBody}>
-                <Text style={styles.recoTitle}>{item.title}</Text>
-                <Text style={styles.recoPts}>{item.points ?? '1,000 pts'}</Text>
-              </View>
-              <View style={styles.recoChevron}>
-                <Text style={styles.recoChevronText}> 
+          {recommendedRewards.length === 0 && !loading ? (
+            <Text style={styles.emptyReco}>
+              No gifts in catalog yet. Open Rewards to browse.
+            </Text>
+          ) : null}
+          {recommendedRewards.map(item => (
+            <Pressable
+              key={item.id}
+              onPress={() =>
+                navigation.navigate('Cart', {
+                  screen: 'RewardCheckout',
+                  params: { rewardId: item.id },
+                })
+              }>
+              <AppCard style={styles.recoCard} compact>
+                <View style={styles.recoLeft}>
+                  <RewardImageBlock
+                    imageUrl={item.imageUrl}
+                    padded={false}
+                    style={styles.recoImageFill}
+                  />
+                </View>
+                <View style={styles.recoBody}>
+                  <Text style={styles.recoTitle}>{item.title}</Text>
+                  <Text style={styles.recoPts}>
+                    {item.pointsCost.toLocaleString()} pts
+                  </Text>
+                </View>
+                <View style={styles.recoChevron}>
                   <GreaterThanIcon />
-                </Text>
-              </View>
-            </AppCard>
+                </View>
+              </AppCard>
+            </Pressable>
           ))}
         </View>
 
@@ -336,7 +387,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginTop: 18,
   },
   greeting: {
     fontSize: 16,
@@ -539,8 +589,21 @@ const styles = StyleSheet.create({
   recommendedTitle: { fontSize: 18, fontWeight: '800', color: colors.navy },
   recommendedView: { fontSize: 13, color: colors.navy, fontWeight: '500' },
   recommendedList: { marginBottom: 6 },
+  emptyReco: {
+    fontSize: 14,
+    color: colors.navy,
+    opacity: 0.7,
+    marginBottom: 12,
+  },
   recoCard: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 14, marginBottom: 12, borderRadius: 28, backgroundColor: colors.white, ...figma.shadowSoft },
-  recoLeft: { width: 64, height: 64, borderRadius: 12,  marginRight: 5, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  recoLeft: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    marginRight: 5,
+    overflow: 'hidden',
+  },
+  recoImageFill: { width: '100%', height: '100%' },
   recoBody: { flex: 1 },
   recoTitle: { fontSize: 16, fontWeight: '800', color: colors.navyAlt },
   recoPts: { fontSize: 14, color: colors.primaryOrange, marginTop: 3 , fontWeight:'600' },

@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import { resetAuthAfterSessionExpired } from '../navigation/rootNavigation';
-import { API_BASE_URL } from './config';
+import { API_BASE_URL, isProductionApiBaseUrl } from './config';
 import { clearAuthSession, getAccessToken } from './storage';
 
 export class ApiError extends Error {
@@ -42,11 +42,11 @@ export function userFacingApiMessage(text: string): string {
   if (/phone.*10|must match.*\{10\}/i.test(t)) {
     return 'Enter a valid 10-digit mobile number.';
   }
-  if (/pin.*6|must match.*\{6\}/i.test(t)) {
-    return 'Enter a valid 6-digit PIN.';
+  if (/passcode|pin.*6|must match.*\{6\}/i.test(t)) {
+    return 'Enter a valid 6-digit passcode.';
   }
-  if (/otp expired|otp not found|invalid otp/i.test(t)) {
-    return 'OTP expired or invalid. Request a new code.';
+  if (/invalid passcode|passcode not configured/i.test(t)) {
+    return 'Invalid passcode. Check your digits and try again.';
   }
   if (/not approved for management onboarding/i.test(t)) {
     return 'Your mobile number is not approved for management onboarding.';
@@ -69,8 +69,11 @@ export function userFacingApiMessage(text: string): string {
   if (/dealers cannot redeem directly/i.test(t)) {
     return 'Dealers cannot redeem directly. Please contact your shop/admin.';
   }
-  if (/workers can redeem only slab rewards/i.test(t)) {
-    return 'You can redeem only slab rewards: 5,000, 10,000, or 25,000 points.';
+  if (/contractor tier.*2,000,000/i.test(t)) {
+    return 'This gift is available only at Contractor tier (2,000,000+ points balance).';
+  }
+  if (/worker tier.*below 2,000,000/i.test(t)) {
+    return 'This gift is available only at Worker tier (balance below 2,000,000 points).';
   }
   if (/current password is incorrect/i.test(t)) {
     return 'Current password is incorrect.';
@@ -130,6 +133,7 @@ async function throwIfNotOk(
 }
 
 function altLocalhostBase(baseUrl: string) {
+  if (!baseUrl.startsWith('http://')) return null;
   if (baseUrl.includes('localhost')) return baseUrl.replace('localhost', '127.0.0.1');
   if (baseUrl.includes('127.0.0.1')) return baseUrl.replace('127.0.0.1', 'localhost');
   return null;
@@ -202,10 +206,22 @@ async function fetchWithLocalFallback(
 }
 
 function networkErrorUserMessage(detail: string): string {
-  const hint =
-    detail.includes('Network request failed') || detail.includes('Failed to connect')
-      ? ' Start the Nest API (port 3000, listen on all interfaces, e.g. 0.0.0.0). On a phone, the app uses your Mac/PC LAN IP — same Wi‑Fi as the device.'
-      : '';
+  const isConn =
+    detail.includes('Network request failed') ||
+    detail.includes('Failed to connect') ||
+    detail.includes('Unable to resolve host');
+
+  if (isProductionApiBaseUrl() && isConn) {
+    return (
+      `Cannot reach ${API_BASE_URL} from the device. ` +
+      'The app is using the production API (same as admin). ' +
+      'On the emulator, open Chrome and load that URL; fix emulator internet/VPN/date, or set USE_PROD_API_IN_DEV=false in src/api/config.ts and run the API locally with adb reverse.'
+    );
+  }
+
+  const hint = isConn
+    ? ' Start the Nest API (port 3000, 0.0.0.0). Android emulator: http://10.0.2.2:3000. Physical device: same Wi‑Fi as your Mac and your LAN IP in config.'
+    : '';
   return `Network error (${API_BASE_URL}) — ${detail}.${hint}`;
 }
 
@@ -217,7 +233,10 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
     console.log(`[API] POST ${API_BASE_URL}${path}`);
     res = await fetchWithLocalFallback(`${API_BASE_URL}${path}`, {
       method: 'POST',
-      headers: auth.headers,
+      headers: {
+        Accept: 'application/json',
+        ...auth.headers,
+      },
       body: JSON.stringify(body),
     });
   } catch (e) {
@@ -240,7 +259,10 @@ export async function apiGet<T>(path: string): Promise<T> {
     console.log(`[API] GET ${API_BASE_URL}${path}`);
     res = await fetchWithLocalFallback(`${API_BASE_URL}${path}`, {
       method: 'GET',
-      headers: auth.headers,
+      headers: {
+        Accept: 'application/json',
+        ...auth.headers,
+      },
       cache: 'no-store',
     });
   } catch (e) {

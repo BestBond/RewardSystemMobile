@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -33,7 +33,14 @@ import { figma } from '../../theme/figmaTokens';
 import { MENU_SUBTITLES } from './accountFigmaData';
 import packageJson from '../../../package.json';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
-import { loyaltyTierFromPoints } from '../../utils/loyaltyTier';
+import { getMyGiftTier, type GiftTier } from '../../api/rewards';
+import { formatPointsCompact } from '../../utils/formatPointsCompact';
+
+const CONTRACTOR_THRESHOLD = 2_000_000;
+
+function giftTierLabel(tier: GiftTier): string {
+  return tier === 'CONTRACTOR' ? 'Contractor' : 'Worker';
+}
 
 const APP_VERSION = packageJson.version;
 
@@ -44,17 +51,28 @@ export function UserProfileScreen() {
   const navigation = useNavigation<Nav>();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<MyProfile | null>(null);
+  const [giftTier, setGiftTier] = useState<GiftTier>('WORKER');
+  const [contractorThreshold, setContractorThreshold] = useState(
+    CONTRACTOR_THRESHOLD,
+  );
 
   const load = useCallback(async () => {
     try {
-      const [p, me] = await Promise.all([
+      const [p, me, tierInfo] = await Promise.all([
         getMyProfile(),
         getAuthMe()
           .then(r => r.user)
           .catch(() => null),
+        getMyGiftTier().catch(() => null),
       ]);
       if (redirectStaffToAdminShellIfNeeded(p, me)) return;
       setProfile(p);
+      if (tierInfo) {
+        setGiftTier(tierInfo.giftTier);
+        setContractorThreshold(
+          tierInfo.contractorThreshold ?? CONTRACTOR_THRESHOLD,
+        );
+      }
     } catch {
       setProfile(null);
     } finally {
@@ -67,9 +85,12 @@ export function UserProfileScreen() {
     load().catch(() => { });
   });
 
-  const tierInfo = useMemo(() => {
-    return loyaltyTierFromPoints(profile?.loyaltyPoints ?? 0);
-  }, [profile?.loyaltyPoints]);
+  const balance = profile?.loyaltyPoints ?? 0;
+  const tierProgress =
+    giftTier === 'CONTRACTOR'
+      ? 1
+      : Math.min(1, balance / contractorThreshold);
+  const pointsToContractor = Math.max(0, contractorThreshold - balance);
 
   return (
     <View style={styles.root}>
@@ -126,13 +147,32 @@ export function UserProfileScreen() {
 
             <View style={styles.tierSection}>
               <View style={styles.tierLabels}>
-                <Text style={styles.tierLabelSmall}>CURRENT TIER: <Text style={styles.tierLabelBold}>Worker</Text></Text>
-                <Text style={styles.tierLabelSmall}>NEXT: <Text style={styles.tierLabelOrange}>Contractor</Text></Text>
+                <Text style={styles.tierLabelSmall}>
+                  CURRENT TIER:{' '}
+                  <Text style={styles.tierLabelBold}>{giftTierLabel(giftTier)}</Text>
+                </Text>
+                {giftTier === 'WORKER' ? (
+                  <Text style={styles.tierLabelSmall}>
+                    NEXT:{' '}
+                    <Text style={styles.tierLabelOrange}>Contractor</Text>
+                  </Text>
+                ) : null}
               </View>
               <View style={styles.progressTrack}>
-                <View style={[styles.progressFill, { width: `${3 / 5 * 100}%` }]} />
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${tierProgress * 100}%` },
+                  ]}
+                />
               </View>
-              <Text style={styles.nextPtsText}>1,20,000 pts</Text>
+              {giftTier === 'WORKER' ? (
+                <Text style={styles.nextPtsText}>
+                  {pointsToContractor > 0
+                    ? `${pointsToContractor.toLocaleString()} pts to ${formatPointsCompact(contractorThreshold)}`
+                    : formatPointsCompact(contractorThreshold)}
+                </Text>
+              ) : null}
             </View>
           </View>
 

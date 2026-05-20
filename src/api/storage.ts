@@ -28,7 +28,7 @@ export async function setSavedPhone(params: { countryCode: string; phone: string
   ]);
 }
 
-/** Clears JWT only (keeps saved phone for PIN login). */
+/** Clears JWT only. */
 export async function clearAuthSession() {
   await setAccessToken(null);
 }

@@ -1,19 +1,48 @@
 import React from 'react';
-import { Image, StyleSheet, View, type ImageStyle } from 'react-native';
+import { Image, StyleSheet, View, type ImageStyle, type StyleProp, type ViewStyle } from 'react-native';
+import { resolveRewardImageUrl } from '../../api/rewards';
 
 const styles = StyleSheet.create({
+  wrap: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#F5F6FA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+  },
+  wrapCompact: {
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+  },
+  imageSlot: {
+    flex: 1,
+    width: '100%',
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+  },
   triptychWrap: {
+    width: '100%',
+    height: '100%',
     borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: '#F2F2F2',
   },
   triptychInner: {
+    flex: 1,
     padding: 10,
+    justifyContent: 'center',
   },
   triptychRow: {
     flexDirection: 'row',
     alignItems: 'stretch',
-    minHeight: 120,
+    minHeight: 80,
   },
   triptychSeg: {
     flex: 1,
@@ -23,11 +52,6 @@ const styles = StyleSheet.create({
     width: 2,
     backgroundColor: '#1A1A1A',
     opacity: 0.35,
-  },
-  remoteImg: {
-    width: '100%',
-    minHeight: 144,
-    backgroundColor: '#ECECEC',
   },
 });
 
@@ -49,20 +73,48 @@ function TriptychFallback() {
 
 type Props = {
   imageUrl: string | null;
-  style?: ImageStyle;
+  style?: StyleProp<ViewStyle>;
+  imageStyle?: StyleProp<ImageStyle>;
+  /** Fallback height when parent has no fixed height (e.g. thumbnails). */
   minHeight?: number;
+  resizeMode?: 'cover' | 'contain';
+  /** Inset padding so tall product PNGs are not clipped (catalog cards). */
+  padded?: boolean;
 };
 
-/** Product hero image: remote URL when present, otherwise Figma-style triptych placeholder. */
-export function RewardImageBlock({ imageUrl, style, minHeight = 144 }: Props) {
-  if (imageUrl) {
+/** Product image for reward cards and thumbnails. */
+export function RewardImageBlock({
+  imageUrl,
+  style,
+  imageStyle,
+  minHeight,
+  resizeMode = 'contain',
+  padded = true,
+}: Props) {
+  const uri = resolveRewardImageUrl(imageUrl);
+  const wrapStyle = [
+    styles.wrap,
+    !padded && styles.wrapCompact,
+    minHeight != null ? { minHeight } : null,
+    style,
+  ];
+
+  if (uri) {
     return (
-      <Image
-        source={{ uri: imageUrl }}
-        style={[styles.remoteImg, { minHeight }, style]}
-        resizeMode="cover"
-      />
+      <View style={wrapStyle}>
+        <View style={styles.imageSlot}>
+          <Image
+            source={{ uri }}
+            style={[styles.image, imageStyle]}
+            resizeMode={resizeMode}
+          />
+        </View>
+      </View>
     );
   }
-  return <TriptychFallback />;
+  return (
+    <View style={wrapStyle}>
+      <TriptychFallback />
+    </View>
+  );
 }

@@ -1,90 +1,80 @@
 import { apiPost } from './client';
 
 /**
- * OTP-only authentication (new system).
+ * Mobile + 6-digit passcode authentication.
  *
- * - request OTP: POST /auth/otp/request
- * - customer signup: POST /auth/customer/otp/signup
- * - customer login:  POST /auth/customer/otp/login
- * - ops admin signup: POST /auth/admin/otp/signup (returns pending approval)
- * - staff login (superadmin/ops): POST /auth/admin/otp/login — Super Admin sends OTP + password; Ops sends OTP only
+ * - customer signup: POST /auth/customer/passcode/signup
+ * - customer login:  POST /auth/customer/passcode/login
+ * - ops admin signup: POST /auth/admin/passcode/signup (returns pending approval)
+ * - staff login (superadmin/ops): POST /auth/admin/passcode/login
  * - superadmin signup exists but is web-only (mobile should not expose it):
- *   POST /auth/superadmin/otp/signup
+ *   POST /auth/superadmin/passcode/signup
  */
 
-export type RequestOtpResponse = {
-  requestId: string;
-  otpSent: boolean;
-  devCode?: string;
-};
-
-export type AdminOtpSignupResponse = {
+export type AdminPasscodeSignupResponse = {
   pendingApproval: boolean;
 };
 
-export type AdminOtpLoginResponse = {
+export type AdminPasscodeLoginResponse = {
   accessToken: string;
   roles?: string[];
   permissions?: string[];
 };
 
-export type CustomerOtpSignupResponse = {
+export type CustomerPasscodeSignupResponse = {
   accessToken: string;
   roles?: string[];
   permissions?: string[];
 };
 
-export type CustomerOtpLoginResponse = {
+export type CustomerPasscodeLoginResponse = {
   accessToken: string;
   roles?: string[];
   permissions?: string[];
 };
 
-export async function requestOtp(params: { phone: string; countryCode: string }) {
-  return apiPost<RequestOtpResponse>('/auth/otp/request', params);
-}
-
-export async function signupAdminWithOtp(params: {
+export async function signupAdminWithPasscode(params: {
   phone: string;
   countryCode: string;
-  code: string;
+  passcode: string;
+  confirmPasscode: string;
   fullName?: string | null;
   email?: string | null;
 }) {
-  return apiPost<AdminOtpSignupResponse>('/auth/admin/otp/signup', params);
+  return apiPost<AdminPasscodeSignupResponse>('/auth/admin/passcode/signup', params);
 }
 
-export async function loginAdminWithOtp(params: {
+export async function loginAdminWithPasscode(params: {
   phone: string;
   countryCode: string;
-  code: string;
-  /** Super Admin only (min 8 chars). Omit or empty for Ops Admin. */
-  password?: string;
+  passcode: string;
 }) {
-  const { password, ...rest } = params;
-  const body =
-    password != null && password.trim().length > 0
-      ? { ...rest, password: password.trim() }
-      : rest;
-  return apiPost<AdminOtpLoginResponse>('/auth/admin/otp/login', body);
+  return apiPost<AdminPasscodeLoginResponse>('/auth/admin/passcode/login', params);
 }
 
-export async function signupCustomerWithOtp(params: {
+export async function signupCustomerWithPasscode(params: {
   phone: string;
   countryCode: string;
-  code: string;
+  passcode: string;
+  confirmPasscode: string;
   fullName?: string | null;
   email?: string | null;
   profession?: string | null;
   deliveryAddress?: string | null;
 }) {
-  return apiPost<CustomerOtpSignupResponse>('/auth/customer/otp/signup', params);
+  return apiPost<CustomerPasscodeSignupResponse>(
+    '/auth/customer/passcode/signup',
+    params,
+  );
 }
 
-export async function loginCustomerWithOtp(params: {
+export async function loginCustomerWithPasscode(params: {
   phone: string;
   countryCode: string;
-  code: string;
+  passcode: string;
 }) {
-  return apiPost<CustomerOtpLoginResponse>('/auth/customer/otp/login', params);
+  return apiPost<CustomerPasscodeLoginResponse>(
+    '/auth/customer/passcode/login',
+    params,
+  );
 }

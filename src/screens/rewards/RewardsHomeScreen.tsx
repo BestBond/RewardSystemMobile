@@ -24,25 +24,24 @@ import Svg, {
 import {
   BackArrowLeft,
   CardStar,
-  Earbud,
   IconGiftOrange,
-  Leveling,
-  Lifting,
   TrendArrowUp,
 } from '../../assets/svgs';
 import {
-  getWorkerRedemptionSlabs,
+  getMyGiftTier,
   listRewards,
+  type GiftTier,
   type RewardDto,
 } from '../../api/rewards';
 import { getMyProfile } from '../../api/users';
+import { RewardImageBlock } from './RewardImageBlock';
 import type {
   MainTabParamList,
   RewardsStackParamList,
 } from '../../navigation/types';
 import { colors } from '../../theme/colors';
 import { figma } from '../../theme/figmaTokens';
-import { loyaltyTierFromPoints } from '../../utils/loyaltyTier';
+import { formatPointsCompact } from '../../utils/formatPointsCompact';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 import { AppCard, AppChip } from '../../components/ui';
 
@@ -51,40 +50,40 @@ type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList>
 >;
 
-type PointFilterId = 'all' | `slab-${number}`;
+type TierFilterId = 'all' | GiftTier;
 
-function RecommendedIcon({ title }: { title: string }) {
-  const size = 120;
-  const t = title.toLowerCase();
-  if (t.includes('boat') || t.includes('earbud')) {
-    return <Earbud width={size} height={size} />;
+const CONTRACTOR_THRESHOLD = 2_000_000;
+
+function giftTierLabel(tier: GiftTier): string {
+  return tier === 'CONTRACTOR' ? 'Contractor' : 'Worker';
+}
+
+function lockHint(reward: RewardDto, balance: number): string | null {
+  if (reward.tierRedeemable === false) {
+    return reward.giftTier === 'CONTRACTOR'
+      ? 'Contractor tier required (2M+ pts balance)'
+      : 'Worker tier only';
   }
-  if (t.includes('levelling') || t.includes('leveling')) {
-    return <Leveling width={size} height={size} />;
+  if (balance < reward.pointsCost) {
+    return 'Not enough points yet';
   }
-  if (t.includes('lifting')) {
-    return <Lifting width={size} height={size} />;
-  }
-  return <Earbud width={size} height={size} />;
+  return null;
 }
 
 export function RewardsHomeScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
-  const [filter, setFilter] = useState<PointFilterId>('all');
+  const [filter, setFilter] = useState<TierFilterId>('all');
   const [loading, setLoading] = useState(true);
   const [_error, setError] = useState<string | null>(null);
   const [_rewardsError, setRewardsError] = useState<string | null>(null);
   const [balance, setBalance] = useState(0);
-  const [_slabs, setSlabs] = useState<number[]>([]);
   const [allRewards, setAllRewards] = useState<RewardDto[]>([]);
-  const [_isDealer, setIsDealer] = useState(false);
+  const [giftTier, setGiftTier] = useState<GiftTier>('WORKER');
+  const [contractorThreshold, setContractorThreshold] = useState(
+    CONTRACTOR_THRESHOLD,
+  );
   const [selectedRewardId, setSelectedRewardId] = useState<string | null>(null);
-  const [tierInfo, setTierInfo] = useState({
-    tierLabel: 'Worker',
-    pointsToNextReward: 0,
-    progress: 0,
-  });
 
   const load = useCallback(async () => {
     setError(null);
@@ -93,10 +92,6 @@ export function RewardsHomeScreen() {
       const profile = await getMyProfile();
       const pts = Number(profile.loyaltyPoints ?? 0);
       setBalance(Number.isFinite(pts) ? pts : 0);
-      setTierInfo(loyaltyTierFromPoints(pts));
-      setIsDealer(
-        (profile.roles ?? []).some(r => String(r).toUpperCase() === 'DEALER'),
-      );
     } catch (e) {
       setError((e as Error)?.message ?? 'Could not load profile');
       setLoading(false);
@@ -104,22 +99,18 @@ export function RewardsHomeScreen() {
     }
 
     try {
-      const [rewards, slabValues] = await Promise.all([
+      const [rewards, tierInfo] = await Promise.all([
         listRewards(),
-        getWorkerRedemptionSlabs(),
+        getMyGiftTier(),
       ]);
-      setSlabs(
-        [
-          ...new Set(
-            (slabValues ?? []).filter(x => Number.isFinite(x) && x > 0),
-          ),
-        ].sort((a, b) => a - b),
+      setGiftTier(tierInfo.giftTier);
+      setContractorThreshold(
+        tierInfo.contractorThreshold ?? CONTRACTOR_THRESHOLD,
       );
       setAllRewards(rewards);
     } catch (e) {
       setRewardsError((e as Error)?.message ?? 'Could not load rewards');
       setAllRewards([]);
-      setSlabs([]);
     } finally {
       setLoading(false);
     }
@@ -132,19 +123,20 @@ export function RewardsHomeScreen() {
 
   const visibleRewards = useMemo(() => {
     if (filter === 'all') return allRewards;
-    const pts = Number(filter.replace('slab-', ''));
-    if (!Number.isFinite(pts)) return allRewards;
-    return allRewards.filter(r => r.pointsCost === pts);
+    return allRewards.filter(r => r.giftTier === filter);
   }, [allRewards, filter]);
 
-  const filterOptions = useMemo(
-    () => [
-      { id: 'all' as const, label: 'All Rewards' },
-      { id: 'slab-1000' as const, label: 'Worker' },
-      { id: 'slab-2000' as const, label: 'Contractor' },
-    ],
-    [],
-  );
+  const pointsToContractor = Math.max(0, contractorThreshold - balance);
+  const tierProgress =
+    giftTier === 'CONTRACTOR'
+      ? 1
+      : Math.min(1, balance / contractorThreshold);
+
+  const filterOptions: Array<{ id: TierFilterId; label: string }> = [
+    { id: 'all', label: 'All' },
+    { id: 'WORKER', label: 'Worker' },
+    { id: 'CONTRACTOR', label: 'Contractor' },
+  ];
 
   const openRewardDetail = useCallback(
     (rewardId: string) => {
@@ -160,13 +152,19 @@ export function RewardsHomeScreen() {
   const confirmSelectedReward = useCallback(() => {
     const rewardId =
       selectedRewardId ??
-      visibleRewards.find(reward => balance >= reward.pointsCost)?.id ??
+      visibleRewards.find(
+        r =>
+          r.eligible ??
+          (balance >= r.pointsCost &&
+            r.giftTier === giftTier &&
+            (r.tierRedeemable ?? true)),
+      )?.id ??
       visibleRewards[0]?.id;
 
     if (rewardId) {
       openRewardDetail(rewardId);
     }
-  }, [balance, openRewardDetail, selectedRewardId, visibleRewards]);
+  }, [balance, giftTier, openRewardDetail, selectedRewardId, visibleRewards]);
 
   return (
     <View style={styles.root}>
@@ -209,7 +207,7 @@ export function RewardsHomeScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.scroll,
-            { paddingBottom: 120 + insets.bottom },
+            { paddingBottom: 200 + insets.bottom },
           ]}
           showsVerticalScrollIndicator={false}
         >
@@ -250,35 +248,43 @@ export function RewardsHomeScreen() {
               <Text style={styles.balancePtsSuffix}> PTS</Text>
             </View>
             <Text style={styles.balanceCaption}>
-              You're only {tierInfo.pointsToNextReward.toLocaleString()} points
-              away from the next tier rewards. Keep building your legacy.
+              {giftTier === 'CONTRACTOR'
+                ? 'You have unlocked Contractor tier gifts. Keep earning to redeem premium rewards.'
+                : `You're ${pointsToContractor.toLocaleString()} points away from Contractor tier gifts.`}
             </Text>
 
             <View style={styles.tierLabelsRow}>
               <Text style={styles.tierLabelSmall}>
-                CURRENT TIER: <Text style={styles.tierLabel}>Worker</Text>
+                CURRENT TIER:{' '}
+                <Text style={styles.tierLabel}>{giftTierLabel(giftTier)}</Text>
               </Text>
-              <Text style={styles.tierLabelSmallRight}>
-                NEXT:{' '}
-                <Text
-                  style={[styles.tierLabel, { color: colors.primaryOrange }]}
-                >
-                  Contractor
+              {giftTier === 'WORKER' ? (
+                <Text style={styles.tierLabelSmallRight}>
+                  NEXT:{' '}
+                  <Text
+                    style={[styles.tierLabel, { color: colors.primaryOrange }]}
+                  >
+                    Contractor
+                  </Text>
                 </Text>
-              </Text>
+              ) : null}
             </View>
 
             <View style={styles.progressTrack}>
               <View
                 style={[
                   styles.progressFill,
-                  { width: `${tierInfo.progress * 100}%` },
+                  { width: `${tierProgress * 100}%` },
                 ]}
               />
             </View>
-            <View style={styles.progressBottom}>
-              <Text style={styles.nextPtsText}>1,20,000 pts</Text>
-            </View>
+            {giftTier === 'WORKER' ? (
+              <View style={styles.progressBottom}>
+                <Text style={styles.nextPtsText}>
+                  {formatPointsCompact(contractorThreshold)} pts
+                </Text>
+              </View>
+            ) : null}
 
             <Pressable
               style={({ pressed }) => [
@@ -327,61 +333,53 @@ export function RewardsHomeScreen() {
             </ScrollView>
           </View>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.rewardList}
-          >
-            {(visibleRewards.length > 0
-              ? visibleRewards
-              : [
-                  {
-                    id: 'r1',
-                    title: 'Levelling System',
-                    pointsCost: 1000,
-                    description:
-                      'Heavy-duty 18V brushless motor with 3 modes and hard-case carry set.',
-                  },
-                  {
-                    id: 'r2',
-                    title: 'Lifting Adjuster',
-                    pointsCost: 10000,
-                    description:
-                      'Precision lifting tool for professional construction use.',
-                  },
-                ]
-            ).map(item => {
-              const isUnlocked = balance >= item.pointsCost;
+          {visibleRewards.length > 0 ? (
+            <Text style={styles.catalogCount}>
+              {visibleRewards.length}{' '}
+              {visibleRewards.length === 1 ? 'gift' : 'gifts'}
+              {filter === 'all'
+                ? ''
+                : ` · ${filter === 'WORKER' ? 'Worker' : 'Contractor'} tier`}
+            </Text>
+          ) : null}
+
+          <View style={styles.rewardList}>
+            {visibleRewards.length === 0 ? (
+              <View style={styles.emptyRewards}>
+                <Text style={styles.emptyRewardsText}>
+                  No gifts in this category.
+                </Text>
+              </View>
+            ) : (
+              visibleRewards.map(item => {
+              const isRedeemable =
+                item.eligible ??
+                (balance >= item.pointsCost &&
+                  item.giftTier === giftTier &&
+                  (item.tierRedeemable ?? true));
               const progress = Math.min(balance / item.pointsCost, 1);
+              const hint = lockHint(item, balance);
 
               return (
                 <Pressable
                   key={item.id}
-                  onPress={() => openRewardDetail(item.id)}
+                  onPress={() => {
+                    setSelectedRewardId(item.id);
+                    openRewardDetail(item.id);
+                  }}
                   style={({ pressed }) => [
                     styles.rewardCard,
                     selectedRewardId === item.id && styles.rewardCardSelected,
                     pressed && styles.pressed,
                   ]}
                 >
-                  {/* IMAGE */}
                   <View style={styles.cardImageContainer}>
-                    <View style={styles.lockedImageWrap}>
-                      <View style={{ transform: [{ scale: 1.08 }] }}>
-                        <RecommendedIcon title={item.title} />
-                      </View>
-
-                      {/* {!isUnlocked && (
-                        <View style={styles.lockOverlay}>
-                          <View style={styles.lockBox}>
-                            <LockClosed width={36} height={46}  />
-                          </View>
-                        </View>
-                      )} */}
-                    </View>
+                    <RewardImageBlock
+                      imageUrl={item.imageUrl}
+                      resizeMode="contain"
+                    />
                   </View>
 
-                  {/* CONTENT */}
                   <View style={styles.cardContent}>
                     <Text style={styles.cardTitle}>{item.title}</Text>
                     <Text style={styles.cardDesc} numberOfLines={3}>
@@ -389,7 +387,7 @@ export function RewardsHomeScreen() {
                         'Professional grade tool for your construction needs.'}
                     </Text>
 
-                    {!isUnlocked && (
+                    {!isRedeemable && item.tierRedeemable !== false ? (
                       <View style={styles.cardProgressTrack}>
                         <View
                           style={[
@@ -398,7 +396,11 @@ export function RewardsHomeScreen() {
                           ]}
                         />
                       </View>
-                    )}
+                    ) : null}
+
+                    {hint ? (
+                      <Text style={styles.lockHintText}>{hint}</Text>
+                    ) : null}
 
                     {/* FOOTER */}
                     <View style={styles.cardFooter}>
@@ -406,7 +408,7 @@ export function RewardsHomeScreen() {
                         Requires {item.pointsCost.toLocaleString()} Pts
                       </Text>
 
-                      {isUnlocked ? (
+                      {isRedeemable ? (
                         <Pressable
                           style={styles.selectedBtn}
                           onPress={() => openRewardDetail(item.id)}
@@ -422,8 +424,9 @@ export function RewardsHomeScreen() {
                   </View>
                 </Pressable>
               );
-            })}
-          </ScrollView>
+            })
+            )}
+          </View>
         </ScrollView>
       )}
 
@@ -630,17 +633,35 @@ const styles = StyleSheet.create({
   filterChipTextActive: {
     color: colors.white,
   },
+  catalogCount: {
+    marginHorizontal: 20,
+    marginBottom: 10,
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.navyAlt,
+    opacity: 0.75,
+  },
   rewardList: {
     paddingHorizontal: 20,
     gap: 16,
     paddingBottom: 20,
   },
+  emptyRewards: {
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+  },
+  emptyRewardsText: {
+    color: colors.navyAlt,
+    fontSize: 15,
+    fontWeight: '600',
+  },
   rewardCard: {
-    width: 285,
+    width: '100%',
+    alignSelf: 'stretch',
     backgroundColor: '#F3F4F8',
     borderRadius: 34,
-    padding: 20,
-    paddingBottom: 18,
+    padding: 0,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 10,
@@ -655,43 +676,14 @@ const styles = StyleSheet.create({
     borderColor: colors.primaryOrange,
   },
   cardImageContainer: {
-    height: 160,
-    borderRadius: 28,
-    backgroundColor: colors.white,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  lockedImageWrap: {
     width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transform: [{ scale: 1.03 }],
-  },
-  lockOverlay: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.45)', // Frosted glass effect simulation
-    zIndex: 100,
-  },
-  lockBox: {
-    padding: 16,
-    borderRadius: 20,
-    ...figma.shadowSoft,
-    shadowOpacity: 0.15,
-    shadowRadius: 15,
-    elevation: 8,
-    zIndex: 110,
-    alignItems: 'center',
-    justifyContent: 'center',
+    height: 220,
+    backgroundColor: '#F5F6FA',
   },
   cardContent: {
-    paddingHorizontal: 4,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 18,
   },
   cardTitle: {
     fontSize: 22,
@@ -726,6 +718,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
 
+  lockHintText: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.primaryOrange,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
   requiresText: {
     flex: 1,
     fontSize: 13,

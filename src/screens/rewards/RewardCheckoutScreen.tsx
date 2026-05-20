@@ -30,7 +30,14 @@ import {
   MapPin,
   RewardsActive,
 } from '../../assets/svgs';
-import { redeemReward, getReward, type RewardDto } from '../../api/rewards';
+import {
+  redeemReward,
+  getMyGiftTier,
+  getReward,
+  resolveRewardImageUrl,
+  type GiftTier,
+  type RewardDto,
+} from '../../api/rewards';
 import { getMyProfile } from '../../api/users';
 import { userFacingApiMessage } from '../../api/client';
 import { navigateToProfileEdit } from '../../navigation/rootNavigation';
@@ -46,12 +53,13 @@ const screenBg = '#FFF3EA';
 const navy = '#1A2B48';
 
 function RewardVisual({ reward }: { reward: RewardDto }) {
-  if (reward.imageUrl) {
+  const uri = resolveRewardImageUrl(reward.imageUrl);
+  if (uri) {
     return (
       <Image
-        source={{ uri: reward.imageUrl }}
+        source={{ uri }}
         style={styles.productImage}
-        resizeMode="cover"
+        resizeMode="contain"
       />
     );
   }
@@ -81,16 +89,19 @@ export function RewardCheckoutScreen() {
   const [isDealer, setIsDealer] = useState(false);
   const [deliveryLabel, setDeliveryLabel] = useState('Delivery');
   const [deliveryLine, setDeliveryLine] = useState('');
+  const [walletGiftTier, setWalletGiftTier] = useState<GiftTier>('WORKER');
 
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [r, profile] = await Promise.all([
+      const [r, profile, tierInfo] = await Promise.all([
         getReward(rewardId),
         getMyProfile(),
+        getMyGiftTier().catch(() => null),
       ]);
       setReward(r);
       setBalance(profile.loyaltyPoints ?? 0);
+      if (tierInfo) setWalletGiftTier(tierInfo.giftTier);
       setIsDealer(
         (profile.roles ?? []).some(
           role => String(role).toUpperCase() === 'DEALER',
@@ -112,10 +123,24 @@ export function RewardCheckoutScreen() {
   });
 
   const pts = reward?.pointsCost ?? 0;
-  const canAfford = balance >= pts;
+  const tierOk =
+    reward?.tierRedeemable ??
+    (reward?.giftTier == null || reward.giftTier === walletGiftTier);
+  const canAfford = balance >= pts && pts > 0;
+  const canRedeem = reward?.eligible ?? (canAfford && tierOk);
+  const tierBlockMessage =
+    !isDealer && reward && !tierOk
+      ? reward.giftTier === 'CONTRACTOR'
+        ? 'Reach Contractor tier (2,000,000+ points balance) to redeem this gift.'
+        : 'This gift is for Worker tier only (balance below 2,000,000 points).'
+      : null;
+  const balanceBlockMessage =
+    reward && canAfford === false && tierOk
+      ? `You need ${pts.toLocaleString()} points to redeem this gift.`
+      : null;
 
   const onConfirm = async () => {
-    if (!reward || !canAfford || submitting) return;
+    if (!reward || !canRedeem || submitting) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -218,11 +243,11 @@ export function RewardCheckoutScreen() {
                   <Text style={styles.pointsBig}>{pts.toLocaleString()}</Text>
                   <Text style={styles.pointsWord}> POINTS</Text>
                 </View>
-                {!canAfford ? (
-                  <Text style={styles.warn}>
-                    You need {(pts - balance).toLocaleString()} more points to
-                    redeem this reward.
-                  </Text>
+                {tierBlockMessage ? (
+                  <Text style={styles.warn}>{tierBlockMessage}</Text>
+                ) : null}
+                {!tierBlockMessage && balanceBlockMessage ? (
+                  <Text style={styles.warn}>{balanceBlockMessage}</Text>
                 ) : null}
               </View>
             </View>
@@ -296,10 +321,10 @@ export function RewardCheckoutScreen() {
             <Pressable
               style={({ pressed }) => [
                 styles.confirmBtn,
-                (!canAfford || submitting) && styles.confirmDisabled,
-                pressed && canAfford && !submitting && styles.pressed,
+                (!canRedeem || submitting) && styles.confirmDisabled,
+                pressed && canRedeem && !submitting && styles.pressed,
               ]}
-              disabled={!canAfford || submitting}
+              disabled={!canRedeem || submitting}
               onPress={() => {
                 onConfirm().catch(() => {});
               }}

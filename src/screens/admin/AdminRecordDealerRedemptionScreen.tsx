@@ -19,6 +19,7 @@ import {
 } from '../../api/adminRedemptions';
 import { isApiError, userFacingApiMessage } from '../../api/client';
 import { listRewards, type RewardDto } from '../../api/rewards';
+import { RewardImageBlock } from '../rewards/RewardImageBlock';
 import type { AdminApprovalsStackParamList } from '../../navigation/types';
 import { adminUi } from '../../theme/adminUi';
 import { AdminHeader } from './components/AdminHeader';
@@ -238,10 +239,15 @@ export function AdminRecordDealerRedemptionScreen() {
                 key={r.id}
                 style={[
                   styles.row,
+                  styles.rewardRow,
                   unaffordable && styles.rowUnaffordable,
                   on && styles.rowOn,
                 ]}
                 onPress={() => setSelectedReward(r)}>
+                <View style={styles.rewardThumb}>
+                  <RewardImageBlock imageUrl={r.imageUrl} minHeight={48} />
+                </View>
+                <View style={styles.rewardRowBody}>
                 <Text style={styles.rowTitle}>{r.title}</Text>
                 <Text style={styles.rowPts}>
                   {r.pointsCost.toLocaleString()} pts
@@ -251,6 +257,7 @@ export function AdminRecordDealerRedemptionScreen() {
                     {short.toLocaleString()} pts over balance — cannot submit
                   </Text>
                 ) : null}
+                </View>
               </Pressable>
             );
           })
@@ -321,6 +328,21 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 8,
     backgroundColor: adminUi.cardBg,
+  },
+  rewardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  rewardThumb: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#F3F4F6',
+  },
+  rewardRowBody: {
+    flex: 1,
   },
   rowOn: {
     borderColor: adminUi.accentOrange,

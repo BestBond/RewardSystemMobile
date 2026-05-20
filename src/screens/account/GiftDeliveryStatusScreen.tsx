@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackArrowLeft, IconGiftOrange } from '../../assets/svgs';
-import { AppChip } from '../../components/ui';
+import { AccountGradientBackground } from '../../components/account/AccountGradientBackground';
 import { listMyRedemptions } from '../../api/rewards';
 import { getMyProfile } from '../../api/users';
 import type { ProfileStackParamList } from '../../navigation/types';
@@ -21,15 +21,16 @@ import { colors } from '../../theme/colors';
 import {
   consumerRedemptionStatusPresentation,
   redemptionIsDealerPickup,
+  redemptionListSubline,
 } from '../../utils/redemptionUi';
 import { MENU_SUBTITLES } from './accountFigmaData';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'GiftDeliveryStatus'>;
 
-const bg = '#F5F6F8';
-const text = '#1A1C1E';
-const muted = '#707070';
+const text = '#1A2B48';
+const navy = colors.navyAlt;
+const subtitleOnOrange = 'rgba(255, 255, 255, 0.88)';
 
 export function GiftDeliveryStatusScreen() {
   const insets = useSafeAreaInsets();
@@ -42,7 +43,6 @@ export function GiftDeliveryStatusScreen() {
       title: string;
       sub: string;
       status: string;
-      chip: 'success' | 'danger' | 'muted';
     }[]
   >([]);
   const [dealerAccount, setDealerAccount] = useState(false);
@@ -66,11 +66,8 @@ export function GiftDeliveryStatusScreen() {
           return {
             id: r.id,
             title: r.reward.title ?? 'Reward',
-            sub: inStore
-              ? `Ref #${r.trackingId} · ${r.etaText ?? 'Awaiting ops approval at the store.'}`
-              : `Tracking ID #${r.trackingId} · ${r.etaText ?? 'ETA TBD'}`,
+            sub: redemptionListSubline(r),
             status: pres.label,
-            chip: pres.chip,
           };
         }),
       );
@@ -84,20 +81,27 @@ export function GiftDeliveryStatusScreen() {
 
   useRefreshOnFocusAndForeground(() => load());
 
+  const listTitle = dealerAccount
+    ? 'In-store reward status'
+    : 'Gift delivery status';
+
   return (
-    <View style={[styles.root, { paddingTop: insets.top, backgroundColor: bg }]}>
+    <AccountGradientBackground style={styles.root}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
-        <Pressable
-          style={styles.backBtn}
-          hitSlop={12}
-          onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel="Back">
-          <BackArrowLeft width={24} height={24} />
-        </Pressable>
-        <Text style={styles.headerTitle}>
-          {dealerAccount ? 'In-store reward status' : 'Gift delivery status'}
+      <View style={[styles.orangeZone, { paddingTop: insets.top + 6 }]}>
+        <View style={styles.header}>
+          <Pressable
+            style={styles.backBtn}
+            hitSlop={12}
+            onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Back">
+            <BackArrowLeft width={24} height={24} />
+          </Pressable>
+          <Text style={styles.headerTitle}>{listTitle}</Text>
+        </View>
+        <Text style={styles.subtitle}>
+          {dealerAccount ? MENU_SUBTITLES.giftDealer : MENU_SUBTITLES.gift}
         </Text>
       </View>
 
@@ -112,9 +116,6 @@ export function GiftDeliveryStatusScreen() {
             { paddingBottom: 100 + insets.bottom },
           ]}
           showsVerticalScrollIndicator={false}>
-          <Text style={styles.intro}>
-            {dealerAccount ? MENU_SUBTITLES.giftDealer : MENU_SUBTITLES.gift}
-          </Text>
           {error ? <Text style={styles.err}>{error}</Text> : null}
           {items.length === 0 && !error ? (
             <Text style={styles.empty}>No reward orders yet.</Text>
@@ -130,17 +131,17 @@ export function GiftDeliveryStatusScreen() {
                 <IconGiftOrange width={24} height={24} />
               </View>
               <View style={styles.cardMid}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
+                <Text style={styles.cardTitle} numberOfLines={2}>
+                  {item.title}
+                </Text>
                 <Text style={styles.cardSub}>{item.sub}</Text>
               </View>
-              <View style={styles.cardRight}>
-                <AppChip text={item.status} variant={item.chip} />
-              </View>
+              <Text style={styles.cardStatus}>{item.status}</Text>
             </Pressable>
           ))}
         </ScrollView>
       )}
-    </View>
+    </AccountGradientBackground>
   );
 }
 
@@ -158,42 +159,55 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   pressed: { opacity: 0.9 },
+  orangeZone: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingBottom: 8,
-    minHeight: 48,
+    minHeight: 44,
   },
   backBtn: {
-    width: 44,
+    width: 40,
     justifyContent: 'center',
   },
   headerTitle: {
-    marginLeft: 4,
-    fontSize: 18,
-    fontWeight: '700',
-    color: text,
+    marginLeft: 2,
+    fontSize: 20,
+    fontWeight: '800',
+    color: navy,
+    flex: 1,
+  },
+  subtitle: {
+    marginTop: 6,
+    marginLeft: 42,
+    fontSize: 14,
+    lineHeight: 20,
+    color: subtitleOnOrange,
+    fontWeight: '500',
   },
   scroll: {
-    paddingHorizontal: 22,
-    paddingTop: 8,
+    paddingHorizontal: 20,
+    paddingTop: 4,
   },
-  intro: {
-    fontSize: 14,
-    color: muted,
-    marginBottom: 16,
+  err: { color: '#B91C1C', marginBottom: 12, fontWeight: '600' },
+  empty: {
+    color: '#707070',
+    textAlign: 'center',
+    marginTop: 24,
+    fontWeight: '500',
   },
-  err: { color: '#B91C1C', marginBottom: 12 },
-  empty: { color: muted, textAlign: 'center', marginTop: 24 },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     borderRadius: 20,
     padding: 16,
     marginBottom: 12,
     gap: 12,
+    borderWidth: 1,
+    borderColor: '#EEF0F4',
     ...cardShadow,
   },
   iconWrap: {
@@ -206,16 +220,27 @@ const styles = StyleSheet.create({
   },
   cardMid: {
     flex: 1,
+    minWidth: 0,
+    paddingRight: 4,
   },
   cardTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
     color: text,
   },
   cardSub: {
-    marginTop: 4,
+    marginTop: 6,
     fontSize: 12,
-    color: muted,
+    lineHeight: 17,
+    color: '#707070',
+    fontWeight: '500',
   },
-  cardRight: { alignItems: 'flex-end' },
+  cardStatus: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: text,
+    textAlign: 'right',
+    maxWidth: 108,
+    lineHeight: 18,
+  },
 });

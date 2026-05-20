@@ -14,25 +14,37 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BackArrowLeft, ChevronRight } from '../../assets/svgs';
+import {
+  BackArrowLeft,
+  BoxAdd,
+  ChevronRight,
+  MapPin,
+  ReceiptOutline,
+} from '../../assets/svgs';
 import { cancelMyRedemption, listMyRedemptions } from '../../api/rewards';
+import { AccountGradientBackground } from '../../components/account/AccountGradientBackground';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { colors } from '../../theme/colors';
 import {
-  consumerRedemptionStatusPresentation,
+  redemptionEstDeliveryDisplay,
   redemptionIsDealerPickup,
+  redemptionTimelineStep2Detail,
 } from '../../utils/redemptionUi';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
+import { RewardImageBlock } from '../rewards/RewardImageBlock';
+import { splitDeliveryAddress } from '../rewards/rewardPointsUtils';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'DeliveryStatus'>;
 type R = RouteProp<ProfileStackParamList, 'DeliveryStatus'>;
 
-const text = '#1A1C1E';
+const text = '#1A2B48';
+const navy = colors.navyAlt;
 const muted = '#74777F';
-const hero = '#DDE2EE';
+const labelGrey = '#6B7280';
+const ptsSuffix = '#8A94A6';
 const orange = colors.primaryOrange;
-const bg = '#FFFFFF';
-const cardBorder = '#EEF0F4';
+const timelineOnGradientText = 'rgba(255, 255, 255, 0.88)';
+const TAB_BAR_SCROLL_PAD = 100;
 
 const CANCEL_REASONS_DELIVERY = [
   "I don't want this reward anymore",
@@ -50,15 +62,34 @@ type CancelReason =
   | (typeof CANCEL_REASONS_DELIVERY)[number]
   | (typeof CANCEL_REASONS_PICKUP)[number];
 
-function formatDateLabel(raw: string | null) {
-  if (!raw) return 'TBD';
+type TimelineStep = {
+  title: string;
+  detail: string;
+  active: boolean;
+  icon: React.ReactNode;
+};
+
+/** Format ISO timestamps only; pass through ETA sentences from API. */
+function formatPlacedDate(raw: string | null) {
+  if (!raw?.trim()) return 'TBD';
   const d = new Date(raw);
   if (Number.isNaN(d.getTime())) return raw;
   return d.toLocaleDateString('en-US', {
-    month: 'short',
-    day: '2-digit',
+    month: 'long',
+    day: 'numeric',
     year: 'numeric',
   });
+}
+
+function deliveryAddressLines(line: string): string[] {
+  const trimmed = line.trim();
+  if (!trimmed) return [];
+  if (trimmed.includes('\n')) {
+    return trimmed.split(/\n/).map(l => l.trim()).filter(Boolean);
+  }
+  const parts = trimmed.split(',').map(p => p.trim()).filter(Boolean);
+  if (parts.length >= 2) return parts;
+  return [trimmed];
 }
 
 export function DeliveryStatusScreen() {
@@ -72,9 +103,9 @@ export function DeliveryStatusScreen() {
     id: string;
     title: string;
     points: number;
+    imageUrl: string | null;
     trackingId: string;
     statusRaw: string;
-    statusLabel: string;
     createdAt: string;
     etaText: string | null;
     addressLabel: string;
@@ -98,22 +129,22 @@ export function DeliveryStatusScreen() {
         setErr('Order not found.');
       } else {
         const isDealerPickup = redemptionIsDealerPickup(r);
-        const pres = consumerRedemptionStatusPresentation(r.status, isDealerPickup);
+        const addr = splitDeliveryAddress(r.deliveryAddress);
         setRedemption({
           id: r.id,
           title: r.reward.title ?? 'Reward',
           points: r.reward.pointsCost,
+          imageUrl: r.reward.imageUrl ?? null,
           trackingId: r.trackingId,
           statusRaw: r.status,
-          statusLabel: pres.label,
           createdAt: r.createdAt,
           etaText: r.etaText ?? null,
           addressLabel: isDealerPickup
             ? 'In-store pickup'
-            : r.deliveryLabel ?? 'Delivery',
+            : r.deliveryLabel?.trim() || addr.label,
           addressSub: isDealerPickup
-            ? 'There is no courier delivery for dealer rewards. Visit your authorized Best Bond store once operations approves this request; staff will hand over the gift in person.'
-            : r.deliveryAddress ?? '—',
+            ? 'Visit your authorized Best Bond store once operations approves this request; staff will hand over the gift in person.'
+            : addr.line,
           isDealerPickup,
         });
       }
@@ -127,63 +158,63 @@ export function DeliveryStatusScreen() {
 
   useRefreshOnFocusAndForeground(() => load());
 
-  const steps = useMemo(() => {
-    const raw = redemption?.statusRaw ?? '';
-    const created = formatDateLabel(redemption?.createdAt ?? null);
-    const etaRaw = redemption?.etaText ?? null;
-    const eta = formatDateLabel(etaRaw);
-    const inStore = redemption?.isDealerPickup ?? false;
+  const steps = useMemo((): TimelineStep[] => {
+    if (!redemption) return [];
+    const raw = redemption.statusRaw;
+    const cancelled = raw === 'CANCELLED';
+    const step2Active =
+      raw === 'SHIPPED' || raw === 'DELIVERED';
+    const inStore = redemption.isDealerPickup;
 
-    if (inStore) {
-      const idx =
-        raw === 'DELIVERED'
-          ? 3
-          : raw === 'SHIPPED'
-            ? 2
-            : raw === 'PROCESSING'
-              ? 1
-              : 0;
-      return [
-        {
-          title: 'Request submitted',
-          date: created,
-          active: idx >= 1 && raw !== 'CANCELLED',
-        },
-        {
-          title: 'Operations approves at the store',
-          date: idx >= 2 ? 'Approved — bring ID if asked' : 'Waiting',
-          active: idx >= 2 && raw !== 'CANCELLED',
-        },
-        {
-          title: 'Collect your gift at the counter',
-          date: idx >= 3 ? 'Completed' : '—',
-          active: idx >= 3,
-        },
-      ];
-    }
-
-    const idx =
-      raw === 'DELIVERED'
-        ? 3
+    const step2Title = inStore
+      ? raw === 'DELIVERED'
+        ? 'Collected at store'
         : raw === 'SHIPPED'
-          ? 2
-          : raw === 'PROCESSING'
-            ? 1
-            : raw === 'CANCELLED'
-              ? 0
-              : 0;
+          ? 'Ready to collect'
+          : 'Expected pickup'
+      : raw === 'DELIVERED'
+        ? 'Delivered'
+        : cancelled
+          ? 'Expected delivery'
+          : 'Expected Delivery';
+
     return [
-      { title: 'Placed order', date: created, active: idx >= 0 },
-      { title: 'Packing your order', date: created, active: idx >= 1 },
-      { title: 'Your order is on the way', date: eta, active: idx >= 2 },
-      { title: 'Expected delivery', date: eta, active: idx >= 3 },
+      {
+        title: inStore ? 'Request submitted' : 'Placed order',
+        detail: formatPlacedDate(redemption.createdAt),
+        active: !cancelled,
+        icon: (
+          <ReceiptOutline
+            width={26}
+            height={26}
+            stroke={cancelled ? colors.white : '#C4C4C4'}
+          />
+        ),
+      },
+      {
+        title: step2Title,
+        detail: redemptionTimelineStep2Detail(
+          raw,
+          redemption.etaText,
+          inStore,
+        ),
+        active: step2Active && !cancelled,
+        icon: (
+          <BoxAdd
+            width={26}
+            height={26}
+            fill={
+              cancelled
+                ? colors.white
+                : step2Active
+                  ? orange
+                  : '#D1D5DB'
+            }
+          />
+        ),
+      },
     ];
-  }, [
-    redemption?.createdAt,
-    redemption?.etaText,
-    redemption?.statusRaw,
-    redemption?.isDealerPickup,
-  ]);
+  }, [redemption]);
 
   const heroHeadline = useMemo(() => {
     if (!redemption) return '';
@@ -200,6 +231,17 @@ export function DeliveryStatusScreen() {
     return "We're packing your order";
   }, [redemption]);
 
+  const estDelivery = useMemo(() => {
+    if (!redemption) return '';
+    return redemptionEstDeliveryDisplay(
+      redemption.statusRaw,
+      redemption.etaText,
+      redemption.isDealerPickup,
+    );
+  }, [redemption]);
+
+  const estDeliveryIsLong = estDelivery.length > 36;
+
   const cancelReasons = useMemo(
     () =>
       redemption?.isDealerPickup ? CANCEL_REASONS_PICKUP : CANCEL_REASONS_DELIVERY,
@@ -208,135 +250,202 @@ export function DeliveryStatusScreen() {
 
   const canCancelDelivery = redemption?.statusRaw === 'PROCESSING';
 
+  const screenTitle = redemption?.isDealerPickup
+    ? 'Pickup Status'
+    : 'Delivery Status';
+
+  const isCancelled = redemption?.statusRaw === 'CANCELLED';
+  const headerOnWhite = !isCancelled;
+  const addressLines = redemption
+    ? deliveryAddressLines(redemption.addressSub)
+    : [];
+
   return (
-    <View style={[styles.root, { paddingTop: insets.top, backgroundColor: bg }]}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
-        <Pressable
-          style={styles.backBtn}
-          hitSlop={12}
-          onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel="Back">
-          <BackArrowLeft width={24} height={24} />
-        </Pressable>
-        <Text style={styles.headerTitle}>
-          {redemption?.isDealerPickup ? 'Pickup status' : 'Delivery status'}
-        </Text>
+    <AccountGradientBackground style={styles.root}>
+      <StatusBar barStyle={headerOnWhite ? 'dark-content' : 'light-content'} />
+      <View style={[styles.orangeZone, { paddingTop: insets.top + 6 }]}>
+        <View style={styles.header}>
+          <Pressable
+            style={styles.backBtn}
+            hitSlop={12}
+            onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Back">
+            <BackArrowLeft
+              width={24}
+              height={24}
+              stroke={headerOnWhite ? navy : colors.white}
+            />
+          </Pressable>
+          <Text
+            style={[
+              styles.headerTitle,
+              headerOnWhite ? styles.headerTitleNavy : styles.headerTitleWhite,
+            ]}>
+            {screenTitle}
+          </Text>
+          <View style={styles.headerSpacer} />
+        </View>
+        {!loading ? (
+          <Text style={styles.hero}>{heroHeadline}</Text>
+        ) : null}
       </View>
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={orange} />
+          <ActivityIndicator color={colors.primaryOrange} />
         </View>
       ) : (
         <ScrollView
           contentContainerStyle={[
             styles.scroll,
-            { paddingBottom: 24 + insets.bottom },
+            { paddingBottom: TAB_BAR_SCROLL_PAD + insets.bottom },
           ]}
           showsVerticalScrollIndicator={false}>
-          <Text style={styles.hero}>{heroHeadline}</Text>
-
           {err ? <Text style={styles.err}>{err}</Text> : null}
 
           {redemption ? (
             <>
-              <Text style={styles.sectionLabel}>REWARD STATUS</Text>
+              <Text
+                style={[
+                  styles.sectionLabel,
+                  isCancelled && styles.sectionLabelOnGradient,
+                ]}>
+                REWARD STATUS
+              </Text>
               <View style={styles.timeline}>
                 {steps.map((st, i) => (
                   <View key={st.title} style={styles.stepRow}>
                     <View style={styles.stepRail}>
-                      <View
-                        style={[
-                          styles.dot,
-                          st.active ? styles.dotActive : styles.dotIdle,
-                        ]}
-                      />
-                      {i < steps.length - 1 ? <View style={styles.rail} /> : null}
+                      {isCancelled ? (
+                        <View style={styles.dotGradient} />
+                      ) : st.active && i === 0 ? (
+                        <View style={styles.dotRing}>
+                          <View style={styles.dotRingInner} />
+                        </View>
+                      ) : (
+                        <View style={styles.dotSolid} />
+                      )}
+                      {i < steps.length - 1 ? (
+                        <View
+                          style={[
+                            styles.rail,
+                            isCancelled
+                              ? styles.railGradient
+                              : steps[0]?.active
+                                ? styles.railActive
+                                : styles.railIdle,
+                          ]}
+                        />
+                      ) : null}
                     </View>
                     <View style={styles.stepText}>
                       <Text
                         style={[
                           styles.stepTitle,
-                          !st.active && { color: '#9CA3AF' },
+                          isCancelled && styles.stepTitleGradient,
                         ]}>
                         {st.title}
                       </Text>
-                      <Text style={styles.stepDate}>{st.date}</Text>
+                      <Text
+                        style={[
+                          styles.stepDetail,
+                          isCancelled && styles.stepDetailGradient,
+                        ]}>
+                        {st.detail}
+                      </Text>
                     </View>
+                    <View style={styles.stepIcon}>{st.icon}</View>
                   </View>
                 ))}
               </View>
 
               <View style={styles.rewardCard}>
-                <View style={styles.rewardThumb} />
+                <View style={styles.rewardThumb}>
+                  <RewardImageBlock
+                    imageUrl={redemption.imageUrl}
+                    padded={false}
+                    style={styles.rewardThumbFill}
+                  />
+                </View>
                 <View style={styles.rewardMid}>
                   <Text style={styles.rewardTitle}>{redemption.title}</Text>
-                  <Text style={styles.rewardPts}>{redemption.points.toLocaleString()} PTS</Text>
+                  <Text style={styles.rewardPts}>
+                    <Text style={styles.rewardPtsValue}>
+                      {redemption.points.toLocaleString()}
+                    </Text>
+                    <Text style={styles.rewardPtsSuffix}> PTS</Text>
+                  </Text>
                 </View>
               </View>
 
               <View style={styles.metaRow}>
                 <View style={styles.metaCol}>
-                  <Text style={styles.metaLabel}>REFERENCE ID</Text>
+                  <Text style={styles.metaLabel}>TRACKING ID</Text>
                   <Text style={styles.metaValue}>#{redemption.trackingId}</Text>
                 </View>
                 <View style={styles.metaCol}>
-                  <Text style={styles.metaLabel}>STATUS</Text>
-                  <Text style={styles.metaValue}>{redemption.statusLabel}</Text>
+                  <Text style={styles.metaLabel}>
+                    {redemption.isDealerPickup
+                      ? 'PICKUP STATUS'
+                      : 'EST. DELIVERY'}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.metaValue,
+                      estDeliveryIsLong && styles.metaValueLong,
+                    ]}>
+                    {estDelivery}
+                  </Text>
                 </View>
               </View>
-              {redemption.isDealerPickup ? (
-                <View style={styles.metaRow}>
-                  <View style={styles.metaColFull}>
-                    <Text style={styles.metaLabel}>STORE INSTRUCTIONS</Text>
-                    <Text style={styles.metaValueBody}>
-                      {redemption.etaText?.trim() ||
-                        'Pending ops approval. Visit your nearest authorized Best Bond store once approved.'}
-                    </Text>
-                  </View>
-                </View>
-              ) : (
-                <View style={styles.metaRow}>
-                  <View style={styles.metaCol}>
-                    <Text style={styles.metaLabel}>EXPECTED DELIVERY</Text>
-                    <Text style={styles.metaValue}>
-                      {formatDateLabel(redemption.etaText)}
-                    </Text>
-                  </View>
-                  <View style={styles.metaCol} />
-                </View>
-              )}
 
               <Text style={styles.sectionLabel}>
-                {redemption.isDealerPickup ? 'PICKUP DETAILS' : 'DELIVERY DETAILS'}
+                {redemption.isDealerPickup
+                  ? 'PICKUP DETAILS'
+                  : 'DELIVERY DETAILS'}
               </Text>
               <View style={styles.addressCard}>
-                <Text style={styles.addressTitle}>{redemption.addressLabel}</Text>
-                <Text style={styles.addressSub}>{redemption.addressSub}</Text>
+                <View style={styles.addressIconWrap}>
+                  <MapPin width={22} height={22} />
+                </View>
+                <View style={styles.addressBody}>
+                  <Text style={styles.addressTitle}>
+                    {redemption.addressLabel}
+                  </Text>
+                  {addressLines.map(line => (
+                    <Text key={line} style={styles.addressSub}>
+                      {line}
+                    </Text>
+                  ))}
+                </View>
               </View>
 
               <Text style={styles.sectionLabel}>NEED TO MAKE CHANGES</Text>
               <Pressable
                 style={({ pressed }) => [
                   styles.rowBtn,
-                  !canCancelDelivery && styles.rowBtnDisabled,
-                  pressed && styles.pressed,
+                  pressed && canCancelDelivery && styles.pressed,
                 ]}
                 disabled={!canCancelDelivery}
                 onPress={() => {
                   setCancelReason(null);
                   setCancelOpen(true);
                 }}>
-                <Text style={styles.rowBtnText}>
+                <Text
+                  style={[
+                    styles.rowBtnText,
+                    !canCancelDelivery && styles.rowBtnTextDisabled,
+                  ]}>
                   {canCancelDelivery
                     ? redemption.isDealerPickup
                       ? 'Cancel pickup request'
-                      : 'Cancel delivery'
+                      : 'Cancel Delivery'
                     : 'Cancellation unavailable'}
                 </Text>
-                {canCancelDelivery ? <ChevronRight strokeColor="#94A3B8" /> : null}
+                {canCancelDelivery ? (
+                  <ChevronRight strokeColor="#94A3B8" />
+                ) : null}
               </Pressable>
 
               <Pressable
@@ -358,14 +467,16 @@ export function DeliveryStatusScreen() {
         transparent
         animationType="fade"
         onRequestClose={() => setCancelOpen(false)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setCancelOpen(false)}>
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setCancelOpen(false)}>
           <Pressable style={styles.sheet} onPress={() => {}} accessibilityRole="none">
             <Text style={styles.sheetTitle}>
-              Do you confirm you want to{'\n'}cancel this request?
+              Do you confirm you want to{'\n'}cancel this order?
             </Text>
             <View style={styles.reasonList}>
               {cancelReasons.map(r => {
-                const checked = cancelReason === r;
+                const selected = cancelReason === r;
                 return (
                   <Pressable
                     key={r}
@@ -374,7 +485,9 @@ export function DeliveryStatusScreen() {
                       pressed && styles.pressed,
                     ]}
                     onPress={() => setCancelReason(r)}>
-                    <View style={[styles.checkbox, checked && styles.checkboxOn]} />
+                    <View style={styles.radioOuter}>
+                      {selected ? <View style={styles.radioInner} /> : null}
+                    </View>
                     <Text style={styles.reasonText}>{r}</Text>
                   </Pressable>
                 );
@@ -386,8 +499,8 @@ export function DeliveryStatusScreen() {
             <Pressable
               style={({ pressed }) => [
                 styles.confirmBtn,
-                (!cancelReason || pressed) && styles.confirmBtnPressed,
-                !cancelReason && styles.confirmBtnDisabled,
+                cancelReason ? styles.confirmBtnEnabled : styles.confirmBtnDisabled,
+                pressed && cancelReason && styles.confirmBtnPressed,
               ]}
               disabled={!cancelReason || cancelling}
               onPress={async () => {
@@ -397,18 +510,25 @@ export function DeliveryStatusScreen() {
                 try {
                   await cancelMyRedemption(redemption.id);
                   setCancelOpen(false);
-                  // Refresh to show CANCELLED status
                   load().catch(() => {});
                 } catch (e) {
-                  setCancelErr(e instanceof Error ? e.message : 'Could not cancel.');
+                  setCancelErr(
+                    e instanceof Error ? e.message : 'Could not cancel.',
+                  );
                 } finally {
                   setCancelling(false);
                 }
               }}>
               {cancelling ? (
-                <ActivityIndicator color={orange} />
+                <ActivityIndicator color={colors.white} />
               ) : (
-                <Text style={styles.confirmText}>Confirm</Text>
+                <Text
+                  style={[
+                    styles.confirmText,
+                    cancelReason && styles.confirmTextEnabled,
+                  ]}>
+                  Confirm
+                </Text>
               )}
             </Pressable>
             <Pressable onPress={() => setCancelOpen(false)} hitSlop={12}>
@@ -417,7 +537,7 @@ export function DeliveryStatusScreen() {
           </Pressable>
         </Pressable>
       </Modal>
-    </View>
+    </AccountGradientBackground>
   );
 }
 
@@ -434,108 +554,195 @@ const cardShadow =
 const styles = StyleSheet.create({
   root: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  orangeZone: {
+    paddingHorizontal: 20,
+    paddingBottom: 22,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingBottom: 8,
-    minHeight: 48,
+    minHeight: 44,
   },
-  backBtn: { width: 44, justifyContent: 'center' },
+  backBtn: { width: 40, justifyContent: 'center' },
+  headerSpacer: { width: 40 },
   headerTitle: {
-    marginLeft: 4,
-    fontSize: 18,
-    fontWeight: '700',
-    color: text,
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 20,
+    fontWeight: '800',
   },
-  scroll: { paddingHorizontal: 22, paddingTop: 10 },
+  headerTitleNavy: { color: navy },
+  headerTitleWhite: { color: colors.white },
   hero: {
+    marginTop: 14,
     fontSize: 34,
     lineHeight: 40,
     fontWeight: '800',
-    color: hero,
-    marginBottom: 18,
+    color: colors.white,
     letterSpacing: -0.6,
   },
-  err: { color: '#B91C1C', marginBottom: 12 },
+  scroll: { paddingHorizontal: 20, paddingTop: 4 },
+  err: { color: '#B91C1C', marginBottom: 12, fontWeight: '600' },
   sectionLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.9,
-    color: '#9CA3AF',
+    color: text,
     marginTop: 14,
     marginBottom: 10,
   },
-  timeline: {
-    paddingVertical: 6,
+  sectionLabelOnGradient: {
+    color: labelGrey,
   },
-  stepRow: { flexDirection: 'row', gap: 12, paddingBottom: 10 },
-  stepRail: { width: 18, alignItems: 'center' },
-  dot: { width: 12, height: 12, borderRadius: 6, borderWidth: 2 },
-  dotActive: { borderColor: '#111827', backgroundColor: '#FFFFFF' },
-  dotIdle: { borderColor: '#D1D5DB', backgroundColor: '#FFFFFF' },
-  rail: { width: 2, flex: 1, backgroundColor: '#E5E7EB', marginTop: 4 },
-  stepText: { flex: 1 },
-  stepTitle: { fontSize: 14, fontWeight: '700', color: text },
-  stepDate: { marginTop: 2, fontSize: 12, color: muted },
+  timeline: {
+    paddingVertical: 2,
+    marginBottom: 6,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    paddingBottom: 16,
+    minHeight: 52,
+  },
+  stepRail: { width: 20, alignItems: 'center' },
+  dotRing: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: text,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dotRingInner: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: text,
+  },
+  dotSolid: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: text,
+    marginTop: 3,
+  },
+  dotGradient: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: colors.white,
+  },
+  rail: {
+    width: 2,
+    flex: 1,
+    minHeight: 36,
+    marginTop: 4,
+  },
+  railIdle: { backgroundColor: '#E5E7EB' },
+  railActive: { backgroundColor: text },
+  railGradient: { backgroundColor: 'rgba(255, 255, 255, 0.65)' },
+  stepText: { flex: 1, minWidth: 0 },
+  stepTitle: { fontSize: 15, fontWeight: '800', color: text },
+  stepTitleGradient: {
+    color: timelineOnGradientText,
+    fontWeight: '800',
+  },
+  stepDetail: {
+    marginTop: 4,
+    fontSize: 13,
+    color: muted,
+    fontWeight: '500',
+    lineHeight: 18,
+  },
+  stepDetailGradient: {
+    color: timelineOnGradientText,
+    fontWeight: '500',
+  },
+  stepIcon: {
+    width: 32,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 0,
+  },
   rewardCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: cardBorder,
-    borderRadius: 18,
+    borderRadius: 24,
     padding: 14,
-    marginTop: 10,
+    marginTop: 4,
     ...cardShadow,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
   },
   rewardThumb: {
-    width: 54,
-    height: 42,
-    borderRadius: 10,
-    backgroundColor: '#F3F4F6',
-    marginRight: 12,
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginRight: 14,
+    backgroundColor: '#F5F6FA',
   },
-  rewardMid: { flex: 1 },
-  rewardTitle: { fontSize: 14, fontWeight: '800', color: text },
-  rewardPts: { marginTop: 4, fontSize: 12, fontWeight: '800', color: muted },
+  rewardThumbFill: { width: '100%', height: '100%' },
+  rewardMid: { flex: 1, minWidth: 0 },
+  rewardTitle: { fontSize: 16, fontWeight: '800', color: text },
+  rewardPts: { marginTop: 6, fontSize: 14 },
+  rewardPtsValue: { fontWeight: '800', color: text },
+  rewardPtsSuffix: { fontWeight: '800', color: ptsSuffix },
   metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 14,
+    marginTop: 18,
+    gap: 16,
   },
-  metaCol: { flex: 1 },
-  metaColFull: { flex: 1, width: '100%' },
-  metaLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 0.8, color: '#9CA3AF' },
-  metaValue: { marginTop: 4, fontSize: 16, fontWeight: '900', color: text },
-  metaValueBody: {
+  metaCol: { flex: 1, minWidth: 0 },
+  metaLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    color: labelGrey,
+  },
+  metaValue: {
     marginTop: 6,
-    fontSize: 14,
-    fontWeight: '600',
-    color: muted,
-    lineHeight: 20,
+    fontSize: 17,
+    fontWeight: '900',
+    color: text,
+  },
+  metaValueLong: {
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 18,
   },
   addressCard: {
-    borderWidth: 1,
-    borderColor: cardBorder,
-    borderRadius: 18,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    borderRadius: 24,
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
+    gap: 14,
     ...cardShadow,
   },
-  addressTitle: { fontSize: 14, fontWeight: '800', color: text },
-  addressSub: { marginTop: 6, fontSize: 12, color: muted, lineHeight: 18 },
+  addressIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addressBody: { flex: 1 },
+  addressTitle: { fontSize: 15, fontWeight: '800', color: text },
+  addressSub: { marginTop: 4, fontSize: 13, color: muted, lineHeight: 20 },
   rowBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 14,
   },
-  rowBtnDisabled: {
-    opacity: 0.45,
-  },
-  rowBtnText: { fontSize: 14, fontWeight: '700', color: text },
-  link: { color: orange, fontWeight: '800' },
+  rowBtnText: { fontSize: 15, fontWeight: '700', color: text },
+  rowBtnTextDisabled: { color: '#9CA3AF', fontWeight: '600' },
+  link: { color: orange, fontWeight: '800', textDecorationLine: 'underline' },
   pressed: { opacity: 0.85 },
   modalBackdrop: {
     flex: 1,
@@ -544,38 +751,50 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
   },
   sheet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.white,
     borderRadius: 22,
-    padding: 18,
+    padding: 20,
     ...cardShadow,
   },
-  sheetTitle: { fontSize: 16, fontWeight: '800', color: text, marginBottom: 14 },
-  reasonList: { gap: 10, marginBottom: 14 },
-  reasonRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 4,
-    borderWidth: 1.5,
+  sheetTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: text,
+    marginBottom: 16,
+    lineHeight: 24,
+  },
+  reasonList: { gap: 12, marginBottom: 16 },
+  reasonRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  radioOuter: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
     borderColor: '#CBD5E1',
-    backgroundColor: '#FFFFFF',
-  },
-  checkboxOn: { backgroundColor: orange, borderColor: orange },
-  reasonText: { flex: 1, fontSize: 13, color: muted },
-  confirmBtn: {
-    borderRadius: 18,
-    paddingVertical: 14,
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    justifyContent: 'center',
+    backgroundColor: colors.white,
   },
-  confirmBtnDisabled: { opacity: 0.6 },
-  confirmBtnPressed: { opacity: 0.9 },
-  confirmText: { fontSize: 14, fontWeight: '800', color: '#4B5563' },
+  radioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: orange,
+  },
+  reasonText: { flex: 1, fontSize: 14, color: muted, fontWeight: '500' },
+  confirmBtn: {
+    borderRadius: 28,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  confirmBtnDisabled: { backgroundColor: '#E5E7EB' },
+  confirmBtnEnabled: { backgroundColor: orange },
+  confirmBtnPressed: { opacity: 0.92 },
+  confirmText: { fontSize: 16, fontWeight: '800', color: '#9CA3AF' },
+  confirmTextEnabled: { color: colors.white },
   dismissText: {
-    marginTop: 14,
-    fontSize: 13,
+    marginTop: 16,
+    fontSize: 14,
     color: muted,
     textAlign: 'center',
     fontWeight: '600',
@@ -588,4 +807,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-

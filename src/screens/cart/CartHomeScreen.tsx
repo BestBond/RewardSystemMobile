@@ -21,12 +21,10 @@ import {
   BackArrowLeft,
   BoxAdd,
   CardStar,
-  Earbud,
-  Leveling,
-  Lifting,
   LockClosed,
 } from '../../assets/svgs';
 import { listRewards, type RewardDto } from '../../api/rewards';
+import { RewardImageBlock } from '../rewards/RewardImageBlock';
 import { getMyProfile } from '../../api/users';
 import type {
   CartStackParamList,
@@ -43,21 +41,6 @@ type Nav = CompositeNavigationProp<
   NativeStackNavigationProp<CartStackParamList, 'CartHome'>,
   BottomTabNavigationProp<MainTabParamList>
 >;
-
-function RecommendedIcon({ title }: { title: string }) {
-  const size = 120;
-  const t = title.toLowerCase();
-  if (t.includes('boat') || t.includes('earbud')) {
-    return <Earbud width={size} height={size} />;
-  }
-  if (t.includes('levelling') || t.includes('leveling')) {
-    return <Leveling width={size} height={size} />;
-  }
-  if (t.includes('lifting')) {
-    return <Lifting width={size} height={size} />;
-  }
-  return <Earbud width={size} height={size} />;
-}
 
 export function CartHomeScreen() {
   const insets = useSafeAreaInsets();
@@ -90,7 +73,7 @@ export function CartHomeScreen() {
   });
 
   const recommendedList = useMemo(() => {
-    return rewards.slice(0, 3);
+    return rewards.slice(0, 5);
   }, [rewards]);
 
   return (
@@ -169,7 +152,8 @@ export function CartHomeScreen() {
               contentContainerStyle={styles.recList}
             >
               {recommendedList.map(item => {
-                const isUnlocked = balance >= item.pointsCost;
+                const isUnlocked =
+                  item.eligible ?? balance >= item.pointsCost;
                 const progress = Math.min(balance / item.pointsCost, 1);
 
                 return (
@@ -185,25 +169,22 @@ export function CartHomeScreen() {
                       pressed && styles.pressed,
                     ]}
                   >
-                    {/* IMAGE */}
                     <View style={styles.cardImageContainer}>
-                      <View style={styles.lockedImageWrap}>
-                        <View style={{ transform: [{ scale: 1.08 }] }}>
-                          <RecommendedIcon title={item.title} />
-                        </View>
-
-                        {!isUnlocked && (
-                          <View style={styles.lockOverlay}>
-                            <View style={styles.lockBox}>
-                              <LockClosed
-                                width={40}
-                                height={52}
-                                color={colors.navy}
-                              />
-                            </View>
+                      <RewardImageBlock
+                        imageUrl={item.imageUrl}
+                        resizeMode="contain"
+                      />
+                      {!isUnlocked && (
+                        <View style={styles.lockOverlay}>
+                          <View style={styles.lockBox}>
+                            <LockClosed
+                              width={40}
+                              height={52}
+                              color={colors.navy}
+                            />
                           </View>
-                        )}
-                      </View>
+                        </View>
+                      )}
                     </View>
 
                     {/* CONTENT */}
@@ -362,8 +343,8 @@ const styles = StyleSheet.create({
     width: 285,
     backgroundColor: '#F3F4F8',
     borderRadius: 34,
-    padding: 20,
-    paddingBottom: 18,
+    padding: 0,
+    overflow: 'hidden',
 
     shadowColor: '#000',
     shadowOpacity: 0.05,
@@ -377,22 +358,10 @@ const styles = StyleSheet.create({
   },
 
   cardImageContainer: {
-    height: 160,
-    borderRadius: 28,
-    backgroundColor: colors.white,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-
-  lockedImageWrap: {
     width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    opacity: 0.28,
-    transform: [{ scale: 1.03 }],
+    height: 200,
+    backgroundColor: '#F5F6FA',
+    position: 'relative',
   },
 
   lockOverlay: {
@@ -417,7 +386,9 @@ const styles = StyleSheet.create({
   },
 
   cardContent: {
-    paddingHorizontal: 4,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 18,
   },
 
   cardTitle: {

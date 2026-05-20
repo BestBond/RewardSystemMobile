@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -16,10 +16,9 @@ import { SixDigitInput } from '../components/SixDigitInput';
 import { colors } from '../theme/colors';
 import { figma } from '../theme/figmaTokens';
 import { isApiError, userFacingApiMessage } from '../api/client';
-import { requestOtp, signupAdminWithOtp } from '../api/auth';
+import { signupAdminWithPasscode } from '../api/auth';
 
 const COUNTRY_CODE = '+91';
-const RESEND_SECONDS = 30;
 
 export function OpsAdminSignUpScreen({
   navigation,
@@ -28,46 +27,10 @@ export function OpsAdminSignUpScreen({
   const [phone, setPhone] = useState('');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
-  const [sendingOtp, setSendingOtp] = useState(false);
+  const [passcode, setPasscode] = useState('');
+  const [confirmPasscode, setConfirmPasscode] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!otpSent) return;
-    const id = setInterval(() => setSecondsLeft((s) => (s <= 0 ? 0 : s - 1)), 1000);
-    return () => clearInterval(id);
-  }, [otpSent]);
-
-  const fmt = (s: number) => {
-    const m = Math.floor(s / 60);
-    const r = s % 60;
-    return `${m}:${r.toString().padStart(2, '0')}`;
-  };
-
-  const onSendOtp = async () => {
-    const digits = phone.replace(/\D/g, '').slice(0, 10);
-    if (digits.length !== 10) {
-      setError('Enter a valid 10-digit mobile number.');
-      return;
-    }
-    setSendingOtp(true);
-    setError(null);
-    try {
-      const r = await requestOtp({ phone: digits, countryCode: COUNTRY_CODE });
-      setOtpSent(true);
-      setSecondsLeft(RESEND_SECONDS);
-      setOtp('');
-      if (r.devCode) setOtp(String(r.devCode));
-    } catch (e) {
-      if (isApiError(e)) setError(userFacingApiMessage(e.message));
-      else setError('Unable to send OTP. Please try again.');
-    } finally {
-      setSendingOtp(false);
-    }
-  };
 
   const onCreate = async () => {
     const digits = phone.replace(/\D/g, '').slice(0, 10);
@@ -79,21 +42,22 @@ export function OpsAdminSignUpScreen({
       setError('Enter your full name.');
       return;
     }
-    if (!otpSent) {
-      setError('Please send OTP first.');
+    if (passcode.length !== 6 || confirmPasscode.length !== 6) {
+      setError('Enter a valid 6-digit passcode.');
       return;
     }
-    if (otp.length !== 6) {
-      setError('Enter a valid 6-digit OTP.');
+    if (passcode !== confirmPasscode) {
+      setError('Passcodes do not match.');
       return;
     }
     setSubmitting(true);
     setError(null);
     try {
-      const r = await signupAdminWithOtp({
+      const r = await signupAdminWithPasscode({
         phone: digits,
         countryCode: COUNTRY_CODE,
-        code: otp,
+        passcode,
+        confirmPasscode,
         fullName: fullName.trim(),
         email: email.trim() || null,
       });
@@ -120,68 +84,62 @@ export function OpsAdminSignUpScreen({
           showsVerticalScrollIndicator={false}>
           <Text style={styles.title}>Ops Admin Signup</Text>
           <Text style={styles.sub}>
-            Create your account with OTP. A Super Admin must approve it before you can access management.
+            Create your account with a 6-digit passcode. A Super Admin must approve it before you can access management.
           </Text>
 
-            <View style={styles.formContainer} >
-          <AppFieldLabel text="FULL NAME" />
-          <AppPillInput placeholder="Enter your full name" value={fullName} onChangeText={setFullName} />
+          <View style={styles.formContainer}>
+            <AppFieldLabel text="FULL NAME" />
+            <AppPillInput placeholder="Enter your full name" value={fullName} onChangeText={setFullName} />
 
-          <View style={styles.gap}>
-            <AppFieldLabel text="OFFICIAL EMAIL (OPTIONAL)" />
-          </View>
-          <AppPillInput
-            placeholder="name@company.com"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="email-address"
-          />
+            <View style={styles.gap}>
+              <AppFieldLabel text="OFFICIAL EMAIL (OPTIONAL)" />
+            </View>
+            <AppPillInput
+              placeholder="name@company.com"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+            />
 
-          <View style={styles.gap}>
-            <AppFieldLabel text="MOBILE NUMBER" />
-          </View>
-          <AppPhoneInput
-            countryCode={COUNTRY_CODE}
-            value={phone}
-            onChangeText={(t) => {
-              setPhone(t.replace(/\D/g, '').slice(0, 10));
-              if (error) setError(null);
-            }}
-          />
+            <View style={styles.gap}>
+              <AppFieldLabel text="MOBILE NUMBER" />
+            </View>
+            <AppPhoneInput
+              countryCode={COUNTRY_CODE}
+              value={phone}
+              onChangeText={(t) => {
+                setPhone(t.replace(/\D/g, '').slice(0, 10));
+                if (error) setError(null);
+              }}
+            />
 
-          <View style={styles.otpHeader}>
-            <AppFieldLabel text="VERIFICATION CODE" compact />
-            {!otpSent ? (
-              <Pressable onPress={onSendOtp} disabled={sendingOtp}>
-                <Text style={styles.otpAction}>{sendingOtp ? 'Sending OTP...' : 'Send OTP'}</Text>
+            <View style={styles.gap}>
+              <AppFieldLabel text="PASSCODE" />
+            </View>
+            <SixDigitInput value={passcode} onChange={setPasscode} secure />
+
+            <View style={styles.gap}>
+              <AppFieldLabel text="CONFIRM PASSCODE" />
+            </View>
+            <SixDigitInput value={confirmPasscode} onChange={setConfirmPasscode} secure />
+
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+
+            <AppButton
+              text={submitting ? 'Creating...' : 'Create Account'}
+              disabled={submitting}
+              onPress={onCreate}
+              style={styles.cta}
+            />
+
+            <View style={styles.row}>
+              <Text style={styles.muted}>Already have an account? </Text>
+              <Pressable onPress={() => navigation.navigate('AdminLogin')} hitSlop={8}>
+                <Text style={styles.link}>Log in</Text>
               </Pressable>
-            ) : secondsLeft > 0 ? (
-              <Text style={styles.otpMuted}>Resend OTP in {fmt(secondsLeft)}</Text>
-            ) : (
-              <Pressable onPress={onSendOtp} disabled={sendingOtp}>
-                <Text style={styles.otpAction}>Resend OTP</Text>
-              </Pressable>
-            )}
-          </View>
-          <SixDigitInput value={otp} onChange={setOtp} />
-
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-
-          <AppButton
-            text={submitting ? 'Creating...' : 'Create Account'}
-            disabled={submitting}
-            onPress={onCreate}
-            style={styles.cta}
-          />
-
-          <View style={styles.row}>
-            <Text style={styles.muted}>Already have an account? </Text>
-            <Pressable onPress={() => navigation.navigate('AdminLogin')} hitSlop={8}>
-              <Text style={styles.link}>Log in</Text>
-            </Pressable>
-          </View>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -196,30 +154,15 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '900', color: figma.textTitle },
   sub: { marginTop: 10, fontSize: 14, color: colors.white, lineHeight: 20, marginBottom: 18 },
   gap: { marginTop: 16 },
-  otpHeader: {
-    marginTop: 18,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 10,
-  },
-  otpMuted: { fontSize: 12, color: colors.mutedGray, marginBottom: 2 },
-  otpAction: { fontSize: 12, color: colors.primaryOrange, fontWeight: '700', marginBottom: 2 },
   cta: { marginTop: 26 },
   error: { marginTop: 10, fontSize: 13, color: '#D14343', textAlign: 'center' },
   row: { marginTop: 18, flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
   muted: { color: colors.mutedGray, fontSize: 14 },
-  link: { color: colors.primaryOrange, fontSize: 14, fontWeight: '800'   },
-    logoWrapper: {
-    marginBottom: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-    formContainer: {
+  link: { color: colors.primaryOrange, fontSize: 14, fontWeight: '800' },
+  formContainer: {
     paddingVertical: 24,
     padding: 18,
     backgroundColor: colors.white,
     borderRadius: 22,
   },
 });
-

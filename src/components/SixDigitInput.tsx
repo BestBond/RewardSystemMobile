@@ -107,7 +107,7 @@ export function SixDigitInput({
             caretHidden
             selectionColor="transparent"
             underlineColorAndroid="transparent"
-            accessibilityLabel={`PIN digit ${i + 1}`}
+            accessibilityLabel={`Passcode digit ${i + 1}`}
             pointerEvents="none"
             style={styles.hiddenInput}
           />

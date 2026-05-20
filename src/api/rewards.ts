@@ -1,14 +1,29 @@
+import { API_BASE_URL } from './config';
 import { apiDelete, apiGet, apiPost } from './client';
+
+export type GiftTier = 'WORKER' | 'CONTRACTOR';
 
 export type RewardDto = {
   id: string;
   title: string;
   description: string | null;
   pointsCost: number;
+  giftTier?: GiftTier;
+  sortOrder?: number;
   imageUrl: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Wallet tier allows redeeming this gift's catalog tier. */
+  tierRedeemable?: boolean;
+  /** Balance sufficient and tierRedeemable. */
+  eligible?: boolean;
+};
+
+export type GiftTierInfo = {
+  giftTier: GiftTier;
+  loyaltyPoints: number;
+  contractorThreshold: number;
 };
 
 export type RedeemResponse = {
@@ -16,6 +31,14 @@ export type RedeemResponse = {
   trackingId: string;
   eta: string;
 };
+
+export function resolveRewardImageUrl(imageUrl: string | null): string | null {
+  if (!imageUrl?.trim()) return null;
+  if (/^https?:\/\//i.test(imageUrl)) return imageUrl;
+  const base = API_BASE_URL.replace(/\/$/, '');
+  const path = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
+  return `${base}${path}`;
+}
 
 export async function listRewards(maxPoints?: number) {
   const q =
@@ -25,8 +48,14 @@ export async function listRewards(maxPoints?: number) {
   return apiGet<RewardDto[]>(`/rewards${q}`);
 }
 
+export async function getMyGiftTier() {
+  return apiGet<GiftTierInfo>('/rewards/me/tier');
+}
+
 export async function getWorkerRedemptionSlabs() {
-  const res = await apiGet<{ slabs: number[] }>('/rewards/slabs');
+  const res = await apiGet<{ slabs: number[]; giftTier?: GiftTier | null }>(
+    '/rewards/slabs',
+  );
   return res.slabs ?? [];
 }
 
@@ -60,6 +89,8 @@ export type RedemptionListItem = {
     title: string | null;
     description: string | null;
     pointsCost: number;
+    giftTier?: GiftTier | null;
+    imageUrl?: string | null;
   };
 };
 

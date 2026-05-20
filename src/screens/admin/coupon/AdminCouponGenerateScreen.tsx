@@ -19,13 +19,14 @@ import { adminUi } from '../../../theme/adminUi';
 import { generateCouponBatch, listCoupons } from '../../../api/coupons';
 import { isApiError, userFacingApiMessage } from '../../../api/client';
 import { ChevronDownSmall } from '../../../assets/svgs';
+import { COUPON_SLAB_OPTIONS } from '../../../constants/couponTiers';
 
 type Nav = NativeStackNavigationProp<
   AdminCouponStackParamList,
   'AdminCouponGenerate'
 >;
 
-const SLAB_OPTIONS = [500, 1000, 2000, 5000, 10000] as const;
+const SLAB_OPTIONS = COUPON_SLAB_OPTIONS;
 
 function formatInt(n: number): string {
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(
@@ -139,7 +140,7 @@ export function AdminCouponGenerateScreen() {
             }>
             {slabPts != null
               ? `${formatInt(slabPts)} pts`
-              : 'Select Value (e.g., 1000, 2000)'}
+              : 'Select coupon value (10–100 Points)'}
           </Text>
           <View style={styles.chevronWrap} pointerEvents="none">
             <ChevronDownSmall width={18} height={18} />
