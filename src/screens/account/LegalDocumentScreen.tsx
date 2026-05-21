@@ -17,6 +17,7 @@ import { BackArrowLeft } from '../../assets/svgs';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { goBackInApp } from '../../navigation/goBackInApp';
 import { figma } from '../../theme/figmaTokens';
+import { LegalFormattedBody } from './legal/LegalFormattedBody';
 import {
   LEGAL_UPDATED_ON,
   PRIVACY_POLICY_BODY,
@@ -24,6 +25,7 @@ import {
   TERMS_AND_CONDITIONS_BODY,
   TERMS_AND_CONDITIONS_TITLE,
 } from './legal/legalCopy';
+import { legalTypography } from './legal/legalTypography';
 import {
   stripPrivacyPreamble,
   stripTermsPreamble,
@@ -32,23 +34,22 @@ import {
 type Props = NativeStackScreenProps<ProfileStackParamList, 'LegalDocument'>;
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'LegalDocument'>;
 
-const heroFor = (doc: 'terms' | 'privacy') =>
-  doc === 'terms' ? 'Our Terms & Conditions' : 'Our Privacy Policy';
+const DOC_SUBTITLE = 'BestBond Rewards Program Mobile Application';
 
 export function LegalDocumentScreen({ route }: Props) {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const doc = route.params.document;
 
-  const { title, body } = useMemo(() => {
+  const { docTitle, body } = useMemo(() => {
     if (doc === 'privacy') {
       return {
-        title: PRIVACY_POLICY_TITLE,
+        docTitle: PRIVACY_POLICY_TITLE.toUpperCase(),
         body: stripPrivacyPreamble(PRIVACY_POLICY_BODY),
       };
     }
     return {
-      title: TERMS_AND_CONDITIONS_TITLE,
+      docTitle: 'TERMS & CONDITIONS',
       body: stripTermsPreamble(TERMS_AND_CONDITIONS_BODY),
     };
   }, [doc]);
@@ -65,35 +66,41 @@ export function LegalDocumentScreen({ route }: Props) {
           accessibilityLabel="Back">
           <BackArrowLeft width={24} height={24} />
         </Pressable>
-        <Text style={styles.headerTitle}>{title}</Text>
+        <Text style={styles.headerTitle}>
+          {doc === 'terms' ? TERMS_AND_CONDITIONS_TITLE : PRIVACY_POLICY_TITLE}
+        </Text>
       </View>
 
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={[
-          styles.scroll,
+          styles.scrollContent,
           { paddingBottom: 40 + insets.bottom },
         ]}
         showsVerticalScrollIndicator>
-        <View style={styles.watermarkWrap} pointerEvents="none">
-          <Text style={styles.watermark}>{heroFor(doc)}</Text>
-        </View>
-        <Text style={styles.h2}>{title}</Text>
-        <Text style={styles.updated}>Updated on {LEGAL_UPDATED_ON}</Text>
-        <Text style={styles.body}>{body.trim()}</Text>
+        <Text style={legalTypography.docTitle}>{docTitle}</Text>
+        <Text style={legalTypography.docSubtitle}>{DOC_SUBTITLE}</Text>
+        <Text style={legalTypography.docDate}>
+          Last Updated: {LEGAL_UPDATED_ON}
+        </Text>
+        <LegalFormattedBody body={body.trim()} />
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: figma.consumerHomeBg },
+  root: { flex: 1, backgroundColor: '#FFFFFF' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingBottom: 8,
     minHeight: 48,
-    paddingTop:10,
+    paddingTop: 10,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: figma.borderSoft,
   },
   backBtn: { width: 44, justifyContent: 'center' },
   headerTitle: {
@@ -104,34 +111,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scroll: {
-    paddingHorizontal: figma.spaceGutter,
-    paddingTop: 10,
+    flex: 1,
+    backgroundColor: '#FFFFFF',
   },
-  watermarkWrap: { marginBottom: 16, alignItems: 'center' },
-  watermark: {
-    fontSize: 50,
-    fontWeight: 'bold',
-    color: '#C8D0DC',
-    lineHeight: 62,
-    opacity: 0.6,
-    marginBottom:20,
-    marginTop:20,
-  },
-  h2: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: figma.textBody,
-    marginBottom: 8,
-  },
-  updated: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: figma.textMuted,
-    marginBottom: 16,
-  },
-  body: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: figma.textBody,
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
   },
 });

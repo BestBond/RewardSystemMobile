@@ -18,7 +18,7 @@ export const SUPPORT = {
   waTag: 'QUICK RESPONSE',
   waTitle: 'WhatsApp Support',
   waBody: 'Send us a message on WhatsApp for an immediate response.',
-  email: 'contactsupport@gmail.com',
+  email: 'bestbond03@yahoo.com',
   /** Same line for call + WhatsApp (India); wa.me uses digits without + */
   fallbackPhone: '+919686191514',
   fallbackWhatsapp: '919686191514',
