@@ -184,11 +184,7 @@ export function DeliveryStatusScreen() {
         detail: formatPlacedDate(redemption.createdAt),
         active: !cancelled,
         icon: (
-          <ReceiptOutline
-            width={26}
-            height={26}
-            stroke={cancelled ? colors.white : '#C4C4C4'}
-          />
+          <ReceiptOutline width={26} height={26} stroke={colors.white} />
         ),
       },
       {
@@ -199,19 +195,7 @@ export function DeliveryStatusScreen() {
           inStore,
         ),
         active: step2Active && !cancelled,
-        icon: (
-          <BoxAdd
-            width={26}
-            height={26}
-            fill={
-              cancelled
-                ? colors.white
-                : step2Active
-                  ? orange
-                  : '#D1D5DB'
-            }
-          />
-        ),
+        icon: <BoxAdd width={26} height={26} fill={colors.white} />,
       },
     ];
   }, [redemption]);

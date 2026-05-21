@@ -133,12 +133,15 @@ export function CustomerSupportScreen() {
             <Text style={styles.cardBody}>{SUPPORT.callBody}</Text>
               <Pressable
                 style={({ pressed }) => [
-                  styles.confirmBtn,
+                  styles.callCtaBtn,
                   pressed && styles.pressed,
                 ]}
                 onPress={onCall}
+                accessibilityRole="button"
+                accessibilityLabel="Call support"
+                disabled={!phone}
               >
-                <Text style={styles.confirmText}>Confirm Reward</Text>
+                <Text style={styles.callCtaText}>{SUPPORT.callCta}</Text>
                 <ArrowRightOrange width={18} height={18} />
               </Pressable>
           </View>
@@ -304,22 +307,22 @@ const styles = StyleSheet.create({
     color: colors.primaryOrange,
     textDecorationLine: 'underline',
   },
-  confirmBtn: {
-      backgroundColor: colors.white,
-      paddingVertical: 18,
-      borderRadius: 30,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
+  callCtaBtn: {
+    backgroundColor: colors.white,
+    paddingVertical: 18,
+    borderRadius: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(251, 224, 224, 0.56)',
-          gap: 10,
-    },
-    confirmText: {
-      color: colors.primaryOrange,
-      fontSize: 16,
-      fontWeight: '700',
-    },
+    gap: 10,
+  },
+  callCtaText: {
+    color: colors.primaryOrange,
+    fontSize: 16,
+    fontWeight: '700',
+  },
     pressed: {
       opacity: 0.9,
     },

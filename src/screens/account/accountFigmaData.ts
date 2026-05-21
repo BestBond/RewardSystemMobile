@@ -14,6 +14,7 @@ export const SUPPORT = {
   callTag: 'AVAILABLE 24/7',
   callTitle: 'Call Support',
   callBody: 'Connect with a real human expert immediately',
+  callCta: 'Call Now',
   waTag: 'QUICK RESPONSE',
   waTitle: 'WhatsApp Support',
   waBody: 'Send us a message on WhatsApp for an immediate response.',
