@@ -2,7 +2,7 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -134,6 +134,15 @@ export function RewardsHomeScreen() {
     if (filter === 'all') return allRewards;
     return allRewards.filter(r => r.giftTier === filter);
   }, [allRewards, filter]);
+
+  useEffect(() => {
+    if (
+      selectedRewardId &&
+      !visibleRewards.some(r => r.id === selectedRewardId)
+    ) {
+      setSelectedRewardId(null);
+    }
+  }, [selectedRewardId, visibleRewards]);
 
   const pointsToContractor = Math.max(0, contractorThreshold - balance);
   const tierProgress =
@@ -380,79 +389,91 @@ export function RewardsHomeScreen() {
               const progress = Math.min(balance / item.pointsCost, 1);
               const hint = lockHint(item, balance, giftTier);
 
+              const isSelected = selectedRewardId === item.id;
+
               return (
-                <Pressable
+                <View
                   key={item.id}
-                  onPress={() => setSelectedRewardId(item.id)}
-                  style={({ pressed }) => [
+                  style={[
                     styles.rewardCard,
-                    selectedRewardId === item.id && styles.rewardCardSelected,
-                    pressed && styles.pressed,
+                    isSelected && styles.rewardCardSelected,
                   ]}
                 >
-                  <View style={styles.cardImageContainer}>
-                    <RewardImageBlock
-                      imageUrl={item.imageUrl}
-                      resizeMode="contain"
-                    />
-                  </View>
+                  <Pressable
+                    onPress={() =>
+                      setSelectedRewardId(prev =>
+                        prev === item.id ? null : item.id,
+                      )
+                    }
+                    style={({ pressed }) => [
+                      styles.rewardCardPressable,
+                      pressed && styles.pressed,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                    accessibilityLabel={`${item.title}, ${item.pointsCost.toLocaleString()} points`}
+                  >
+                    <View style={styles.cardImageContainer}>
+                      <RewardImageBlock
+                        key={`img-${item.id}`}
+                        imageUrl={item.imageUrl}
+                        resizeMode="contain"
+                      />
+                    </View>
 
-                  <View style={styles.cardContent}>
-                    <Text style={styles.cardTitle}>{item.title}</Text>
-                    <Text style={styles.cardDesc} numberOfLines={3}>
-                      {item.description ||
-                        'Professional grade tool for your construction needs.'}
-                    </Text>
-
-                    {!isRedeemable && item.tierRedeemable !== false ? (
-                      <View style={styles.cardProgressTrack}>
-                        <View
-                          style={[
-                            styles.cardProgressFill,
-                            { width: `${progress * 100}%` },
-                          ]}
-                        />
-                      </View>
-                    ) : null}
-
-                    {hint ? (
-                      <Text style={styles.lockHintText}>{hint}</Text>
-                    ) : null}
-
-                    {/* FOOTER */}
-                    <View style={styles.cardFooter}>
-                      <Text style={styles.requiresText}>
-                        Requires {item.pointsCost.toLocaleString()} Pts
+                    <View style={styles.cardContent}>
+                      <Text style={styles.cardTitle}>{item.title}</Text>
+                      <Text style={styles.cardDesc} numberOfLines={3}>
+                        {item.description ||
+                          'Professional grade tool for your construction needs.'}
                       </Text>
 
-                      {isRedeemable ? (
-                        <Pressable
-                          style={
-                            selectedRewardId === item.id
-                              ? styles.selectedBtn
-                              : styles.selectBtn
-                          }
-                          onPress={() => setSelectedRewardId(item.id)}
-                        >
-                          <Text
-                            style={
-                              selectedRewardId === item.id
-                                ? styles.selectedText
-                                : styles.selectText
-                            }>
-                            {selectedRewardId === item.id
-                              ? 'Selected'
-                              : 'Select'}
-                          </Text>
-                        </Pressable>
-                      ) : (
-                        <View style={styles.lockedBtn}>
-                          <Text style={styles.lockedBtnText}>Locked</Text>
+                      {!isRedeemable && item.tierRedeemable !== false ? (
+                        <View style={styles.cardProgressTrack}>
+                          <View
+                            style={[
+                              styles.cardProgressFill,
+                              { width: `${progress * 100}%` },
+                            ]}
+                          />
                         </View>
-                      )}
+                      ) : null}
+
+                      {hint ? (
+                        <Text style={styles.lockHintText}>{hint}</Text>
+                      ) : null}
+
+                      <View style={styles.cardFooter}>
+                        <Text style={styles.requiresText}>
+                          Requires {item.pointsCost.toLocaleString()} Pts
+                        </Text>
+
+                        {isRedeemable ? (
+                          <View
+                            style={
+                              isSelected
+                                ? styles.selectedBtn
+                                : styles.selectBtn
+                            }
+                          >
+                            <Text
+                              style={
+                                isSelected
+                                  ? styles.selectedText
+                                  : styles.selectText
+                              }>
+                              {isSelected ? 'Selected' : 'Select'}
+                            </Text>
+                          </View>
+                        ) : (
+                          <View style={styles.lockedBtn}>
+                            <Text style={styles.lockedBtnText}>Locked</Text>
+                          </View>
+                        )}
+                      </View>
                     </View>
-                  </View>
-                </Pressable>
+                  </Pressable>
+                </View>
               );
             })
             )}
@@ -673,7 +694,6 @@ const styles = StyleSheet.create({
   },
   rewardList: {
     paddingHorizontal: 10,
-    gap: 16,
     paddingBottom: 20,
   },
   emptyRewards: {
@@ -688,10 +708,11 @@ const styles = StyleSheet.create({
   rewardCard: {
     width: '100%',
     alignSelf: 'stretch',
-    backgroundColor: '#F3F4F8',
+    backgroundColor: colors.white,
     borderRadius: 34,
-    padding: 0,
-    overflow: 'hidden',
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: 'transparent',
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 10,
@@ -702,8 +723,11 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   rewardCardSelected: {
-    borderWidth: 2,
     borderColor: colors.primaryOrange,
+  },
+  rewardCardPressable: {
+    borderRadius: 32,
+    overflow: 'hidden',
   },
   cardImageContainer: {
     width: '100%',
