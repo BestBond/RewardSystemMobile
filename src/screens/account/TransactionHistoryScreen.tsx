@@ -12,6 +12,12 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, {
+  Defs,
+  LinearGradient as SvgLinear,
+  Rect,
+  Stop,
+} from 'react-native-svg';
 import {
   BackArrowLeft,
   ChevronDownSmall,
@@ -19,11 +25,13 @@ import {
   TxTicketOrange,
 } from '../../assets/svgs';
 import { getMyProfile } from '../../api/users';
-import { getMyTransactions, type PointsTransactionType } from '../../api/transactions';
+import {
+  getMyTransactions,
+  type PointsTransactionType,
+} from '../../api/transactions';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { colors as themeColors } from '../../theme/colors';
 import { loyaltyTierFromPoints } from '../../utils/loyaltyTier';
-import { formatPointsCompact } from '../../utils/formatPointsCompact';
 import {
   activityIconFromType,
   activitySubtitle,
@@ -31,16 +39,18 @@ import {
 } from '../../utils/activityFormat';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 
-type Nav = NativeStackNavigationProp<ProfileStackParamList, 'TransactionHistory'>;
+type Nav = NativeStackNavigationProp<
+  ProfileStackParamList,
+  'TransactionHistory'
+>;
 
-const bg = '#F5F6F8';
 const text = '#1A1C1E';
 const muted = '#74777F';
 const green = '#16A34A';
 const debit = '#EA580C';
 const orange = themeColors.primaryOrange;
-const earnedBg = '#FFF4E8';
-const spentBg = '#EEF3F8';
+const earnedBg = '#FFF5ED';
+const spentBg = '#EEF3F7';
 
 const PAGE = 20;
 
@@ -166,30 +176,34 @@ export function TransactionHistoryScreen() {
   };
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top, backgroundColor: bg }]}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
-        <View style={styles.headerSlot}>
-          <Pressable
-            hitSlop={12}
-            onPress={() => navigation.goBack()}
-            accessibilityRole="button"
-            accessibilityLabel="Back">
-            <BackArrowLeft width={24} height={24} />
-          </Pressable>
-        </View>
+    <View style={styles.root}>
+      <Svg style={StyleSheet.absoluteFill}>
+        <Defs>
+          <SvgLinear id="txBgGrad" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="rgba(249,133,53,1)" stopOpacity="1" />
+            <Stop offset="1" stopColor="rgb(255, 248, 241)" stopOpacity="1" />
+          </SvgLinear>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill="url(#txBgGrad)" />
+      </Svg>
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor="transparent"
+        translucent
+      />
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <Pressable
+          hitSlop={12}
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          style={styles.backBtn}
+        >
+          <BackArrowLeft width={22} height={22} />
+        </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>
           Transaction History
         </Text>
-        <View style={[styles.headerSlot, styles.headerSlotRight]}>
-          <Pressable
-            hitSlop={12}
-            onPress={() => loadInitial()}
-            accessibilityRole="button"
-            accessibilityLabel="Refresh">
-            <Text style={styles.refreshIcon}>{'\u27F3'}</Text>
-          </Pressable>
-        </View>
       </View>
 
       {loading ? (
@@ -202,7 +216,8 @@ export function TransactionHistoryScreen() {
             styles.scroll,
             { paddingBottom: 100 + insets.bottom },
           ]}
-          showsVerticalScrollIndicator={false}>
+          showsVerticalScrollIndicator={false}
+        >
           {error ? <Text style={styles.err}>{error}</Text> : null}
 
           <View style={styles.summaryRow}>
@@ -212,30 +227,42 @@ export function TransactionHistoryScreen() {
                 {totalEarned.toLocaleString()}
               </Text>
             </View>
-            <View style={[styles.summaryCard, { backgroundColor: spentBg }]}>
-              <Text style={styles.summaryLabel}>SPENT</Text>
+            <View style={[styles.summaryCard, styles.summaryCardRight]}>
+              <Text style={[styles.summaryLabel, styles.summaryLabelRight]}>
+                TOTAL POINTS SPENT
+              </Text>
               <Text style={styles.summaryValue}>
-                -{formatPointsCompact(totalSpent)}
+                {totalSpent.toLocaleString()}
               </Text>
             </View>
           </View>
 
-          <View style={styles.tierRow}>
-            <Text style={styles.tierName}>{tier.tierLabel}</Text>
-            <Text style={styles.tierHint} numberOfLines={1}>
-              {tier.pointsToNextReward.toLocaleString()} pts to next reward
-            </Text>
-          </View>
           <View style={styles.progressTrack}>
             <View
-              style={[styles.progressFill, { width: `${tier.progress * 100}%` }]}
+              style={[
+                styles.progressFill,
+                { width: `${tier.progress * 100}%` },
+              ]}
             />
           </View>
+          <View style={styles.tierRow}>
+            
+            <Text style={styles.tierName}>Worker Tier</Text>
+            <Text style={styles.tierHint}>
+              Contractor{'\n'}
+              {tier.nextThreshold.toLocaleString()} pts
+            </Text>
+          </View>
+
 
           <View style={styles.filterRow}>
             <Pressable
-              style={({ pressed }) => [styles.filterPill, pressed && styles.pressed]}
-              onPress={cyclePeriod}>
+              style={({ pressed }) => [
+                styles.filterPill,
+                pressed && styles.pressed,
+              ]}
+              onPress={cyclePeriod}
+            >
               <Text style={styles.filterShow}>SHOW: </Text>
               <Text style={styles.filterBold}>{filterLabel}</Text>
               <ChevronDownSmall width={14} height={14} />
@@ -261,14 +288,16 @@ export function TransactionHistoryScreen() {
                     style={[
                       styles.txPtsMain,
                       { color: row.positive ? green : debit },
-                    ]}>
+                    ]}
+                  >
                     {row.pointsMain}
                   </Text>
                   <Text
                     style={[
                       styles.txPtsLabel,
                       { color: row.positive ? green : debit },
-                    ]}>
+                    ]}
+                  >
                     {row.pointsLabel}
                   </Text>
                 </View>
@@ -278,9 +307,13 @@ export function TransactionHistoryScreen() {
 
           {hasMore ? (
             <Pressable
-              style={({ pressed }) => [styles.loadMore, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.loadMore,
+                pressed && styles.pressed,
+              ]}
               disabled={loadingMore}
-              onPress={() => loadMore().catch(() => {})}>
+              onPress={() => loadMore().catch(() => {})}
+            >
               {loadingMore ? (
                 <ActivityIndicator color={orange} />
               ) : (
@@ -320,185 +353,193 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingBottom: 8,
-    minHeight: 48,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    minHeight: 52,
   },
-  headerSlot: {
-    width: 44,
+  backBtn: {
+    width: 28,
+    height: 36,
+    alignItems: 'flex-start',
     justifyContent: 'center',
   },
-  headerSlotRight: {
-    alignItems: 'flex-end',
-  },
   headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
     color: text,
+    marginLeft: 2,
   },
   scroll: {
-    paddingHorizontal: 22,
-    paddingTop: 8,
+    paddingHorizontal: 17,
+    paddingTop: 4,
   },
   summaryRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
+    gap: 10,
+    marginBottom: 18,
   },
   summaryCard: {
     flex: 1,
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
+    minHeight: 104,
+    borderRadius: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    justifyContent: 'space-between',
+    ...cardShadow,
+  },
+  summaryCardRight: {
+    backgroundColor: spentBg,
+    alignItems: 'flex-end',
   },
   summaryLabel: {
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '600',
+    letterSpacing: 0.3,
     color: muted,
   },
+  summaryLabelRight: {
+    textAlign: 'right',
+  },
   summaryValue: {
-    marginTop: 8,
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 33,
+    lineHeight: 28,
+    fontWeight: '600',
     color: text,
   },
   tierRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    alignItems: 'flex-end',
+    marginBottom: 30,
+    paddingHorizontal: 4,
   },
   tierName: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '900',
     color: text,
     flex: 1,
     marginRight: 8,
   },
   tierHint: {
     fontSize: 12,
-    fontWeight: '500',
-    color: '#9CA3AF',
-    maxWidth: '48%',
+    lineHeight: 15,
+    fontWeight: '800',
+    color: text,
     textAlign: 'right',
   },
   progressTrack: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#E5E7EB',
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
     overflow: 'hidden',
-    marginBottom: 18,
+    marginTop: 12,
+    marginBottom: 8,
   },
   progressFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 999,
     backgroundColor: '#1A1C1E',
   },
   filterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginBottom: 20,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 18,
-    padding: 10,
+    marginBottom: 21,
   },
   filterPill: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 24,
+    alignSelf: 'stretch',
+    height: 55,
+    paddingHorizontal: 18,
+    borderRadius: 22,
     backgroundColor: '#FFFFFF',
+    ...cardShadow,
   },
   filterShow: {
-    fontSize: 13,
+    fontSize: 14,
     color: muted,
-    fontWeight: '500',
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   filterBold: {
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: '800',
     color: text,
     marginRight: 4,
   },
-  filterIconBtn: { display: 'none' },
-  refreshIcon: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: text,
-  },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 13,
+    fontWeight: '900',
     color: text,
-    marginBottom: 12,
+    marginBottom: 13,
   },
   txCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#E8E8EC',
+    borderRadius: 19,
+    minHeight: 62,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 12,
     ...cardShadow,
   },
   txIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: '#FFF4E8',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 10,
   },
   txMid: {
     flex: 1,
-    paddingRight: 8,
+    paddingRight: 6,
   },
   txTitle: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 14,
+    lineHeight: 14,
+    fontWeight: '900',
     color: text,
   },
   txSub: {
-    marginTop: 4,
+    marginTop: 2,
     fontSize: 12,
+    lineHeight: 11,
     color: muted,
+    fontWeight: '600',
   },
   txPts: {
     alignItems: 'flex-end',
+    minWidth: 56,
   },
   txPtsMain: {
-    fontSize: 17,
-    fontWeight: '800',
+    fontSize: 14,
+    lineHeight: 14,
+    fontWeight: '900',
   },
   txPtsLabel: {
-    marginTop: 2,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    fontSize: 12,
+    lineHeight: 9,
+    fontWeight: '900',
+    letterSpacing: 0.2,
   },
   loadMore: {
-    marginTop: 8,
-    paddingVertical: 16,
-    borderRadius: 28,
-    backgroundColor: '#E8EAEF',
+    alignSelf: 'center',
+    marginTop: 7,
+    paddingVertical: 10,
+    paddingHorizontal: 26,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
+    ...cardShadow,
   },
   loadMoreText: {
     fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.6,
+    fontWeight: '900',
+    letterSpacing: 0.5,
     color: orange,
   },
   pressed: { opacity: 0.92 },
 });
+  

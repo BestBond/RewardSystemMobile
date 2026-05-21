@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     paddingBottom: 20,
     marginTop:10
   },
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: navy,
   },
-  scroll: { paddingHorizontal: 14, paddingTop: 4 },
+  scroll: { paddingHorizontal: 10, paddingTop: 4 },
   card: {
     backgroundColor: colors.white,
     borderRadius: 32,
@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   productFrame: {
-    height: 200,
+    height: 280,
     margin: 14,
     marginBottom: 4,
     borderRadius: 22,
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  cardPad: { padding: 16, paddingTop: 10 },
+  cardPad: { padding: 30, paddingTop: 20 },
   productTitle: {
     fontSize: 22,
     fontWeight: '800',
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: screenBg,
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     paddingTop: 10,
   },
   confirmBtn: {

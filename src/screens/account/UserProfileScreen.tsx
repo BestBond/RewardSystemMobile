@@ -11,22 +11,29 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Defs, LinearGradient as SvgLinear, Rect, Stop } from 'react-native-svg';
+import Svg, {
+  Defs,
+  LinearGradient as SvgLinear,
+  Rect,
+  Stop,
+} from 'react-native-svg';
 import {
   BackArrowLeft,
-  BestBondMan,
   ChevronRight,
-  IconGiftOrange,
-  IconHeadsetOrange,
-  IconReceiptDocOrange,
-  IconTermsAlertOrange,
+  FeaturedSeasonalAndGifts,
   LogOutDoor,
+  MobileAlert,
+  ReceiptLong,
+  SupportAgent,
   UserAvatar,
 } from '../../assets/svgs';
 import { getAuthMe, getMyProfile, type MyProfile } from '../../api/users';
 import { redirectStaffToAdminShellIfNeeded } from '../../auth/staffShellRedirect';
 import { clearAuthSession } from '../../api/storage';
-import { navigateToProfileEdit, resetToLogin } from '../../navigation/rootNavigation';
+import {
+  navigateToProfileEdit,
+  resetToLogin,
+} from '../../navigation/rootNavigation';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { colors } from '../../theme/colors';
 import { figma } from '../../theme/figmaTokens';
@@ -82,7 +89,7 @@ export function UserProfileScreen() {
 
   useRefreshOnFocusAndForeground(() => {
     setLoading(true);
-    load().catch(() => { });
+    load().catch(() => {});
   });
 
   const balance = profile?.loyaltyPoints ?? 0;
@@ -111,7 +118,8 @@ export function UserProfileScreen() {
           hitSlop={12}
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
-          accessibilityLabel="Back">
+          accessibilityLabel="Back"
+        >
           <BackArrowLeft width={24} height={24} />
         </Pressable>
         <Text style={styles.headerTitle}>User Profile</Text>
@@ -127,19 +135,22 @@ export function UserProfileScreen() {
             styles.scroll,
             { paddingBottom: 40 + insets.bottom },
           ]}
-          showsVerticalScrollIndicator={false}>
-
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.profileCard}>
             <View style={styles.profileHeader}>
               <View style={styles.avatarWrap}>
                 <UserAvatar width={90} height={90} />
               </View>
               <View style={styles.profileInfo}>
-                <Text style={styles.name}>{profile?.fullName?.trim() || ''}</Text>
+                <Text style={styles.name}>
+                  {profile?.fullName?.trim() || ''}
+                </Text>
                 <Pressable
                   style={styles.editBtn}
                   onPress={() => navigateToProfileEdit()}
-                  hitSlop={8}>
+                  hitSlop={8}
+                >
                   <Text style={styles.editText}>Edit</Text>
                 </Pressable>
               </View>
@@ -193,10 +204,14 @@ export function UserProfileScreen() {
 
           <View style={styles.menuContainer}>
             <Pressable
-              style={({ pressed }) => [styles.menuItem, pressed && styles.pressed]}
-              onPress={() => navigation.navigate('GiftDeliveryStatus')}>
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.pressed,
+              ]}
+              onPress={() => navigation.navigate('GiftDeliveryStatus')}
+            >
               <View style={styles.menuIconWrap}>
-                <IconGiftOrange width={22} height={22} />
+                <FeaturedSeasonalAndGifts width={22} height={22} />
               </View>
               <View style={styles.menuTextCol}>
                 <Text style={styles.menuTitle}>Gift Delivery Status</Text>
@@ -206,10 +221,14 @@ export function UserProfileScreen() {
             </Pressable>
 
             <Pressable
-              style={({ pressed }) => [styles.menuItem, pressed && styles.pressed]}
-              onPress={() => navigation.navigate('TransactionHistory')}>
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.pressed,
+              ]}
+              onPress={() => navigation.navigate('TransactionHistory')}
+            >
               <View style={styles.menuIconWrap}>
-                <IconReceiptDocOrange width={22} height={22} />
+                <ReceiptLong width={22} height={22} />
               </View>
               <View style={styles.menuTextCol}>
                 <Text style={styles.menuTitle}>Transaction History</Text>
@@ -219,10 +238,14 @@ export function UserProfileScreen() {
             </Pressable>
 
             <Pressable
-              style={({ pressed }) => [styles.menuItem, pressed && styles.pressed]}
-              onPress={() => navigation.navigate('CustomerSupport')}>
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.pressed,
+              ]}
+              onPress={() => navigation.navigate('CustomerSupport')}
+            >
               <View style={styles.menuIconWrap}>
-                <IconHeadsetOrange width={22} height={22} />
+                <SupportAgent width={22} height={22} />
               </View>
               <View style={styles.menuTextCol}>
                 <Text style={styles.menuTitle}>Help / Contact Support</Text>
@@ -232,10 +255,14 @@ export function UserProfileScreen() {
             </Pressable>
 
             <Pressable
-              style={({ pressed }) => [styles.menuItem, pressed && styles.pressed]}
-              onPress={() => navigation.navigate('TermsPrivacyHub')}>
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.pressed,
+              ]}
+              onPress={() => navigation.navigate('TermsPrivacyHub')}
+            >
               <View style={styles.menuIconWrap}>
-                <IconTermsAlertOrange width={22} height={22} />
+                <MobileAlert width={22} height={22} />
               </View>
               <View style={styles.menuTextCol}>
                 <Text style={styles.menuTitle}>Terms & Privacy Policies</Text>
@@ -246,11 +273,15 @@ export function UserProfileScreen() {
           </View>
 
           <Pressable
-            style={({ pressed }) => [styles.logoutBtn, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.logoutBtn,
+              pressed && styles.pressed,
+            ]}
             onPress={async () => {
               await clearAuthSession();
               resetToLogin();
-            }}>
+            }}
+          >
             <LogOutDoor width={20} height={20} color="#1A1C1E" />
             <Text style={styles.logoutText}>Log Out</Text>
           </Pressable>
@@ -273,7 +304,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     height: 56,
   },
   backBtn: {
@@ -288,7 +319,7 @@ const styles = StyleSheet.create({
     color: '#1A1C1E',
   },
   scroll: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 10,
     paddingTop: 10,
   },
   profileCard: {
@@ -380,19 +411,21 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
     backgroundColor: '#EFF2F7',
     borderRadius: 36,
     padding: 20,
     paddingVertical: 24,
   },
   statLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '400',
     color: colors.labelGray,
     letterSpacing: 0.5,
   },
   statValue: {
-    fontSize: 36,
+    fontSize: 30,
     fontWeight: '900',
     color: '#1A1C1E',
     marginTop: 12,

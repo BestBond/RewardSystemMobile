@@ -66,6 +66,7 @@ function computeApiBaseUrl(): string {
 }
 
 export const API_BASE_URL = computeApiBaseUrl();
+// export const API_BASE_URL = 'https://api.bestbond.in'
 
 export function isProductionApiBaseUrl(): boolean {
   return API_BASE_URL.startsWith('https://api.bestbond.in');

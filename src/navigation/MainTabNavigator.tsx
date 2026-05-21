@@ -24,10 +24,28 @@ export function MainTabNavigator() {
         // lazy: true (default) — do not mount Scan (VisionCamera) until the user opens that tab;
         // eager mounting caused native crashes on launch for some devices / permission states.
         tabBarHideOnKeyboard: true,
+        tabBarStyle: {
+          backgroundColor: 'transparent',
+          borderTopWidth: 0,
+          borderTopColor: 'transparent',
+          elevation: 0,
+          shadowOpacity: 0,
+          shadowColor: 'transparent',
+        },
       }}
       initialRouteName="Home">
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Cart" component={CartNavigator} />
+      <Tab.Screen
+        name="Cart"
+        component={CartNavigator}
+        listeners={({ navigation }) => ({
+          tabPress: e => {
+            navigation.navigate("Cart", {
+              screen: "CartHome",
+            });
+          },
+        })}
+      />
       <Tab.Screen name="Scan" component={ScanScreen} />
       <Tab.Screen name="Rewards" component={RewardsNavigator} />
       <Tab.Screen name="Profile" component={ProfileNavigator} />

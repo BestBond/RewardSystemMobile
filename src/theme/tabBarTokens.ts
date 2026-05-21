@@ -2,7 +2,7 @@ import { colors } from './colors';
 import { figma } from './figmaTokens';
 
 export const tabBarTokens = {
-  background: colors.white,
+  background: 'transparent',
   borderColor: colors.borderGray,
   shadow: {
     shadowColor: '#000',
@@ -10,10 +10,10 @@ export const tabBarTokens = {
     shadowOpacity: 0.06,
     shadowRadius: 6,
   },
-  rowPaddingHorizontal: 8,
-  itemPaddingVertical: 4,
-  floatingOffsetY: -18,
-  floatingSize: 58,
+  rowPaddingHorizontal: 0,
+  itemPaddingVertical: 0,
+  floatingOffsetY: -0,
+  floatingSize: 48,
   floatingRadius: 16,
   floatingBg: figma.brandOrangeCTA,
   labelSize: 11,

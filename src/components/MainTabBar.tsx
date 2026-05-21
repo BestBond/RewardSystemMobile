@@ -11,10 +11,12 @@ import {
   ProfileInactive,
   RewardsActive,
   RewardsInactive,
+  Scanner,
   ScannerWhite,
 } from '../assets/svgs';
 import type { MainTabParamList } from '../navigation/types';
 import { tabBarTokens } from '../theme/tabBarTokens';
+import { colors } from '../theme/colors';
 
 const activeColor = tabBarTokens.activeColor;
 const inactiveColor = tabBarTokens.inactiveColor;
@@ -41,14 +43,13 @@ function TabIcon({
         <CartInactive width={iconSize} height={iconSize} />
       );
     case 'scan':
-      return (
-        <View
-          style={[
-            styles.scanOuter,
-            focused && styles.scanOuterActive,
-          ]}>
+      return focused ? (
+        <View style={styles.scanOuterActive}>
           <ScannerWhite width={28} height={28} />
         </View>
+      ) : 
+      (
+        <Scanner width={35} height={35}  style={styles.scanOuter}/>
       );
     case 'rewards':
       return focused ? (
@@ -83,7 +84,7 @@ export function MainTabBar({ state, navigation }: BottomTabBarProps) {
     return (
       <Pressable
         key={routeName}
-        style={[styles.tabItem, isScan && styles.tabItemScan]}
+        style={styles.tabItem}
         onPress={() => go(routeName)}
         accessibilityRole="button"
         accessibilityState={{ selected: focused }}
@@ -106,7 +107,6 @@ export function MainTabBar({ state, navigation }: BottomTabBarProps) {
     <View
       style={[
         styles.bar,
-        styles.barShadow,
         { paddingBottom: Math.max(insets.bottom, 10) },
       ]}>
       <View style={styles.row}>
@@ -122,41 +122,41 @@ export function MainTabBar({ state, navigation }: BottomTabBarProps) {
 
 const styles = StyleSheet.create({
   bar: {
-    backgroundColor: tabBarTokens.background,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: tabBarTokens.borderColor,
+    borderTopWidth: 0,
+    borderTopColor: 'transparent',
     paddingTop: 6,
+    backgroundColor: '#FFFFFF00',
+    elevation: 0,
+    shadowOpacity: 0,
   },
-  barShadow: tabBarTokens.shadow,
   row: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
     paddingHorizontal: tabBarTokens.rowPaddingHorizontal,
+    backgroundColor: 'transparent',
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: tabBarTokens.itemPaddingVertical,
   },
-  tabItemScan: {
-    marginTop: tabBarTokens.floatingOffsetY,
-  },
+
   tabLabel: {
     fontSize: tabBarTokens.labelSize,
     fontWeight: tabBarTokens.labelWeight,
     marginTop: 4,
   },
   scanOuter: {
+ marginBottom: 6,
+
+  },
+  scanOuterActive: {
     width: tabBarTokens.floatingSize,
     height: tabBarTokens.floatingSize,
     borderRadius: tabBarTokens.floatingRadius,
     backgroundColor: tabBarTokens.floatingBg,
     alignItems: 'center',
     justifyContent: 'center',
-    ...tabBarTokens.floatingShadow,
-  },
-  scanOuterActive: {
-    transform: [{ scale: 1.02 }],
-  },
+    ...tabBarTokens.floatingShadow,  },
 });

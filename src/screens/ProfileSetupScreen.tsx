@@ -11,6 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import Svg, { Defs, LinearGradient as SvgLinear, Rect, Stop } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackArrowLeft } from '../assets/svgs';
 import { AppButton, AppFieldLabel, AppPillInput } from '../components/ui';
@@ -31,11 +32,12 @@ export function ProfileSetupScreen({
   const [showSkipButton, setShowSkipButton] = useState(() => !edit);
   const [fullName, setFullName] = useState('');
   const [address, setAddress] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   /** Profession is chosen at signup; profile edit only updates name/address. */
   const [professionToKeep, setProfessionToKeep] =
     useState<string>('Contractor/Painter');
 
-  const bg = colors.primaryOrange;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,6 +81,8 @@ export function ProfileSetupScreen({
   useEffect(() => {
     getMyProfile()
       .then(p => {
+        setEmail(p.email?.trim() ?? '');
+        setPhone(p.phone?.trim() ?? '');
         if (edit) {
           setFullName(p.fullName?.trim() ?? '');
           setAddress(p.deliveryAddress?.trim() ?? '');
@@ -147,7 +151,16 @@ export function ProfileSetupScreen({
   };
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top, backgroundColor: bg }]}>
+    <View style={[styles.root, { paddingTop: insets.top }]}> 
+      <Svg style={StyleSheet.absoluteFill}>
+        <Defs>
+          <SvgLinear id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="rgba(249,133,53,1)" stopOpacity="1" />
+            <Stop offset="1" stopColor="rgb(255, 248, 241)" stopOpacity="1" />
+          </SvgLinear>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill="url(#bgGrad)" />
+      </Svg>
       <StatusBar barStyle="dark-content" />
       <KeyboardAvoidingView
         style={styles.flex}
@@ -167,6 +180,8 @@ export function ProfileSetupScreen({
               accessibilityRole="button"
               accessibilityLabel="Back">
               <BackArrowLeft width={24} height={24} />
+              <Text style={styles.headerTitle}>Checkout</Text>
+              
             </Pressable>
             <View style={styles.topSpacer} />
             {showSkipButton ? (
@@ -185,10 +200,34 @@ export function ProfileSetupScreen({
             Let's get started once you fill the details for your profile
           </Text>
 
-          <AppFieldLabel text="FULL NAME" />
+          <AppFieldLabel text="MOBILE NUMBER" />
+          <AppPillInput
+            containerStyle={[styles.inputPill, styles.readOnlyContainer]}
+            placeholder="Not available"
+            value={phone}
+            editable={false}
+            selectTextOnFocus={false}
+            style={styles.readOnlyInput}
+          />
+
+          <View style={styles.labelGap}>
+            <AppFieldLabel text="EMAIL" />
+          </View>
+          <AppPillInput
+            containerStyle={[styles.inputPill, styles.readOnlyContainer]}
+            placeholder="Not available"
+            value={email}
+            editable={false}
+            selectTextOnFocus={false}
+            style={styles.readOnlyInput}
+          />
+
+          <View style={styles.labelGap}>
+            <AppFieldLabel text="FULL NAME" />
+          </View>
           <AppPillInput
             containerStyle={styles.inputPill}
-            placeholder="Enter your full Name"
+            placeholder="Enter your full name"
             value={fullName}
             onChangeText={setFullName}
           />
@@ -196,7 +235,7 @@ export function ProfileSetupScreen({
           <View style={styles.labelGap}>
             <AppFieldLabel text="DELIVERY ADDRESS" />
           </View>
-          
+
           <TextInput
             style={styles.inputArea}
             placeholder="Enter your address"
@@ -227,43 +266,58 @@ const styles = StyleSheet.create({
   },
   flex: { flex: 1 },
   scroll: {
-    paddingHorizontal: 24,
-    paddingTop: 8,
+    paddingHorizontal: 14,
+    paddingTop: 10,
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
     minHeight: 44,
   },
   backBtn: {
-    width: 44,
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+  },
+    headerTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.navyAlt,
   },
   topSpacer: { flex: 1 },
   skip: {
     fontSize: 16,
     fontWeight: '500',
-    color: colors.lightGray,
+    color: colors.navyAlt,
   },
   title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: colors.navyAlt,
+    fontSize: 35,
+    fontWeight: '900',
+    color: colors.white,
     marginTop: 4,
+    lineHeight: 36,
+    opacity:0.6,
   },
   sub: {
-    fontSize: 15,
-    color: colors.subtitleGray,
-    marginTop: 10,
-    marginBottom: 24,
-    lineHeight: 22,
+    fontSize: 16,
+    color: colors.navyAlt,
+    marginTop: 5,
+    marginBottom: 34,
+    lineHeight: 24,
   },
   labelGap: {
-    marginTop: 22,
+    marginTop: 12,
   },
   inputPill: {
-    marginBottom: 0,
+    marginBottom: 16,
+  },
+  readOnlyContainer: {
+    backgroundColor: '#F7F6F4',
+  },
+  readOnlyInput: {
+    color: colors.navyAlt,
   },
   inputArea: {
     borderWidth: 1,
@@ -276,7 +330,7 @@ const styles = StyleSheet.create({
     minHeight: 120,
     backgroundColor: colors.white,
   },
-  cta: { marginTop: 28 },
+  cta: { marginTop: 32 },
   error: {
     marginTop: 12,
     fontSize: 13,

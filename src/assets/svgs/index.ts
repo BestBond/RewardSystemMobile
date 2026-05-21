@@ -45,4 +45,8 @@ export { Leveling } from './Leveling';
 export { Lifting } from './Lifting';
 export { Flashlight } from './Flashlight';
 export { BoxAdd } from './BoxAdd';
+export { FeaturedSeasonalAndGifts } from './FeaturedSeasonalAndGifts';
+export { MobileAlert } from './MobileAlert';
+export { ReceiptLong } from './ReceiptLong';
+export { SupportAgent } from './SupportAgent';
 export { default as UserAvatar } from './originals/user.svg';

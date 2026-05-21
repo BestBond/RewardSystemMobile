@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     marginTop: 10,
     zIndex: 10,
   },
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   balanceCard: {
-    marginHorizontal: 20,
+    marginHorizontal: 10,
     padding: 25,
     borderRadius: 48,
     backgroundColor: colors.white,
@@ -608,7 +608,7 @@ const styles = StyleSheet.create({
     marginTop: 30,
   },
   filterRow: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     gap: 8,
     paddingBottom: 20,
   },
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   rewardList: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     gap: 16,
     paddingBottom: 20,
   },
@@ -680,6 +680,7 @@ const styles = StyleSheet.create({
     height: 220,
     backgroundColor: '#F5F6FA',
   },
+
   cardContent: {
     paddingHorizontal: 20,
     paddingTop: 16,
@@ -768,7 +769,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     paddingTop: 10,
     backgroundColor: 'transparent',
   },

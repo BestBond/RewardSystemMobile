@@ -26,7 +26,7 @@ export const figma = {
   radiusScreenCard: 24,
   radiusHeroCard: 28,
   radiusLargeButton: 28,
-  spaceGutter: 20,
+  spaceGutter: 10,
   spaceSection: 24,
   shadowSoft: {
     shadowColor: '#000',

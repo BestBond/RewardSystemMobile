@@ -1,6 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useEffect, useState } from 'react';
+import { colors } from '../../theme/colors';
 import {
   ActivityIndicator,
   Linking,
@@ -12,6 +13,12 @@ import {
   Text,
   View,
 } from 'react-native';
+import Svg, {
+  Defs,
+  LinearGradient as SvgLinear,
+  Rect,
+  Stop,
+} from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ArrowRightOrange,
@@ -22,8 +29,9 @@ import {
 import { AppButton } from '../../components/ui';
 import { getSupportInfo } from '../../api/support';
 import type { ProfileStackParamList } from '../../navigation/types';
-import { openWhatsAppChat } from '../../utils/whatsappLink';
 import { resolveSupportFromApi, SUPPORT } from './accountFigmaData';
+import { openWhatsAppChat } from '../../utils/whatsappLink';
+
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'CustomerSupport'>;
 
@@ -41,6 +49,7 @@ export function CustomerSupportScreen() {
   const [email, setEmail] = useState<string | null>(SUPPORT.email);
   const [whatsapp, setWhatsapp] = useState<string | null>(SUPPORT.fallbackWhatsapp);
 
+
   useEffect(() => {
     let cancelled = false;
     getSupportInfo()
@@ -50,6 +59,7 @@ export function CustomerSupportScreen() {
         setPhone(r.phone);
         setEmail(r.email);
         setWhatsapp(r.whatsapp);
+
       })
       .catch(() => {})
       .finally(() => {
@@ -66,12 +76,23 @@ export function CustomerSupportScreen() {
     Linking.openURL(`tel:${p}`).catch(() => {});
   };
 
-  const onWhatsApp = () => {
+    const onWhatsApp = () => {
     void openWhatsAppChat(whatsapp ?? '');
   };
 
+
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={[styles.root, { paddingTop: insets.top }]}> 
+      <Svg style={StyleSheet.absoluteFill}>
+        <Defs>
+          <SvgLinear id="bgGrad" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#F89E30" stopOpacity="1" />
+            <Stop offset="0.55" stopColor="#FCA56E" stopOpacity="1" />
+            <Stop offset="1" stopColor="#FFE9D9" stopOpacity="1" />
+          </SvgLinear>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill="url(#bgGrad)" />
+      </Svg>
       <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
         <Pressable
@@ -98,33 +119,36 @@ export function CustomerSupportScreen() {
           showsVerticalScrollIndicator={false}>
           <View style={styles.heroWrap}>
             <Text style={styles.heroText}>We're here to</Text>
-            <View style={styles.heroLineWrap}>
               <Text style={styles.heroText}>help you.</Text>
-              <View style={styles.heroUnderline} />
-            </View>
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.cardTag}>{SUPPORT.callTag}</Text>
-            <View style={styles.cardIconCircle}>
-              <PhoneHandsetWhite width={22} height={22} />
+            <View style={styles.cardTopRow}>
+              <View style={styles.cardIconCircle}>
+                <PhoneHandsetWhite width={22} height={22} />
+              </View>
+              <Text style={styles.cardTag}>{SUPPORT.callTag}</Text>
             </View>
             <Text style={styles.cardTitle}>{SUPPORT.callTitle}</Text>
             <Text style={styles.cardBody}>{SUPPORT.callBody}</Text>
-            <AppButton
-              text="Call Now"
-              variant="neutral"
-              style={styles.callBtn}
-              leftIcon={<ArrowRightOrange width={18} height={18} />}
-              onPress={onCall}
-              disabled={!phone}
-            />
+              <Pressable
+                style={({ pressed }) => [
+                  styles.confirmBtn,
+                  pressed && styles.pressed,
+                ]}
+                onPress={onCall}
+              >
+                <Text style={styles.confirmText}>Confirm Reward</Text>
+                <ArrowRightOrange width={18} height={18} />
+              </Pressable>
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.cardTag}>{SUPPORT.waTag}</Text>
+            <View style={styles.cardTopRow}>
             <View style={[styles.cardIconCircle, styles.whatsappCircle]}>
               <ChatBubbleWhite width={22} height={22} />
+            </View>
+            <Text style={styles.cardTag}>{SUPPORT.waTag}</Text>
             </View>
             <Text style={styles.cardTitle}>{SUPPORT.waTitle}</Text>
             <Text style={styles.cardBody}>{SUPPORT.waBody}</Text>
@@ -138,8 +162,10 @@ export function CustomerSupportScreen() {
             />
           </View>
 
+
+
           <View style={styles.emailRow}>
-            <Text style={styles.emailMuted}>Reach Us at </Text>
+            <Text style={styles.emailMuted}>Reach us at </Text>
             <Pressable
               onPress={() =>
                 email && Linking.openURL(`mailto:${email}`).catch(() => {})
@@ -164,97 +190,102 @@ const cardShadow =
     : { elevation: 4 };
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#FFFFFF' },
+  root: { flex: 1, backgroundColor: '#F89E30' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingBottom: 8,
-    minHeight: 48,
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+    minHeight: 60,
   },
   backBtn: {
-    width: 44,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    marginLeft: 4,
-    fontSize: 18,
-    fontWeight: '700',
-    color: text,
+    marginLeft: 3,
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1A1C1E',
   },
   scroll: {
-    paddingHorizontal: 22,
-    paddingTop: 8,
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
-  hero: {
-    display: 'none',
+  heroWrap: {
+    marginBottom: 46,
   },
-  heroWrap: { marginBottom: 26, marginTop: 18 },
   heroText: {
-    fontSize: 44,
-    lineHeight: 52,
-    fontWeight: '800',
-    color: hero,
-    letterSpacing: -0.8,
+    fontSize: 58,
+    fontWeight: '900',
+    opacity: 0.6,
+    lineHeight: 66,
+    color: colors.white
   },
-  heroLineWrap: { position: 'relative', alignSelf: 'flex-start' },
-  heroUnderline: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 2.5,
-    backgroundColor: underlineBlue,
-    bottom: 8,
-    borderRadius: 2,
-    opacity: 0.95,
-  },
+ 
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#F0F1F4',
-    position: 'relative',
+    borderRadius: 34,
+    padding: 24,
+    marginBottom: 20,
     ...cardShadow,
+    borderWidth: 1,
+    borderColor: 'rgba(15, 23, 42, 0.06)',
   },
-  cardTag: {
-    position: 'absolute',
-    top: 18,
-    right: 18,
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    color: '#9CA3AF',
-  },
-  cardIconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#1A1C1E',
+  cardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: text,
-    marginBottom: 8,
-  },
-  cardBody: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: muted,
     marginBottom: 18,
   },
-  whatsappCircle: {
-    backgroundColor: '#065F46',
+  cardTag: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    marginBottom: 14,
+  },
+  cardIconCircle: {
+    width: 58,
+    height: 58,
+    borderRadius: 28,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#a5a5a5',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  cardTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#1A1C1E',
+    marginBottom: 10,
+  },
+  cardBody: {
+    fontSize: 15,
+    lineHeight: 24,
+    color: '#6B7280',
+    marginBottom: 20,
+  },
+  cardSmall: {
+    backgroundColor: 'rgba(255,255,255,0.44)',
+    borderRadius: 30,
+    padding: 18,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)',
   },
   callBtn: {
-    borderColor: '#EEF0F4',
+    borderColor: '#F0F1F4',
     marginTop: 2,
+    backgroundColor: colors.white,
   },
   emailRow: {
     flexDirection: 'row',
@@ -264,13 +295,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   emailMuted: {
-    fontSize: 14,
-    color: muted,
+    fontSize: 16,
+    color: '#1A1C1E',
   },
   emailLink: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '700',
-    color: orange,
+    color: colors.primaryOrange,
     textDecorationLine: 'underline',
   },
+  confirmBtn: {
+      backgroundColor: colors.white,
+      paddingVertical: 18,
+      borderRadius: 30,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(251, 224, 224, 0.56)',
+          gap: 10,
+    },
+    confirmText: {
+      color: colors.primaryOrange,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    pressed: {
+      opacity: 0.9,
+    },
+      whatsappCircle: {
+    backgroundColor: colors.pointsGreen,
+  },
+
 });

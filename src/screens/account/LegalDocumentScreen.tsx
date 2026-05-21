@@ -92,6 +92,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingBottom: 8,
     minHeight: 48,
+    paddingTop:10,
   },
   backBtn: { width: 44, justifyContent: 'center' },
   headerTitle: {
@@ -103,16 +104,17 @@ const styles = StyleSheet.create({
   },
   scroll: {
     paddingHorizontal: figma.spaceGutter,
-    paddingTop: 4,
+    paddingTop: 10,
   },
   watermarkWrap: { marginBottom: 16, alignItems: 'center' },
   watermark: {
-    fontSize: 26,
-    fontWeight: '800',
+    fontSize: 50,
+    fontWeight: 'bold',
     color: '#C8D0DC',
-    textAlign: 'center',
-    lineHeight: 32,
-    opacity: 0.85,
+    lineHeight: 62,
+    opacity: 0.6,
+    marginBottom:20,
+    marginTop:20,
   },
   h2: {
     fontSize: 20,

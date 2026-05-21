@@ -176,7 +176,7 @@ export function CartHomeScreen() {
                       />
                       {!isUnlocked && (
                         <View style={styles.lockOverlay}>
-                          <View style={styles.lockBox}>
+                          <View >
                             <LockClosed
                               width={40}
                               height={52}
@@ -196,6 +196,7 @@ export function CartHomeScreen() {
                       </Text>
 
                       {/* PROGRESS */}
+                      
                       {!isUnlocked && (
                         <View style={styles.progressBarContainer}>
                           <View
@@ -262,7 +263,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     zIndex: 10,
   },
   backBtn: {
@@ -295,7 +296,6 @@ const styles = StyleSheet.create({
   scroll: {
     paddingTop: 20,
   },
-
   emptyContainer: {
     alignItems: 'flex-start',
     paddingHorizontal: 24,
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
   },
 
   recLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
     color: '#374151',
     paddingHorizontal: 20,
@@ -370,19 +370,16 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.scanLine,
+    backgroundColor: 'rgba(255, 255, 255, 0.68)',
     zIndex: 100,
   },
 
-  lockBox: {
-    backgroundColor: colors.white,
-    padding: 12,
-    borderRadius: 16,
-    ...figma.shadowSoft,
-    elevation: 4,
-    zIndex: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
+  lockIcon: {
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 6,
   },
 
   cardContent: {
