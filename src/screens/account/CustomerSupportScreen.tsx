@@ -29,6 +29,7 @@ import {
 import { AppButton } from '../../components/ui';
 import { getSupportInfo } from '../../api/support';
 import type { ProfileStackParamList } from '../../navigation/types';
+import { goBackInApp } from '../../navigation/goBackInApp';
 import { resolveSupportFromApi, SUPPORT } from './accountFigmaData';
 import { openWhatsAppChat } from '../../utils/whatsappLink';
 
@@ -98,7 +99,7 @@ export function CustomerSupportScreen() {
         <Pressable
           style={styles.backBtn}
           hitSlop={12}
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackInApp(navigation)}
           accessibilityRole="button"
           accessibilityLabel="Back">
           <BackArrowLeft width={24} height={24} />

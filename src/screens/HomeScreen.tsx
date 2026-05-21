@@ -275,9 +275,11 @@ export function HomeScreen() {
           {giftTier === 'WORKER' ? (
             <View style={styles.balanceRight}>
               <Text style={styles.tierRightSmall}>
-                {ptsToNext > 0
-                  ? `${ptsToNext.toLocaleString()} pts to ${formatPointsCompact(contractorThreshold)}`
-                  : formatPointsCompact(contractorThreshold)}
+                {balance === 0
+                  ? contractorThreshold.toLocaleString()
+                  : ptsToNext > 0
+                    ? `${ptsToNext.toLocaleString()} pts to ${formatPointsCompact(contractorThreshold)}`
+                    : formatPointsCompact(contractorThreshold)}
               </Text>
             </View>
           ) : null}

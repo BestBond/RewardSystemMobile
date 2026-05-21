@@ -41,6 +41,7 @@ import {
 import { getMyProfile } from '../../api/users';
 import { userFacingApiMessage } from '../../api/client';
 import { navigateToProfileEdit } from '../../navigation/rootNavigation';
+import { goBackInApp } from '../../navigation/goBackInApp';
 import type {
   CartStackParamList,
   MainTabParamList,
@@ -198,7 +199,7 @@ export function RewardCheckoutScreen() {
         <View style={styles.headerLeft}>
           <Pressable
             hitSlop={12}
-            onPress={() => navigation.goBack()}
+            onPress={() => goBackInApp(navigation)}
             accessibilityRole="button"
             accessibilityLabel="Back"
             style={styles.backHit}

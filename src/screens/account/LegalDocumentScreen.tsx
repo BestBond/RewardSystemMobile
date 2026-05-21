@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BackArrowLeft } from '../../assets/svgs';
 import type { ProfileStackParamList } from '../../navigation/types';
+import { goBackInApp } from '../../navigation/goBackInApp';
 import { figma } from '../../theme/figmaTokens';
 import {
   LEGAL_UPDATED_ON,
@@ -59,7 +60,7 @@ export function LegalDocumentScreen({ route }: Props) {
         <Pressable
           style={styles.backBtn}
           hitSlop={12}
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackInApp(navigation)}
           accessibilityRole="button"
           accessibilityLabel="Back">
           <BackArrowLeft width={24} height={24} />

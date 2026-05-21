@@ -18,6 +18,7 @@ import { colors } from '../../theme/colors';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { SUPPORT } from '../account/accountFigmaData';
+import { dismissRewardSuccess } from '../../navigation/goBackInApp';
 
 type Nav = CompositeNavigationProp<
   NativeStackNavigationProp<CartStackParamList, 'RewardSuccess'>,
@@ -56,7 +57,7 @@ export function RewardSuccessScreen() {
       <Pressable
         style={[styles.backWrap, { top: insets.top + 8 }]}
         hitSlop={12}
-        onPress={() => navigation.popToTop()}>
+        onPress={() => dismissRewardSuccess(navigation)}>
         <BackArrowLeft width={24} height={24} />
       </Pressable>
 

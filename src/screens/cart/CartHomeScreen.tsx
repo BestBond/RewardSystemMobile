@@ -31,6 +31,7 @@ import type {
   MainTabParamList,
 } from '../../navigation/types';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
+import { goBackInApp } from '../../navigation/goBackInApp';
 import { colors } from '../../theme/colors';
 import { figma } from '../../theme/figmaTokens';
 import type { CompositeNavigationProp } from '@react-navigation/native';
@@ -92,7 +93,7 @@ export function CartHomeScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Pressable
           hitSlop={12}
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackInApp(navigation)}
           style={styles.backBtn}
         >
           <BackArrowLeft width={24} height={24} />

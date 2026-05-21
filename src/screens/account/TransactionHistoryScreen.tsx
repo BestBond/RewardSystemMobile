@@ -32,6 +32,7 @@ import {
 } from '../../api/transactions';
 import { getMyGiftTier, type GiftTier } from '../../api/rewards';
 import type { ProfileStackParamList } from '../../navigation/types';
+import { goBackInApp } from '../../navigation/goBackInApp';
 import { colors as themeColors } from '../../theme/colors';
 import {
   activityIconFromType,
@@ -247,7 +248,7 @@ export function TransactionHistoryScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable
           hitSlop={12}
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackInApp(navigation)}
           accessibilityRole="button"
           accessibilityLabel="Back"
           style={styles.backBtn}
@@ -302,9 +303,11 @@ export function TransactionHistoryScreen() {
             {giftTier === 'WORKER' ? (
               <Text style={styles.tierHint}>
                 Contractor{'\n'}
-                {ptsToContractor > 0
-                  ? `${ptsToContractor.toLocaleString()} pts to ${formatPointsCompact(contractorThreshold)}`
-                  : `${formatPointsCompact(contractorThreshold)} pts`}
+                {balance === 0
+                  ? contractorThreshold.toLocaleString()
+                  : ptsToContractor > 0
+                    ? `${ptsToContractor.toLocaleString()} pts to ${formatPointsCompact(contractorThreshold)}`
+                    : `${formatPointsCompact(contractorThreshold)} pts`}
               </Text>
             ) : null}
           </View>

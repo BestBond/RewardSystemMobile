@@ -24,6 +24,7 @@ import {
 import { cancelMyRedemption, listMyRedemptions } from '../../api/rewards';
 import { AccountGradientBackground } from '../../components/account/AccountGradientBackground';
 import type { ProfileStackParamList } from '../../navigation/types';
+import { goBackInApp } from '../../navigation/goBackInApp';
 import { colors } from '../../theme/colors';
 import {
   redemptionEstDeliveryDisplay,
@@ -252,7 +253,7 @@ export function DeliveryStatusScreen() {
           <Pressable
             style={styles.backBtn}
             hitSlop={12}
-            onPress={() => navigation.goBack()}
+            onPress={() => goBackInApp(navigation)}
             accessibilityRole="button"
             accessibilityLabel="Back">
             <BackArrowLeft

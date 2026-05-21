@@ -34,6 +34,7 @@ import {
   navigateToProfileEdit,
   resetToLogin,
 } from '../../navigation/rootNavigation';
+import { goBackInApp } from '../../navigation/goBackInApp';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { colors } from '../../theme/colors';
 import { figma } from '../../theme/figmaTokens';
@@ -116,7 +117,7 @@ export function UserProfileScreen() {
         <Pressable
           style={styles.backBtn}
           hitSlop={12}
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackInApp(navigation)}
           accessibilityRole="button"
           accessibilityLabel="Back"
         >
@@ -179,9 +180,11 @@ export function UserProfileScreen() {
               </View>
               {giftTier === 'WORKER' ? (
                 <Text style={styles.nextPtsText}>
-                  {pointsToContractor > 0
-                    ? `${pointsToContractor.toLocaleString()} pts to ${formatPointsCompact(contractorThreshold)}`
-                    : formatPointsCompact(contractorThreshold)}
+                  {balance === 0
+                    ? contractorThreshold.toLocaleString()
+                    : pointsToContractor > 0
+                      ? `${pointsToContractor.toLocaleString()} pts to ${formatPointsCompact(contractorThreshold)}`
+                      : formatPointsCompact(contractorThreshold)}
                 </Text>
               ) : null}
             </View>

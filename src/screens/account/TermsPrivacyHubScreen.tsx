@@ -23,6 +23,7 @@ import {
   IconShieldOrange,
 } from '../../assets/svgs';
 import type { ProfileStackParamList } from '../../navigation/types';
+import { goBackInApp } from '../../navigation/goBackInApp';
 import { colors } from '../../theme/colors';
 import { figma } from '../../theme/figmaTokens';
 
@@ -49,7 +50,7 @@ export function TermsPrivacyHubScreen() {
         <Pressable
           style={styles.backBtn}
           hitSlop={12}
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackInApp(navigation)}
           accessibilityRole="button"
           accessibilityLabel="Back">
           <BackArrowLeft width={24} height={24} />

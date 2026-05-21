@@ -47,6 +47,7 @@ import {
   CONTRACTOR_TIER_THRESHOLD,
 } from '../../utils/giftTierRedeem';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
+import { goBackInApp } from '../../navigation/goBackInApp';
 import { AppCard, AppChip } from '../../components/ui';
 
 type Nav = CompositeNavigationProp<
@@ -201,7 +202,7 @@ export function RewardsHomeScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Pressable
           hitSlop={12}
-          onPress={() => navigation.goBack()}
+          onPress={() => goBackInApp(navigation)}
           style={styles.backBtn}
         >
           <BackArrowLeft width={24} height={24} />

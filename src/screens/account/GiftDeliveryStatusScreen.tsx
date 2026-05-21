@@ -17,6 +17,7 @@ import { AccountGradientBackground } from '../../components/account/AccountGradi
 import { listMyRedemptions } from '../../api/rewards';
 import { getMyProfile } from '../../api/users';
 import type { ProfileStackParamList } from '../../navigation/types';
+import { goBackInApp } from '../../navigation/goBackInApp';
 import { colors } from '../../theme/colors';
 import {
   consumerRedemptionStatusPresentation,
@@ -93,7 +94,7 @@ export function GiftDeliveryStatusScreen() {
           <Pressable
             style={styles.backBtn}
             hitSlop={12}
-            onPress={() => navigation.goBack()}
+            onPress={() => goBackInApp(navigation)}
             accessibilityRole="button"
             accessibilityLabel="Back">
             <BackArrowLeft width={24} height={24} />
