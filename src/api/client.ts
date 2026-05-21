@@ -69,11 +69,11 @@ export function userFacingApiMessage(text: string): string {
   if (/dealers cannot redeem directly/i.test(t)) {
     return 'Dealers cannot redeem directly. Please contact your shop/admin.';
   }
-  if (/contractor tier.*2,000,000/i.test(t)) {
-    return 'This gift is available only at Contractor tier (2,000,000+ points balance).';
+  if (/contractor tier.*points balance/i.test(t)) {
+    return 'This gift is available only at Contractor tier (120,000+ points balance).';
   }
-  if (/worker tier.*below 2,000,000/i.test(t)) {
-    return 'This gift is available only at Worker tier (balance below 2,000,000 points).';
+  if (/worker tier.*below/i.test(t)) {
+    return 'This gift is available only at Contractor tier (120,000+ points balance).';
   }
   if (/current password is incorrect/i.test(t)) {
     return 'Current password is incorrect.';

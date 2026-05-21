@@ -50,6 +50,10 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { colors } from '../../theme/colors';
 import { splitDeliveryAddress } from './rewardPointsUtils';
 import { AppChip } from '../../components/ui';
+import {
+  canRedeemGiftTier,
+  CONTRACTOR_TIER_THRESHOLD,
+} from '../../utils/giftTierRedeem';
 
 type Nav = CompositeNavigationProp<
   NativeStackNavigationProp<CartStackParamList, 'RewardCheckout'>,
@@ -133,19 +137,19 @@ export function RewardCheckoutScreen() {
   const pts = reward?.pointsCost ?? 0;
   const tierOk =
     reward?.tierRedeemable ??
-    (reward?.giftTier == null || reward.giftTier === walletGiftTier);
+    (reward?.giftTier == null ||
+      canRedeemGiftTier(walletGiftTier, reward.giftTier));
   const canAfford = balance >= pts && pts > 0;
   const canRedeem = reward?.eligible ?? (canAfford && tierOk);
   const tierBlockMessage =
-    !isDealer && reward && !tierOk
-      ? reward.giftTier === 'CONTRACTOR'
-        ? 'Reach Contractor tier (2,000,000+ points balance) to redeem this gift.'
-        : 'This gift is for Worker tier only (balance below 2,000,000 points).'
+    !isDealer && reward?.giftTier === 'CONTRACTOR' && !tierOk
+      ? `Reach Contractor tier (${CONTRACTOR_TIER_THRESHOLD.toLocaleString()}+ points) to redeem this gift.`
       : null;
   const balanceBlockMessage =
-    reward && canAfford === false && tierOk
+    reward && !canAfford && tierOk
       ? `You need ${pts.toLocaleString()} points to redeem this gift.`
       : null;
+  const redeemAlertMessage = tierBlockMessage ?? balanceBlockMessage;
 
   const onConfirm = async () => {
     if (!reward || !canRedeem || submitting) return;
@@ -261,14 +265,14 @@ export function RewardCheckoutScreen() {
                   <Text style={styles.pointsBig}>{pts.toLocaleString()}</Text>
                   <Text style={styles.pointsWord}> POINTS</Text>
                 </View>
-                {tierBlockMessage ? (
-                  <Text style={styles.warn}>{tierBlockMessage}</Text>
-                ) : null}
-                {!tierBlockMessage && balanceBlockMessage ? (
-                  <Text style={styles.warn}>{balanceBlockMessage}</Text>
-                ) : null}
               </View>
             </View>
+
+            {redeemAlertMessage ? (
+              <View style={styles.alertBanner}>
+                <Text style={styles.alertText}>{redeemAlertMessage}</Text>
+              </View>
+            ) : null}
 
             <Text style={styles.sectionLabel}>
               {isDealer ? 'STORE REDEMPTION' : 'DELIVERY DETAILS'}
@@ -384,11 +388,22 @@ const styles = StyleSheet.create({
   },
   retry: { marginTop: 12 },
   retryText: { color: colors.primaryOrange, fontWeight: '700' },
-  warn: {
-    marginTop: 12,
+  alertBanner: {
+    marginTop: 14,
+    marginBottom: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1,
+    borderColor: '#FDBA74',
+  },
+  alertText: {
     fontSize: 14,
-    color: '#B45309',
+    lineHeight: 20,
+    color: '#9A3412',
     fontWeight: '600',
+    textAlign: 'center',
   },
   header: {
     flexDirection: 'row',

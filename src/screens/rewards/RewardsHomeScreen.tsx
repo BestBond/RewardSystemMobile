@@ -42,6 +42,10 @@ import type {
 import { colors } from '../../theme/colors';
 import { figma } from '../../theme/figmaTokens';
 import { formatPointsCompact } from '../../utils/formatPointsCompact';
+import {
+  canRedeemGiftTier,
+  CONTRACTOR_TIER_THRESHOLD,
+} from '../../utils/giftTierRedeem';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 import { AppCard, AppChip } from '../../components/ui';
 
@@ -58,11 +62,16 @@ function giftTierLabel(tier: GiftTier): string {
   return tier === 'CONTRACTOR' ? 'Contractor' : 'Worker';
 }
 
-function lockHint(reward: RewardDto, balance: number): string | null {
-  if (reward.tierRedeemable === false) {
-    return reward.giftTier === 'CONTRACTOR'
-      ? 'Contractor tier required (120k+ pts balance)'
-      : 'Worker tier only';
+function lockHint(
+  reward: RewardDto,
+  balance: number,
+  userTier: GiftTier,
+): string | null {
+  if (
+    reward.giftTier &&
+    !canRedeemGiftTier(userTier, reward.giftTier)
+  ) {
+    return `Contractor tier required (${CONTRACTOR_TIER_THRESHOLD.toLocaleString()}+ pts)`;
   }
   if (balance < reward.pointsCost) {
     return 'Not enough points yet';
@@ -156,7 +165,7 @@ export function RewardsHomeScreen() {
         r =>
           r.eligible ??
           (balance >= r.pointsCost &&
-            r.giftTier === giftTier &&
+            (r.giftTier == null || canRedeemGiftTier(giftTier, r.giftTier)) &&
             (r.tierRedeemable ?? true)),
       )?.id ??
       visibleRewards[0]?.id;
@@ -365,10 +374,11 @@ export function RewardsHomeScreen() {
               const isRedeemable =
                 item.eligible ??
                 (balance >= item.pointsCost &&
-                  item.giftTier === giftTier &&
+                  (item.giftTier == null ||
+                    canRedeemGiftTier(giftTier, item.giftTier)) &&
                   (item.tierRedeemable ?? true));
               const progress = Math.min(balance / item.pointsCost, 1);
-              const hint = lockHint(item, balance);
+              const hint = lockHint(item, balance, giftTier);
 
               return (
                 <Pressable
