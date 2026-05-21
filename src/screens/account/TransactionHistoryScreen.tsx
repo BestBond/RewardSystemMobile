@@ -1,8 +1,9 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -29,14 +30,15 @@ import {
   getMyTransactions,
   type PointsTransactionType,
 } from '../../api/transactions';
+import { getMyGiftTier, type GiftTier } from '../../api/rewards';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { colors as themeColors } from '../../theme/colors';
-import { loyaltyTierFromPoints } from '../../utils/loyaltyTier';
 import {
   activityIconFromType,
   activitySubtitle,
   formatPointsDelta,
 } from '../../utils/activityFormat';
+import { formatPointsCompact } from '../../utils/formatPointsCompact';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 
 type Nav = NativeStackNavigationProp<
@@ -53,6 +55,16 @@ const earnedBg = '#FFF5ED';
 const spentBg = '#EEF3F7';
 
 const PAGE = 20;
+const CONTRACTOR_THRESHOLD = 120_000;
+
+function giftTierLabel(tier: GiftTier): string {
+  return tier === 'CONTRACTOR' ? 'Contractor' : 'Worker';
+}
+
+const PERIOD_OPTIONS = [
+  { id: 'THIS_MONTH' as const, label: 'This Month' },
+  { id: 'ALL' as const, label: 'All Time' },
+];
 
 function TxRowIcon({
   type,
@@ -72,10 +84,22 @@ export function TransactionHistoryScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const [period, setPeriod] = useState<'THIS_MONTH' | 'ALL'>('THIS_MONTH');
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const filterAnchorRef = useRef<View>(null);
+  const [filterMenuLayout, setFilterMenuLayout] = useState({
+    x: 17,
+    y: 0,
+    width: 0,
+    height: 55,
+  });
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [balance, setBalance] = useState(0);
+  const [giftTier, setGiftTier] = useState<GiftTier>('WORKER');
+  const [contractorThreshold, setContractorThreshold] =
+    useState(CONTRACTOR_THRESHOLD);
+  const [tierProgress, setTierProgress] = useState(0);
   const [totalEarned, setTotalEarned] = useState(0);
   const [totalSpent, setTotalSpent] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -124,11 +148,23 @@ export function TransactionHistoryScreen() {
     setLoading(true);
     setError(null);
     try {
-      const [profile, tx] = await Promise.all([
+      const [profile, tierInfo, tx] = await Promise.all([
         getMyProfile(),
+        getMyGiftTier().catch(() => null),
         getMyTransactions({ period, limit: PAGE, offset: 0 }),
       ]);
-      setBalance(profile.loyaltyPoints ?? 0);
+      const pts = Number(profile.loyaltyPoints ?? 0);
+      setBalance(Number.isFinite(pts) ? pts : 0);
+      const threshold =
+        tierInfo?.contractorThreshold ?? CONTRACTOR_THRESHOLD;
+      const tier = tierInfo?.giftTier ?? 'WORKER';
+      setContractorThreshold(threshold);
+      setGiftTier(tier);
+      if (tier === 'CONTRACTOR') {
+        setTierProgress(100);
+      } else {
+        setTierProgress(Math.min(100, (pts / threshold) * 100));
+      }
       setTotalEarned(tx.totalPointsEarned);
       setTotalSpent(tx.totalPointsSpent);
       setHasMore(Boolean(tx.hasMore));
@@ -167,12 +203,29 @@ export function TransactionHistoryScreen() {
     }
   }, [hasMore, loadingMore, mapTx, period, rows.length]);
 
-  const tier = loyaltyTierFromPoints(balance);
+  const ptsToContractor = Math.max(0, contractorThreshold - balance);
 
-  const filterLabel = period === 'THIS_MONTH' ? 'This Month' : 'All Time';
+  const filterLabel =
+    PERIOD_OPTIONS.find(o => o.id === period)?.label ?? 'This Month';
 
-  const cyclePeriod = () => {
-    setPeriod(p => (p === 'THIS_MONTH' ? 'ALL' : 'THIS_MONTH'));
+  const selectPeriod = (next: 'THIS_MONTH' | 'ALL') => {
+    setPeriod(next);
+    setFilterMenuOpen(false);
+  };
+
+  const openFilterMenu = () => {
+    filterAnchorRef.current?.measureInWindow((x, y, width, height) => {
+      setFilterMenuLayout({ x, y, width, height });
+      setFilterMenuOpen(true);
+    });
+  };
+
+  const toggleFilterMenu = () => {
+    if (filterMenuOpen) {
+      setFilterMenuOpen(false);
+      return;
+    }
+    openFilterMenu();
   };
 
   return (
@@ -239,35 +292,99 @@ export function TransactionHistoryScreen() {
 
           <View style={styles.progressTrack}>
             <View
-              style={[
-                styles.progressFill,
-                { width: `${tier.progress * 100}%` },
-              ]}
+              style={[styles.progressFill, { width: `${tierProgress}%` }]}
             />
           </View>
           <View style={styles.tierRow}>
-            
-            <Text style={styles.tierName}>Worker Tier</Text>
-            <Text style={styles.tierHint}>
-              Contractor{'\n'}
-              {tier.nextThreshold.toLocaleString()} pts
+            <Text style={styles.tierName}>
+              {giftTierLabel(giftTier)} Tier
             </Text>
+            {giftTier === 'WORKER' ? (
+              <Text style={styles.tierHint}>
+                Contractor{'\n'}
+                {ptsToContractor > 0
+                  ? `${ptsToContractor.toLocaleString()} pts to ${formatPointsCompact(contractorThreshold)}`
+                  : `${formatPointsCompact(contractorThreshold)} pts`}
+              </Text>
+            ) : null}
           </View>
 
 
-          <View style={styles.filterRow}>
+          <View style={styles.filterRow} ref={filterAnchorRef} collapsable={false}>
             <Pressable
               style={({ pressed }) => [
                 styles.filterPill,
                 pressed && styles.pressed,
               ]}
-              onPress={cyclePeriod}
+              onPress={toggleFilterMenu}
+              accessibilityRole="button"
+              accessibilityLabel={`Filter period, ${filterLabel}`}
+              accessibilityState={{ expanded: filterMenuOpen }}
             >
-              <Text style={styles.filterShow}>SHOW: </Text>
-              <Text style={styles.filterBold}>{filterLabel}</Text>
-              <ChevronDownSmall width={14} height={14} />
+              <View style={styles.filterPillLeft}>
+                <Text style={styles.filterShow}>SHOW: </Text>
+                <Text style={styles.filterBold}>{filterLabel}</Text>
+              </View>
+              <View
+                style={[
+                  styles.filterChevron,
+                  filterMenuOpen && styles.filterChevronOpen,
+                ]}>
+                <ChevronDownSmall width={14} height={14} />
+              </View>
             </Pressable>
           </View>
+
+          <Modal
+            visible={filterMenuOpen}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setFilterMenuOpen(false)}>
+            <Pressable
+              style={styles.filterModalOverlay}
+              onPress={() => setFilterMenuOpen(false)}
+              accessibilityLabel="Close filter menu"
+            />
+            <View
+              pointerEvents="box-none"
+              style={[
+                styles.filterMenuHost,
+                {
+                  top: filterMenuLayout.y + filterMenuLayout.height,
+                  left: filterMenuLayout.x,
+                  width: filterMenuLayout.width,
+                },
+              ]}>
+              <View style={styles.filterMenu}>
+                {PERIOD_OPTIONS.map(option => {
+                  const selected = period === option.id;
+                  return (
+                    <Pressable
+                      key={option.id}
+                      style={({ pressed }) => [
+                        styles.filterMenuItem,
+                        selected && styles.filterMenuItemSelected,
+                        pressed && styles.pressed,
+                      ]}
+                      onPress={() => selectPeriod(option.id)}
+                      accessibilityRole="menuitem"
+                      accessibilityState={{ selected }}>
+                      <Text
+                        style={[
+                          styles.filterMenuItemText,
+                          selected && styles.filterMenuItemTextSelected,
+                        ]}>
+                        {option.label}
+                      </Text>
+                      {selected ? (
+                        <Text style={styles.filterMenuCheck}>✓</Text>
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </Modal>
 
           <Text style={styles.sectionTitle}>Recent Transactions</Text>
 
@@ -444,15 +561,64 @@ const styles = StyleSheet.create({
   filterRow: {
     marginBottom: 21,
   },
+  filterModalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.12)',
+  },
+  filterMenuHost: {
+    position: 'absolute',
+  },
   filterPill: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     alignSelf: 'stretch',
     height: 55,
     paddingHorizontal: 18,
     borderRadius: 22,
     backgroundColor: '#FFFFFF',
     ...cardShadow,
+  },
+  filterPillLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  filterChevron: {
+    marginLeft: 8,
+  },
+  filterChevronOpen: {
+    transform: [{ rotate: '180deg' }],
+  },
+  filterMenu: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    overflow: 'hidden',
+    ...cardShadow,
+  },
+  filterMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  filterMenuItemSelected: {
+    backgroundColor: '#FFF7ED',
+  },
+  filterMenuItemText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: text,
+  },
+  filterMenuItemTextSelected: {
+    color: orange,
+    fontWeight: '800',
+  },
+  filterMenuCheck: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: orange,
   },
   filterShow: {
     fontSize: 14,

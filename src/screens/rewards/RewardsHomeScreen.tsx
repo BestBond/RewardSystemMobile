@@ -52,7 +52,7 @@ type Nav = CompositeNavigationProp<
 
 type TierFilterId = 'all' | GiftTier;
 
-const CONTRACTOR_THRESHOLD = 2_000_000;
+const CONTRACTOR_THRESHOLD = 120_000;
 
 function giftTierLabel(tier: GiftTier): string {
   return tier === 'CONTRACTOR' ? 'Contractor' : 'Worker';
@@ -61,7 +61,7 @@ function giftTierLabel(tier: GiftTier): string {
 function lockHint(reward: RewardDto, balance: number): string | null {
   if (reward.tierRedeemable === false) {
     return reward.giftTier === 'CONTRACTOR'
-      ? 'Contractor tier required (2M+ pts balance)'
+      ? 'Contractor tier required (120k+ pts balance)'
       : 'Worker tier only';
   }
   if (balance < reward.pointsCost) {
@@ -189,14 +189,24 @@ export function RewardsHomeScreen() {
           <BackArrowLeft width={24} height={24} />
           <Text style={styles.headerTitle}>Rewards</Text>
         </Pressable>
-        <View style={styles.ptsBadge}>
+        <Pressable
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel="View transaction history"
+          onPress={() =>
+            navigation.navigate('Profile', { screen: 'TransactionHistory' })
+          }
+          style={({ pressed }) => [
+            styles.ptsBadge,
+            pressed && styles.pressed,
+          ]}>
           <CardStar width={16} height={16} />
           <AppChip
             text={`${balance.toLocaleString()} Pts`}
             variant="accent"
             style={styles.pointsChip}
           />
-        </View>
+        </Pressable>
       </View>
 
       {loading ? (
@@ -363,10 +373,7 @@ export function RewardsHomeScreen() {
               return (
                 <Pressable
                   key={item.id}
-                  onPress={() => {
-                    setSelectedRewardId(item.id);
-                    openRewardDetail(item.id);
-                  }}
+                  onPress={() => setSelectedRewardId(item.id)}
                   style={({ pressed }) => [
                     styles.rewardCard,
                     selectedRewardId === item.id && styles.rewardCardSelected,
@@ -410,10 +417,23 @@ export function RewardsHomeScreen() {
 
                       {isRedeemable ? (
                         <Pressable
-                          style={styles.selectedBtn}
-                          onPress={() => openRewardDetail(item.id)}
+                          style={
+                            selectedRewardId === item.id
+                              ? styles.selectedBtn
+                              : styles.selectBtn
+                          }
+                          onPress={() => setSelectedRewardId(item.id)}
                         >
-                          <Text style={styles.selectedText}>Selected</Text>
+                          <Text
+                            style={
+                              selectedRewardId === item.id
+                                ? styles.selectedText
+                                : styles.selectText
+                            }>
+                            {selectedRewardId === item.id
+                              ? 'Selected'
+                              : 'Select'}
+                          </Text>
                         </Pressable>
                       ) : (
                         <View style={styles.lockedBtn}>
@@ -746,6 +766,23 @@ const styles = StyleSheet.create({
 
   lockedBtnText: {
     color: '#94A3B8',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+
+  selectBtn: {
+    backgroundColor: colors.white,
+    borderRadius: 999,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    minWidth: 104,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#F97316',
+  },
+
+  selectText: {
+    color: '#F97316',
     fontSize: 14,
     fontWeight: '800',
   },

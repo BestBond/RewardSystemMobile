@@ -43,7 +43,7 @@ import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAnd
 import { getMyGiftTier, type GiftTier } from '../../api/rewards';
 import { formatPointsCompact } from '../../utils/formatPointsCompact';
 
-const CONTRACTOR_THRESHOLD = 2_000_000;
+const CONTRACTOR_THRESHOLD = 120_000;
 
 function giftTierLabel(tier: GiftTier): string {
   return tier === 'CONTRACTOR' ? 'Contractor' : 'Worker';

@@ -60,7 +60,7 @@ function ActivityRowIcon({ name }: { name: ActivityIconName }) {
   }
 }
 
-const CONTRACTOR_THRESHOLD = 2_000_000;
+const CONTRACTOR_THRESHOLD = 120_000;
 
 function giftTierLabel(tier: GiftTier): string {
   return tier === 'CONTRACTOR' ? 'Contractor' : 'Worker';
@@ -89,6 +89,8 @@ export function HomeScreen() {
   const [balance, setBalance] = useState(0);
   const [userLabel, setUserLabel] = useState('Member');
   const [giftTier, setGiftTier] = useState<GiftTier>('WORKER');
+  const [contractorThreshold, setContractorThreshold] =
+    useState(CONTRACTOR_THRESHOLD);
   const [tierProgress, setTierProgress] = useState(0);
   const [ptsToNext, setPtsToNext] = useState(0);
   const [recommendedRewards, setRecommendedRewards] = useState<RewardDto[]>(
@@ -127,6 +129,7 @@ export function HomeScreen() {
       const tier = tierInfo?.giftTier ?? 'WORKER';
       const threshold =
         tierInfo?.contractorThreshold ?? CONTRACTOR_THRESHOLD;
+      setContractorThreshold(threshold);
       setGiftTier(tier);
       if (tier === 'CONTRACTOR') {
         setTierProgress(100);
@@ -211,14 +214,24 @@ export function HomeScreen() {
             <Text style={styles.greeting}>{greetingLabel()}</Text>
             <Text style={styles.userName}>{userLabel}</Text>
           </View>
-          <View style={styles.ptsBadge}>
+          <Pressable
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="View transaction history"
+            onPress={() =>
+              navigation.navigate('Profile', { screen: 'TransactionHistory' })
+            }
+            style={({ pressed }) => [
+              styles.ptsBadge,
+              pressed && styles.scanCtaPressed,
+            ]}>
             <CardStar width={16} height={16} />
             <AppChip
               text={`${balance.toLocaleString()} Pts`}
               variant="accent"
               style={styles.pointsChip}
             />
-          </View>
+          </Pressable>
         </View>
 
         <AppCard style={styles.balanceCard} variant="elevated">
@@ -263,8 +276,8 @@ export function HomeScreen() {
             <View style={styles.balanceRight}>
               <Text style={styles.tierRightSmall}>
                 {ptsToNext > 0
-                  ? `${ptsToNext.toLocaleString()} pts to ${formatPointsCompact(CONTRACTOR_THRESHOLD)}`
-                  : formatPointsCompact(CONTRACTOR_THRESHOLD)}
+                  ? `${ptsToNext.toLocaleString()} pts to ${formatPointsCompact(contractorThreshold)}`
+                  : formatPointsCompact(contractorThreshold)}
               </Text>
             </View>
           ) : null}

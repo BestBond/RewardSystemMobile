@@ -98,14 +98,24 @@ export function CartHomeScreen() {
           <BackArrowLeft width={24} height={24} />
           <Text style={styles.headerTitle}>Checkout</Text>
         </Pressable>
-        <View style={styles.ptsBadge}>
+        <Pressable
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel="View transaction history"
+          onPress={() =>
+            navigation.navigate('Profile', { screen: 'TransactionHistory' })
+          }
+          style={({ pressed }) => [
+            styles.ptsBadge,
+            pressed && styles.ptsBadgePressed,
+          ]}>
           <CardStar width={16} height={16} />
           <AppChip
             text={`${balance.toLocaleString()} Pts`}
             variant="accent"
             style={styles.pointsChip}
           />
-        </View>
+        </Pressable>
       </View>
 
       {loading ? (
@@ -218,14 +228,14 @@ export function CartHomeScreen() {
 
                         {isUnlocked ? (
                           <Pressable
-                            style={styles.selectedBtn}
+                            style={styles.selectBtn}
                             onPress={() =>
                               navigation.navigate('RewardCheckout', {
                                 rewardId: item.id,
                               })
                             }
                           >
-                            <Text style={styles.selectedText}>Selected</Text>
+                            <Text style={styles.selectText}>Select</Text>
                           </Pressable>
                         ) : (
                           <View style={styles.lockedBtn}>
@@ -287,6 +297,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     ...figma.shadowSoft,
   },
+  ptsBadgePressed: { opacity: 0.9 },
   pointsChip: { paddingVertical: 5, paddingHorizontal: 10 },
   center: {
     flex: 1,
@@ -448,16 +459,18 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
-  selectedBtn: {
-    backgroundColor: '#FFF7ED',
+  selectBtn: {
+    backgroundColor: colors.white,
     borderRadius: 999,
     paddingHorizontal: 22,
     paddingVertical: 12,
     minWidth: 104,
     alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#F97316',
   },
 
-  selectedText: {
+  selectText: {
     color: '#F97316',
     fontSize: 14,
     fontWeight: '800',

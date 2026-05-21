@@ -41,12 +41,20 @@ import {
 import { getMyProfile } from '../../api/users';
 import { userFacingApiMessage } from '../../api/client';
 import { navigateToProfileEdit } from '../../navigation/rootNavigation';
-import type { CartStackParamList } from '../../navigation/types';
+import type {
+  CartStackParamList,
+  MainTabParamList,
+} from '../../navigation/types';
+import type { CompositeNavigationProp } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { colors } from '../../theme/colors';
 import { splitDeliveryAddress } from './rewardPointsUtils';
 import { AppChip } from '../../components/ui';
 
-type Nav = NativeStackNavigationProp<CartStackParamList, 'RewardCheckout'>;
+type Nav = CompositeNavigationProp<
+  NativeStackNavigationProp<CartStackParamList, 'RewardCheckout'>,
+  BottomTabNavigationProp<MainTabParamList>
+>;
 type R = RouteProp<CartStackParamList, 'RewardCheckout'>;
 
 const screenBg = '#FFF3EA';
@@ -196,14 +204,24 @@ export function RewardCheckoutScreen() {
           </Pressable>
         </View>
         <View style={styles.headerRight}>
-          <View style={styles.ptsPill}>
-          <CardStar width={16} height={16} />
-          <AppChip
-            text={`${balance.toLocaleString()} Pts`}
-            variant="accent"
-            style={styles.pointsChip}
-          />
-          </View>
+          <Pressable
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="View transaction history"
+            onPress={() =>
+              navigation.navigate('Profile', { screen: 'TransactionHistory' })
+            }
+            style={({ pressed }) => [
+              styles.ptsPill,
+              pressed && styles.ptsPillPressed,
+            ]}>
+            <CardStar width={16} height={16} />
+            <AppChip
+              text={`${balance.toLocaleString()} Pts`}
+              variant="accent"
+              style={styles.pointsChip}
+            />
+          </Pressable>
         </View>
       </View>
 
@@ -407,7 +425,8 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 2,
   },
-    pointsChip: { paddingVertical: 5, paddingHorizontal: 10 },
+  ptsPillPressed: { opacity: 0.9 },
+  pointsChip: { paddingVertical: 5, paddingHorizontal: 10 },
 
   ptsPillText: {
     fontSize: 12,
