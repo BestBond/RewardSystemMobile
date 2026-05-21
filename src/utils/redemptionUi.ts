@@ -57,7 +57,7 @@ export function redemptionListSubline(
   if (inStore) {
     return `Ref #${r.trackingId} · ${r.etaText ?? 'Awaiting ops approval at the store.'}`;
   }
-  const eta = r.etaText?.trim();
+  const eta = normalizeShippingEta(r.etaText)?.trim();
   return eta
     ? `Tracking ID #${r.trackingId} · ${eta}`
     : `Tracking ID #${r.trackingId} · ETA TBD`;
@@ -66,11 +66,23 @@ export function redemptionListSubline(
 const PENDING_ADMIN_ETA =
   'Pending admin approval. You will be notified when your request is approved.';
 
-/** ISO / short ETA strings → "April 15, 2026"; sentences pass through unchanged. */
-export function formatRedemptionEtaDate(etaText: string | null): string | null {
+export const DEFAULT_SHIPPING_ETA = '10-15 days';
+
+/** Map legacy ETA copy to the current shipping window. */
+export function normalizeShippingEta(etaText: string | null): string | null {
   const eta = etaText?.trim();
   if (!eta) return null;
-  if (/approval|business|pending|notified/i.test(eta)) return null;
+  if (/5-7\s*business\s*days/i.test(eta)) return DEFAULT_SHIPPING_ETA;
+  return eta;
+}
+
+/** ISO / short ETA strings → "April 15, 2026"; sentences pass through unchanged. */
+export function formatRedemptionEtaDate(etaText: string | null): string | null {
+  const eta = normalizeShippingEta(etaText)?.trim();
+  if (!eta) return null;
+  if (/approval|business|pending|notified|\d+\s*-\s*\d+\s*days/i.test(eta)) {
+    return null;
+  }
   if (eta.length > 40) return null;
   const d = new Date(eta);
   if (Number.isNaN(d.getTime())) return null;
@@ -90,10 +102,10 @@ export function redemptionEstDeliveryDisplay(
   const pres = consumerRedemptionStatusPresentation(status, isDealerPickup);
   if (isDealerPickup) return pres.label;
   const s = status.toUpperCase();
-  const eta = etaText?.trim();
+  const eta = normalizeShippingEta(etaText)?.trim();
   const etaDate = formatRedemptionEtaDate(etaText);
   if (s === 'PROCESSING') return etaDate || eta || PENDING_ADMIN_ETA;
-  if (s === 'SHIPPED') return etaDate || eta || '5-7 Business Days';
+  if (s === 'SHIPPED') return etaDate || eta || DEFAULT_SHIPPING_ETA;
   if (s === 'DELIVERED') return 'Delivered';
   if (s === 'CANCELLED') return 'Cancelled';
   return etaDate || eta || 'TBD';
@@ -110,13 +122,15 @@ export function redemptionTimelineStep2Detail(
     if (s === 'DELIVERED') return 'Completed';
     if (s === 'SHIPPED') return 'Approved — bring ID if asked';
     return (
-      etaText?.trim() ||
+      normalizeShippingEta(etaText) ||
       'Pending ops approval. Visit your nearest authorized Best Bond store once approved.'
     );
   }
   const s = status.toUpperCase();
   const etaDate = formatRedemptionEtaDate(etaText);
   if (s === 'DELIVERED') return 'Delivered';
-  if (s === 'SHIPPED') return etaDate || etaText?.trim() || '5-7 Business Days';
+  if (s === 'SHIPPED') {
+    return etaDate || normalizeShippingEta(etaText) || DEFAULT_SHIPPING_ETA;
+  }
   return etaDate || etaText?.trim() || PENDING_ADMIN_ETA;
 }
