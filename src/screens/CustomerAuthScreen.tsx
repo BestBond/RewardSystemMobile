@@ -99,7 +99,7 @@ export function CustomerAuthScreen({
             fullName: fullName.trim(),
             email: email.trim() || null,
             profession:
-              trade === 'dealer' ? 'Dealer' : 'Contractor/Painter',
+              trade === 'dealer' ? 'Dealer' : 'Contractor/Worker',
             deliveryAddress: deliveryAddress.trim(),
           })
           : await loginCustomerWithPasscode({
@@ -195,11 +195,12 @@ export function CustomerAuthScreen({
                   title="Dealer"
                   subtitle="Redeem through your authorised store"
                   icon="🏪"
-                  selected={trade === 'dealer'}
-                  onPress={() => setTrade('dealer')}
+                  selected={false}
+                  disabled
+                  onPress={() => {}}
                 />
                 <TradeCard
-                  title="Contractor/Painter"
+                  title="Contractor/Worker"
                   subtitle="On-site building, finishing & paint work"
                   icon="🎨"
                   selected={trade === 'contractor_painter'}
@@ -290,30 +291,34 @@ function TradeCard({
   subtitle,
   icon,
   selected,
+  disabled = false,
   onPress,
 }: {
   title: string;
   subtitle: string;
   icon: string;
   selected: boolean;
+  disabled?: boolean;
   onPress: () => void;
 }) {
   return (
     <Pressable
+      disabled={disabled}
       style={({ pressed }) => [
         styles.card,
-        selected && styles.cardSelected,
-        pressed && styles.cardPressed,
+        disabled && styles.cardDisabled,
+        selected && !disabled && styles.cardSelected,
+        pressed && !disabled && styles.cardPressed,
       ]}
       onPress={onPress}>
-      {selected ? (
+      {selected && !disabled ? (
         <View style={styles.cardBadge}>
           <Text style={styles.cardBadgeText}>✓</Text>
         </View>
       ) : null}
-      <Text style={styles.cardIcon}>{icon}</Text>
-      <Text style={styles.cardTitle}>{title}</Text>
-      <Text style={styles.cardSub}>{subtitle}</Text>
+      <Text style={[styles.cardIcon, disabled && styles.cardTextDisabled]}>{icon}</Text>
+      <Text style={[styles.cardTitle, disabled && styles.cardTextDisabled]}>{title}</Text>
+      <Text style={[styles.cardSub, disabled && styles.cardTextDisabled]}>{subtitle}</Text>
     </Pressable>
   );
 }
@@ -378,6 +383,13 @@ const styles = StyleSheet.create({
     borderColor: colors.primaryOrange,
     borderWidth: 2,
     backgroundColor: 'rgba(255, 122, 26, 0.08)',
+  },
+  cardDisabled: {
+    opacity: 0.45,
+    backgroundColor: '#F3F4F6',
+  },
+  cardTextDisabled: {
+    color: colors.mutedGray,
   },
   cardPressed: { opacity: 0.92 },
   cardBadge: {

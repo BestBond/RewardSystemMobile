@@ -36,7 +36,7 @@ export function ProfileSetupScreen({
   const [email, setEmail] = useState('');
   /** Profession is chosen at signup; profile edit only updates name/address. */
   const [professionToKeep, setProfessionToKeep] =
-    useState<string>('Contractor/Painter');
+    useState<string>('Contractor/Worker');
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

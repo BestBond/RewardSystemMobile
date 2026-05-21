@@ -95,6 +95,22 @@ export function userFacingApiMessage(text: string): string {
   if (/^invalid password\.?$/i.test(t.trim())) {
     return 'Incorrect password. Try again.';
   }
+  if (
+    /cannot reach|network error|use_prod_api|adb reverse|api\.bestbond/i.test(
+      t,
+    )
+  ) {
+    return friendlyNetworkErrorMessage(t);
+  }
+  if (/internal server error/i.test(t)) {
+    return 'Something went wrong on our side. Please try again in a few minutes.';
+  }
+  if (/service unavailable/i.test(t)) {
+    return 'The service is temporarily unavailable. Please try again later.';
+  }
+  if (/request failed/i.test(t) && t.length < 40) {
+    return 'Something went wrong. Please try again.';
+  }
   return t;
 }
 
@@ -205,24 +221,79 @@ async function fetchWithLocalFallback(
   }
 }
 
-function networkErrorUserMessage(detail: string): string {
-  const isConn =
-    detail.includes('Network request failed') ||
-    detail.includes('Failed to connect') ||
-    detail.includes('Unable to resolve host');
+function isRetryableNetworkError(e: unknown): boolean {
+  const detail = String((e as Error)?.message ?? e).toLowerCase();
+  return (
+    detail.includes('network request failed') ||
+    detail.includes('failed to connect') ||
+    detail.includes('unable to resolve host') ||
+    detail.includes('timed out') ||
+    detail.includes('timeout') ||
+    detail.includes('connection') ||
+    detail.includes('ssl') ||
+    detail.includes('certificate')
+  );
+}
 
-  if (isProductionApiBaseUrl() && isConn) {
-    return (
-      `Cannot reach ${API_BASE_URL} from the device. ` +
-      'The app is using the production API (same as admin). ' +
-      'On the emulator, open Chrome and load that URL; fix emulator internet/VPN/date, or set USE_PROD_API_IN_DEV=false in src/api/config.ts and run the API locally with adb reverse.'
-    );
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Short, user-safe copy — never expose URLs or dev config. */
+export function friendlyNetworkErrorMessage(detail: string): string {
+  const d = detail.toLowerCase();
+  if (
+    d.includes('unable to resolve host') ||
+    d.includes('no address associated')
+  ) {
+    return 'Unable to reach BestBond. Check your internet or try switching between Wi‑Fi and mobile data.';
   }
+  if (d.includes('timeout') || d.includes('timed out')) {
+    return 'The connection timed out. Please try again.';
+  }
+  if (
+    d.includes('ssl') ||
+    d.includes('certificate') ||
+    d.includes('handshake')
+  ) {
+    return 'Secure connection failed. Check your device date and time, then try again.';
+  }
+  return 'Unable to connect. Please check your internet connection and try again.';
+}
 
-  const hint = isConn
-    ? ' Start the Nest API (port 3000, 0.0.0.0). Android emulator: http://10.0.2.2:3000. Physical device: same Wi‑Fi as your Mac and your LAN IP in config.'
-    : '';
-  return `Network error (${API_BASE_URL}) — ${detail}.${hint}`;
+function networkErrorUserMessage(detail: string): string {
+  if (__DEV__) {
+    console.warn(`[API] Network failure (${API_BASE_URL}):`, detail);
+    const isConn = isRetryableNetworkError({ message: detail });
+    if (!isProductionApiBaseUrl() && isConn) {
+      return `${friendlyNetworkErrorMessage(detail)} (Dev: start local API on port 3000 or set USE_PROD_API_IN_DEV in config.)`;
+    }
+  }
+  return friendlyNetworkErrorMessage(detail);
+}
+
+const PROD_FETCH_ATTEMPTS = 3;
+const PROD_FETCH_RETRY_MS = 700;
+
+async function fetchWithRetries(url: string, init: RequestInit): Promise<Response> {
+  const attempts = isProductionApiBaseUrl() ? PROD_FETCH_ATTEMPTS : 1;
+  let lastErr: unknown;
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      return await fetchWithLocalFallback(url, init);
+    } catch (e) {
+      lastErr = e;
+      if (i < attempts && isRetryableNetworkError(e)) {
+        if (__DEV__) {
+          console.warn(`[API] Retry ${i + 1}/${attempts} after network error`);
+        }
+        await delay(PROD_FETCH_RETRY_MS * i);
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw lastErr;
 }
 
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
@@ -231,7 +302,7 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   try {
     // Visible in Metro console to debug connectivity issues.
     console.log(`[API] POST ${API_BASE_URL}${path}`);
-    res = await fetchWithLocalFallback(`${API_BASE_URL}${path}`, {
+    res = await fetchWithRetries(`${API_BASE_URL}${path}`, {
       method: 'POST',
       headers: {
         Accept: 'application/json',
@@ -257,7 +328,7 @@ export async function apiGet<T>(path: string): Promise<T> {
   const auth = await buildRequestAuth();
   try {
     console.log(`[API] GET ${API_BASE_URL}${path}`);
-    res = await fetchWithLocalFallback(`${API_BASE_URL}${path}`, {
+    res = await fetchWithRetries(`${API_BASE_URL}${path}`, {
       method: 'GET',
       headers: {
         Accept: 'application/json',
@@ -283,7 +354,7 @@ export async function apiPut<T>(path: string, body: unknown): Promise<T> {
   const auth = await buildRequestAuth();
   try {
     console.log(`[API] PUT ${API_BASE_URL}${path}`);
-    res = await fetchWithLocalFallback(`${API_BASE_URL}${path}`, {
+    res = await fetchWithRetries(`${API_BASE_URL}${path}`, {
       method: 'PUT',
       headers: auth.headers,
       body: JSON.stringify(body),
@@ -306,7 +377,7 @@ export async function apiDelete<T>(path: string): Promise<T> {
   const auth = await buildRequestAuth();
   try {
     console.log(`[API] DELETE ${API_BASE_URL}${path}`);
-    res = await fetchWithLocalFallback(`${API_BASE_URL}${path}`, {
+    res = await fetchWithRetries(`${API_BASE_URL}${path}`, {
       method: 'DELETE',
       headers: auth.headers,
     });

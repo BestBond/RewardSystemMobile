@@ -22,7 +22,7 @@ import { isSuperAdmin } from './adminRole';
 
 type Nav = NativeStackNavigationProp<AdminUsersStackParamList, 'AdminUsersList'>;
 
-const FILTERS = ['All', 'Contractor/Painter', 'Dealer'] as const;
+const FILTERS = ['All', 'Contractor/Worker', 'Dealer'] as const;
 
 function formatInt(n: number): string {
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(
