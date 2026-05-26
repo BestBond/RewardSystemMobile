@@ -72,6 +72,8 @@
 	<string>Camera access is required to scan coupon codes.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Location access is required to provide location-based services.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
