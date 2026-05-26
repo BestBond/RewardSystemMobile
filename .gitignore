@@ -50,6 +50,11 @@ android/**/build/
 android/**/.cxx/
 android/**/.externalNativeBuild/
 android/local.properties
+android/keystore.properties
+android/RELEASE_SIGNING.local.txt
+android/app/bestbond-release.keystore
+android/app/*.keystore
+!android/app/debug.keystore
 *.apk
 *.aab
 
