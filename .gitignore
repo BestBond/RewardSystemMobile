@@ -46,6 +46,7 @@ Podfile.lock
 # Android
 ##############################
 android/.gradle/
+android/.gradle-home/
 android/**/build/
 android/**/.cxx/
 android/**/.externalNativeBuild/
