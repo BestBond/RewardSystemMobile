@@ -6,6 +6,8 @@ import { GiftDeliveryStatusScreen } from '../screens/account/GiftDeliveryStatusS
 import { TransactionHistoryScreen } from '../screens/account/TransactionHistoryScreen';
 import { LegalDocumentScreen } from '../screens/account/LegalDocumentScreen';
 import { TermsPrivacyHubScreen } from '../screens/account/TermsPrivacyHubScreen';
+import { DeleteAccountScreen } from '../screens/account/DeleteAccountScreen';
+import { ResetPasscodeScreen } from '../screens/account/ResetPasscodeScreen';
 import { UserProfileScreen } from '../screens/account/UserProfileScreen';
 import type { ProfileStackParamList } from './types';
 
@@ -21,6 +23,8 @@ export function ProfileNavigator() {
         contentStyle: { backgroundColor: '#F5F6F8' },
       }}>
       <Stack.Screen name="UserProfile" component={UserProfileScreen} />
+      <Stack.Screen name="ResetPasscode" component={ResetPasscodeScreen} />
+      <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
       <Stack.Screen name="TransactionHistory" component={TransactionHistoryScreen} />
       <Stack.Screen name="CustomerSupport" component={CustomerSupportScreen} />
       <Stack.Screen name="GiftDeliveryStatus" component={GiftDeliveryStatusScreen} />

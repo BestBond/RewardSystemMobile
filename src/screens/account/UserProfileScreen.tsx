@@ -22,6 +22,7 @@ import {
   ChevronRight,
   FeaturedSeasonalAndGifts,
   LogOutDoor,
+  LockClosed,
   MobileAlert,
   ReceiptLong,
   SupportAgent,
@@ -262,6 +263,25 @@ export function UserProfileScreen() {
                 styles.menuItem,
                 pressed && styles.pressed,
               ]}
+              onPress={() => navigation.navigate('ResetPasscode')}
+            >
+              <View style={styles.menuIconWrap}>
+                <LockClosed width={22} height={22} />
+              </View>
+              <View style={styles.menuTextCol}>
+                <Text style={styles.menuTitle}>Reset Passcode</Text>
+                <Text style={styles.menuSub}>
+                  Change your 6-digit login passcode
+                </Text>
+              </View>
+              <ChevronRight width={20} height={20} color="#1A1C1E" />
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.pressed,
+              ]}
               onPress={() => navigation.navigate('TermsPrivacyHub')}
             >
               <View style={styles.menuIconWrap}>
@@ -270,6 +290,25 @@ export function UserProfileScreen() {
               <View style={styles.menuTextCol}>
                 <Text style={styles.menuTitle}>Terms & Privacy Policies</Text>
                 <Text style={styles.menuSub}>{MENU_SUBTITLES.legal}</Text>
+              </View>
+              <ChevronRight width={20} height={20} color="#1A1C1E" />
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.menuItem,
+                pressed && styles.pressed,
+              ]}
+              onPress={() => navigation.navigate('DeleteAccount')}
+            >
+              <View style={styles.menuIconWrap}>
+                <MobileAlert width={22} height={22} color="#C62828" />
+              </View>
+              <View style={styles.menuTextCol}>
+                <Text style={styles.menuTitleDanger}>Delete Account</Text>
+                <Text style={styles.menuSub}>
+                  Permanently remove your account and personal data
+                </Text>
               </View>
               <ChevronRight width={20} height={20} color="#1A1C1E" />
             </Pressable>
@@ -460,6 +499,11 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '800',
     color: '#1A1C1E',
+  },
+  menuTitleDanger: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#C62828',
   },
   menuSub: {
     fontSize: 13,

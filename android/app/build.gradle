@@ -57,7 +57,7 @@ react {
 /**
  * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
  */
-def enableProguardInReleaseBuilds = false
+def enableProguardInReleaseBuilds = true
 
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
@@ -88,8 +88,8 @@ android {
         applicationId "com.nuvate.bestbond"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
-        versionName "1.0.1"
+        versionCode 4
+        versionName "1.0.2"
 
         // Windows builds can sometimes fail to link VisionCamera and other native modules with missing C++ runtime symbols
         // (operator new, __cxa_throw, std::mutex, ...). Force libc++_shared linking.
@@ -127,6 +127,8 @@ android {
             }
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+            // Optional but useful for smaller bundles; safe to keep off unless desired:
+            // shrinkResources enableProguardInReleaseBuilds
         }
     }
 }

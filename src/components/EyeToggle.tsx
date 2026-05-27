@@ -7,16 +7,25 @@ type Props = {
   /** True when password characters are visible (plaintext). */
   passwordVisible: boolean;
   onToggle: () => void;
+  /** Used in accessibility labels, e.g. "passcode" → "Show passcode". */
+  fieldName?: string;
 };
 
-export function EyeToggle({ passwordVisible, onToggle }: Props) {
+export function EyeToggle({
+  passwordVisible,
+  onToggle,
+  fieldName = 'password',
+}: Props) {
+  const label = fieldName.toLowerCase();
   return (
     <Pressable
       onPress={onToggle}
       hitSlop={12}
       style={styles.hit}
       accessibilityRole="button"
-      accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}
+      accessibilityLabel={
+        passwordVisible ? `Hide ${label}` : `Show ${label}`
+      }
       accessibilityState={{ checked: passwordVisible }}>
       <View style={styles.iconBox}>
         {passwordVisible ? <EyeOffIcon /> : <EyeIcon />}

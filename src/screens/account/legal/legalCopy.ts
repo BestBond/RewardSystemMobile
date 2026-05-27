@@ -293,7 +293,7 @@ Certain records may continue to be retained even after account deactivation wher
 Users may request:
 • Access to their personal information
 • Correction of inaccurate data
-• Account deactivation
+• Permanent account deletion from the app (Profile → Delete Account)
 • Assistance regarding redemption disputes
 Requests may be submitted through the support details available within the Application.
 

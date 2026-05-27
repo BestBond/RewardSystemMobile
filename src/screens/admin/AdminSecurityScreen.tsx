@@ -110,11 +110,11 @@ export function AdminSecurityScreen() {
           ]}
           showsVerticalScrollIndicator={false}>
           <View style={[styles.card, adminUi.shadowCard]}>
-            <Text style={styles.h1}>Sign-in</Text>
+            <Text style={styles.h1}>Account password</Text>
             <Text style={styles.desc}>
-              Operational Admin accounts sign in with a one-time code (OTP) sent
-              to your mobile number. There is no account password or quick PIN to
-              manage here.
+              Operational Admin accounts sign in with a 6-digit passcode. Use Reset
+              Passcode on your profile to change it. Account password settings are
+              only available for Super Admin.
             </Text>
           </View>
         </ScrollView>

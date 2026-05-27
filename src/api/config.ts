@@ -11,7 +11,7 @@ export const PROD_API_BASE_URL = 'https://api.bestbond.in';
 
 /**
  * Dev builds: when true, use PROD_API_BASE_URL (same as admin.bestbond.in).
- * When false, use local Nest on port 3000 (emulator: 10.0.2.2).
+ * When false, use local Nest on port 3001 (emulator: 10.0.2.2).
  */
 const USE_PROD_API_IN_DEV = false;
 
@@ -22,7 +22,7 @@ const USE_PROD_API_IN_DEV = false;
  */
 const DEV_API_HOST_OVERRIDE: string | null = null;
 
-const DEV_API_PORT = 3000;
+const DEV_API_PORT = 3001;
 
 function getMetroHost(): string | null {
   if (DEV_API_HOST_OVERRIDE?.trim()) {

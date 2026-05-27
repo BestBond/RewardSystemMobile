@@ -42,6 +42,14 @@ export function userFacingApiMessage(text: string): string {
   if (/phone.*10|must match.*\{10\}/i.test(t)) {
     return 'Enter a valid 10-digit mobile number.';
   }
+  // Before generic passcode rules — API duplicate-phone copy includes "passcode".
+  if (
+    /mobile number is already registered|already registered.*log in|phone already exists/i.test(
+      t,
+    )
+  ) {
+    return 'A user already exists with this mobile number. Log in with your passcode instead.';
+  }
   if (/passcode|pin.*6|must match.*\{6\}/i.test(t)) {
     return 'Enter a valid 6-digit passcode.';
   }
@@ -78,6 +86,15 @@ export function userFacingApiMessage(text: string): string {
   if (/current password is incorrect/i.test(t)) {
     return 'Current password is incorrect.';
   }
+  if (/current passcode is incorrect/i.test(t)) {
+    return 'Current passcode is incorrect.';
+  }
+  if (/new passcode must be different/i.test(t)) {
+    return 'New passcode should be different from your current passcode.';
+  }
+  if (/passcode and confirmation do not match/i.test(t)) {
+    return 'New passcode and confirmation do not match.';
+  }
   if (/new password must be different/i.test(t)) {
     return 'New password should be different from current password.';
   }
@@ -85,9 +102,6 @@ export function userFacingApiMessage(text: string): string {
     return (
       'This API does not expose the admin dashboard (404). Another process on port 3000 may be an old build — stop it, then from reward-system-backend run: npm run build && npm run start:prod'
     );
-  }
-  if (/mobile number is already registered|already registered.*log in/i.test(t)) {
-    return 'This mobile number is already registered. Use Log in with OTP instead.';
   }
   if (/password is required for super admin/i.test(t)) {
     return 'Choose Super Admin at the top, then enter your account password (8+ characters).';
@@ -170,7 +184,7 @@ function alternateUrlsForFailedFetch(fullUrl: string): string[] {
   const out: string[] = [];
   try {
     const u = new URL(fullUrl);
-    // Android emulator: 10.0.2.2 = host; 127.0.0.1 works if `adb reverse tcp:3000 tcp:3000`
+    // Android emulator: 10.0.2.2 = host; 127.0.0.1 works if `adb reverse tcp:3001 tcp:3001`
     if (Platform.OS === 'android' && u.hostname === '10.0.2.2') {
       const one = samePathOnHost(fullUrl, '127.0.0.1');
       if (one) out.push(one);
@@ -266,7 +280,7 @@ function networkErrorUserMessage(detail: string): string {
     console.warn(`[API] Network failure (${API_BASE_URL}):`, detail);
     const isConn = isRetryableNetworkError({ message: detail });
     if (!isProductionApiBaseUrl() && isConn) {
-      return `${friendlyNetworkErrorMessage(detail)} (Dev: start local API on port 3000 or set USE_PROD_API_IN_DEV in config.)`;
+      return `${friendlyNetworkErrorMessage(detail)} (Dev: start local API on port 3001 or set USE_PROD_API_IN_DEV in config.)`;
     }
   }
   return friendlyNetworkErrorMessage(detail);
@@ -372,7 +386,7 @@ export async function apiPut<T>(path: string, body: unknown): Promise<T> {
   return json as T;
 }
 
-export async function apiDelete<T>(path: string): Promise<T> {
+export async function apiDelete<T>(path: string, body?: unknown): Promise<T> {
   let res: Response;
   const auth = await buildRequestAuth();
   try {
@@ -380,6 +394,7 @@ export async function apiDelete<T>(path: string): Promise<T> {
     res = await fetchWithRetries(`${API_BASE_URL}${path}`, {
       method: 'DELETE',
       headers: auth.headers,
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     });
   } catch (e) {
     const detail = String((e as Error)?.message ?? e);

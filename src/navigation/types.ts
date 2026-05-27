@@ -27,6 +27,8 @@ export type ProfileStackParamList = {
   DeliveryStatus: { redemptionId: string };
   TermsPrivacyHub: undefined;
   LegalDocument: { document: 'terms' | 'privacy' };
+  ResetPasscode: undefined;
+  DeleteAccount: undefined;
 };
 
 export type MainTabParamList = {
@@ -53,6 +55,7 @@ export type AdminApprovalsStackParamList = {
 export type AdminProfileStackParamList = {
   AdminProfileHome: undefined;
   AdminSecurityPreferences: undefined;
+  AdminResetPasscode: undefined;
   AdminSystemNotification: undefined;
 };
 

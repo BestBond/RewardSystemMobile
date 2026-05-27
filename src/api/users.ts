@@ -1,4 +1,4 @@
-import { apiGet, apiPut } from './client';
+import { apiDelete, apiGet, apiPut } from './client';
 
 /**
  * Authenticated profile (JWT from pin flow or email login).
@@ -46,5 +46,18 @@ export async function updateMyProfile(params: {
   deliveryAddress?: string;
 }) {
   return apiPut<MyProfile>('/users/me/profile', params);
+}
+
+export async function changeMyPasscode(params: {
+  currentPasscode: string;
+  newPasscode: string;
+  confirmNewPasscode: string;
+}) {
+  return apiPut<{ ok: true }>('/users/me/passcode', params);
+}
+
+/** Permanent account deletion (customer/dealer). Requires current 6-digit passcode. */
+export async function deleteMyAccount(passcode: string) {
+  return apiDelete<{ ok: true }>('/users/me', { passcode });
 }
 

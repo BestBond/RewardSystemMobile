@@ -8,6 +8,7 @@ import {
   type TextInput as TextInputType,
 } from 'react-native';
 import { colors } from '../theme/colors';
+import { EyeToggle } from './EyeToggle';
 
 type Props = {
   value: string;
@@ -27,6 +28,8 @@ export function SixDigitInput({
   const [focusedIndex, setFocusedIndex] = useState<number | null>(
     autoFocus ? 0 : null,
   );
+  const [visible, setVisible] = useState(false);
+  const maskDigits = secure && !visible;
 
   const setAt = (index: number, char: string) => {
     const next = value.split('');
@@ -55,73 +58,83 @@ export function SixDigitInput({
   };
 
   return (
-    <View style={styles.row}>
-      {Array.from({ length: 6 }).map((_, i) => (
-        <Pressable
-          key={i}
-          style={styles.cellWrap}
-          onPress={() => inputsRef.current[i]?.focus()}
-          hitSlop={8}>
-          <View
-            pointerEvents="none"
-            style={[
-              styles.circle,
-              focusedIndex === i
-                ? styles.circleActive
-                : digits[i]
-                  ? styles.circleFilled
-                  : styles.circleEmpty,
-            ]}>
-            <Text style={styles.digitText}>
-              {digits[i]
-                ? secure
-                  ? '•'
+    <View style={styles.wrapper}>
+      <View style={styles.row}>
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Pressable
+            key={i}
+            style={styles.cellWrap}
+            onPress={() => inputsRef.current[i]?.focus()}
+            hitSlop={8}>
+            <View
+              pointerEvents="none"
+              style={[
+                styles.circle,
+                focusedIndex === i
+                  ? styles.circleActive
                   : digits[i]
-                : ''}
-            </Text>
-          </View>
-          <TextInput
-            ref={r => {
-              inputsRef.current[i] = r;
-            }}
-            value={digits[i] ?? ''}
-            onFocus={() => setFocusedIndex(i)}
-            onBlur={() =>
-              setFocusedIndex(prev => (prev === i ? null : prev))
-            }
-            onChangeText={t => {
-              if (t.length > 1) {
-                const merged = t.replace(/\D/g, '').slice(0, 6);
-                onChange(merged);
-                const nextIdx = Math.min(merged.length, 5);
-                inputsRef.current[nextIdx]?.focus();
-                return;
+                    ? styles.circleFilled
+                    : styles.circleEmpty,
+              ]}>
+              <Text style={styles.digitText}>
+                {digits[i] ? (maskDigits ? '•' : digits[i]) : ''}
+              </Text>
+            </View>
+            <TextInput
+              ref={r => {
+                inputsRef.current[i] = r;
+              }}
+              value={digits[i] ?? ''}
+              onFocus={() => setFocusedIndex(i)}
+              onBlur={() =>
+                setFocusedIndex(prev => (prev === i ? null : prev))
               }
-              setAt(i, t);
-            }}
-            onKeyPress={({ nativeEvent }) => onKeyPress(i, nativeEvent.key)}
-            keyboardType="number-pad"
-            maxLength={1}
-            autoFocus={autoFocus && i === 0}
-            showSoftInputOnFocus
-            caretHidden
-            selectionColor="transparent"
-            underlineColorAndroid="transparent"
-            accessibilityLabel={`Passcode digit ${i + 1}`}
-            pointerEvents="none"
-            style={styles.hiddenInput}
-          />
-        </Pressable>
-      ))}
+              onChangeText={t => {
+                if (t.length > 1) {
+                  const merged = t.replace(/\D/g, '').slice(0, 6);
+                  onChange(merged);
+                  const nextIdx = Math.min(merged.length, 5);
+                  inputsRef.current[nextIdx]?.focus();
+                  return;
+                }
+                setAt(i, t);
+              }}
+              onKeyPress={({ nativeEvent }) => onKeyPress(i, nativeEvent.key)}
+              keyboardType="number-pad"
+              maxLength={1}
+              autoFocus={autoFocus && i === 0}
+              showSoftInputOnFocus
+              caretHidden
+              selectionColor="transparent"
+              underlineColorAndroid="transparent"
+              accessibilityLabel={`Passcode digit ${i + 1}`}
+              pointerEvents="none"
+              style={styles.hiddenInput}
+            />
+          </Pressable>
+        ))}
+      </View>
+      {secure ? (
+        <EyeToggle
+          passwordVisible={visible}
+          onToggle={() => setVisible(v => !v)}
+          fieldName="passcode"
+        />
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+  },
   row: {
+    flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: '100%',
   },
   cellWrap: {
     position: 'relative',

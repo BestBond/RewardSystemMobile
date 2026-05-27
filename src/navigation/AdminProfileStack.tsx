@@ -1,6 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 import { AdminProfileHomeScreen } from '../screens/admin/AdminProfileHomeScreen';
+import { ResetPasscodeScreen } from '../screens/account/ResetPasscodeScreen';
 import { AdminSecurityScreen } from '../screens/admin/AdminSecurityScreen';
 import { AdminSystemNotificationScreen } from '../screens/admin/AdminSystemNotificationScreen';
 import type { AdminProfileStackParamList } from './types';
@@ -23,6 +24,10 @@ export function AdminProfileStack() {
       <Stack.Screen
         name="AdminSecurityPreferences"
         component={AdminSecurityScreen}
+      />
+      <Stack.Screen
+        name="AdminResetPasscode"
+        component={ResetPasscodeScreen}
       />
       <Stack.Screen
         name="AdminSystemNotification"

@@ -95,6 +95,21 @@ export function AdminProfileHomeScreen() {
           </View>
         </View>
 
+        <Pressable
+          style={({ pressed }) => [styles.menuCard, pressed && { opacity: 0.95 }]}
+          accessibilityRole="button"
+          accessibilityLabel="Reset passcode"
+          onPress={() => navigation.navigate('AdminResetPasscode')}>
+          <View style={styles.menuIcon}>
+            <LockClosed width={22} height={22} />
+          </View>
+          <View style={styles.menuMid}>
+            <Text style={styles.menuTitle}>Reset Passcode</Text>
+            <Text style={styles.menuSub}>Change your 6-digit login passcode</Text>
+          </View>
+          <ChevronRight width={20} height={20} strokeColor="#94A3B8" />
+        </Pressable>
+
         {!operationalOnly ? (
           <Pressable
             style={({ pressed }) => [styles.menuCard, pressed && { opacity: 0.95 }]}
@@ -106,7 +121,7 @@ export function AdminProfileHomeScreen() {
             </View>
             <View style={styles.menuMid}>
               <Text style={styles.menuTitle}>Security & Preferences</Text>
-              <Text style={styles.menuSub}>Manage credentials</Text>
+              <Text style={styles.menuSub}>Account password (Super Admin)</Text>
             </View>
             <ChevronRight width={20} height={20} strokeColor="#94A3B8" />
           </Pressable>
