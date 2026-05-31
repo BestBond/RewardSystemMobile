@@ -13,7 +13,7 @@ export const PROD_API_BASE_URL = 'https://api.bestbond.in';
  * Dev builds: when true, use PROD_API_BASE_URL (same as admin.bestbond.in).
  * When false, use local Nest on port 3001 (emulator: 10.0.2.2).
  */
-const USE_PROD_API_IN_DEV = false;
+const USE_PROD_API_IN_DEV = true;
 
 /**
  * Only used when USE_PROD_API_IN_DEV is false.

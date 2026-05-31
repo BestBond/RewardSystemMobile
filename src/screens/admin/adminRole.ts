@@ -15,7 +15,13 @@ export function isSuperAdmin(
   snap: AdminRoleSnapshot | null | undefined,
 ) {
   const perms = new Set((snap?.permissions ?? []).map(p => String(p)));
-  return hasRole(snap, 'SUPERADMIN') || perms.has('rbac.manage');
+  return (
+    hasRole(snap, 'SUPERADMIN') ||
+    perms.has('rbac.manage') ||
+    perms.has('users.manage') ||
+    perms.has('rewards.manage') ||
+    perms.has('coupons.manage')
+  );
 }
 
 /** Matches backend full-admin gate: worker-app + dealer queues (not ops-only). */

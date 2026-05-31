@@ -386,6 +386,29 @@ export async function apiPut<T>(path: string, body: unknown): Promise<T> {
   return json as T;
 }
 
+export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
+  let res: Response;
+  const auth = await buildRequestAuth();
+  try {
+    console.log(`[API] PATCH ${API_BASE_URL}${path}`);
+    res = await fetchWithRetries(`${API_BASE_URL}${path}`, {
+      method: 'PATCH',
+      headers: auth.headers,
+      body: JSON.stringify(body),
+    });
+  } catch (e) {
+    const detail = String((e as Error)?.message ?? e);
+    console.warn(`[API] Network error PATCH ${API_BASE_URL}${path}`, detail);
+    throw new ApiError(networkErrorUserMessage(detail), 0, detail);
+  }
+  const text = await res.text();
+  const json = safeJsonParse(text);
+  if (!res.ok) {
+    await throwIfNotOk(res, json, auth.hadAccessToken);
+  }
+  return json as T;
+}
+
 export async function apiDelete<T>(path: string, body?: unknown): Promise<T> {
   let res: Response;
   const auth = await buildRequestAuth();

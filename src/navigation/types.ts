@@ -46,6 +46,12 @@ export type AdminUsersStackParamList = {
   AdminOpsApprovals: undefined;
 };
 
+export type AdminHomeStackParamList = {
+  AdminDashboard: undefined;
+  AdminGiftCatalog: undefined;
+  AdminOpsApprovals: undefined;
+};
+
 export type AdminApprovalsStackParamList = {
   AdminApprovalsList: undefined;
   AdminApprovalDetail: { requestId: string };
@@ -86,7 +92,7 @@ export type AdminCouponStackParamList = {
 
 /** Superadmin / operational admin shell (Figma SuperAdmin tab bar). */
 export type AdminTabParamList = {
-  AdminHome: undefined;
+  AdminHome: NavigatorScreenParams<AdminHomeStackParamList> | undefined;
   AdminUsers: NavigatorScreenParams<AdminUsersStackParamList> | undefined;
   AdminScan: NavigatorScreenParams<AdminCouponStackParamList> | undefined;
   AdminApprovals: NavigatorScreenParams<AdminApprovalsStackParamList> | undefined;

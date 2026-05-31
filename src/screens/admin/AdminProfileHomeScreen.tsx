@@ -1,4 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
+import type { CompositeNavigationProp } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useState } from 'react';
 import {
@@ -18,16 +20,20 @@ import {
 } from '../../assets/svgs';
 import { clearAuthSession } from '../../api/storage';
 import { getAuthMe, getMyProfile } from '../../api/users';
-import type { AdminProfileStackParamList } from '../../navigation/types';
+import type {
+  AdminHomeStackParamList,
+  AdminProfileStackParamList,
+  AdminTabParamList,
+} from '../../navigation/types';
 import { resetToLogin } from '../../navigation/rootNavigation';
 import { adminUi } from '../../theme/adminUi';
 import packageJson from '../../../package.json';
-import { isOperationalOnly } from './adminRole';
+import { isOperationalOnly, isSuperAdmin } from './adminRole';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 
-type Nav = NativeStackNavigationProp<
-  AdminProfileStackParamList,
-  'AdminProfileHome'
+type Nav = CompositeNavigationProp<
+  NativeStackNavigationProp<AdminProfileStackParamList, 'AdminProfileHome'>,
+  BottomTabNavigationProp<AdminTabParamList>
 >;
 
 const APP_VERSION = packageJson.version;
@@ -38,17 +44,18 @@ export function AdminProfileHomeScreen() {
   const [name, setName] = useState('Admin');
   const [email, setEmail] = useState('');
   const [operationalOnly, setOperationalOnly] = useState(false);
+  const [superAdmin, setSuperAdmin] = useState(false);
 
   useRefreshOnFocusAndForeground(() => {
-    getMyProfile()
-      .then(p => {
+    Promise.all([getMyProfile(), getAuthMe().catch(() => ({ user: null }))])
+      .then(([p, authRes]) => {
         setName(p.fullName?.trim() || p.email.split('@')[0] || 'Admin');
         setEmail(p.email);
+        const snap = authRes.user ?? p;
+        setOperationalOnly(isOperationalOnly(snap));
+        setSuperAdmin(isSuperAdmin(snap));
       })
       .catch(() => {});
-    getAuthMe()
-      .then(r => setOperationalOnly(isOperationalOnly(r.user ?? null)))
-      .catch(() => setOperationalOnly(false));
   });
 
   const initials = name
@@ -61,6 +68,10 @@ export function AdminProfileHomeScreen() {
   const onLogout = async () => {
     await clearAuthSession();
     resetToLogin();
+  };
+
+  const openHomeScreen = (screen: keyof AdminHomeStackParamList) => {
+    navigation.navigate('AdminHome', { screen });
   };
 
   return (
@@ -110,7 +121,41 @@ export function AdminProfileHomeScreen() {
           <ChevronRight width={20} height={20} strokeColor="#94A3B8" />
         </Pressable>
 
-        {!operationalOnly ? (
+        {superAdmin ? (
+          <>
+            <Pressable
+              style={({ pressed }) => [styles.menuCard, pressed && { opacity: 0.95 }]}
+              accessibilityRole="button"
+              accessibilityLabel="Open gift catalog"
+              onPress={() => openHomeScreen('AdminGiftCatalog')}>
+              <View style={styles.menuIcon}>
+                <Text style={styles.menuEmoji}>{'\u{1F381}'}</Text>
+              </View>
+              <View style={styles.menuMid}>
+                <Text style={styles.menuTitle}>Gift Catalog</Text>
+                <Text style={styles.menuSub}>Manage worker and contractor rewards</Text>
+              </View>
+              <ChevronRight width={20} height={20} strokeColor="#94A3B8" />
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [styles.menuCard, pressed && { opacity: 0.95 }]}
+              accessibilityRole="button"
+              accessibilityLabel="Open ops admin approvals"
+              onPress={() => openHomeScreen('AdminOpsApprovals')}>
+              <View style={styles.menuIcon}>
+                <Text style={styles.menuEmoji}>{'\u2713'}</Text>
+              </View>
+              <View style={styles.menuMid}>
+                <Text style={styles.menuTitle}>Ops Approval</Text>
+                <Text style={styles.menuSub}>Review Ops Admin signup requests</Text>
+              </View>
+              <ChevronRight width={20} height={20} strokeColor="#94A3B8" />
+            </Pressable>
+          </>
+        ) : null}
+
+        {superAdmin ? (
           <Pressable
             style={({ pressed }) => [styles.menuCard, pressed && { opacity: 0.95 }]}
             accessibilityRole="button"
@@ -242,6 +287,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+  },
+  menuEmoji: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: adminUi.accentOrange,
   },
   menuMid: { flex: 1 },
   menuTitle: {

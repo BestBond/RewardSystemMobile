@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -19,15 +19,19 @@ import {
 } from '../../api/admin';
 import { getAuthMe, getMyProfile } from '../../api/users';
 import { isApiError, userFacingApiMessage } from '../../api/client';
-import type { AdminTabParamList } from '../../navigation/types';
+import type { AdminHomeStackParamList } from '../../navigation/types';
 import { adminUi } from '../../theme/adminUi';
 import {
   canAccessAdminDashboardApi,
   isOperationalOnly,
+  isSuperAdmin,
 } from './adminRole';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 
-type AdminHomeNav = BottomTabNavigationProp<AdminTabParamList, 'AdminHome'>;
+type AdminHomeNav = NativeStackNavigationProp<
+  AdminHomeStackParamList,
+  'AdminDashboard'
+>;
 
 function greetingLabel(): string {
   const h = new Date().getHours();
@@ -118,6 +122,7 @@ export function SuperAdminDashboardScreen() {
   const [headlineName, setHeadlineName] = useState('Admin');
   const [dash, setDash] = useState<AdminDashboardResponse | null>(null);
   const [operationalOnly, setOperationalOnly] = useState(false);
+  const [superAdmin, setSuperAdmin] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
@@ -131,6 +136,7 @@ export function SuperAdminDashboardScreen() {
       const rbacSnap = me ?? profile;
       setHeadlineName(displayName(profile.fullName, profile.email));
       setOperationalOnly(isOperationalOnly(rbacSnap));
+      setSuperAdmin(isSuperAdmin(rbacSnap));
 
       if (!canAccessAdminDashboardApi(rbacSnap)) {
         setDash(null);
@@ -170,11 +176,17 @@ export function SuperAdminDashboardScreen() {
   };
 
   const openApprovals = () => {
-    navigation.navigate('AdminApprovals', { screen: 'AdminApprovalsList' });
+    navigation.getParent()?.navigate('AdminApprovals', {
+      screen: 'AdminApprovalsList',
+    });
   };
 
   const openOpsApprovals = () => {
-    navigation.navigate('AdminUsers', { screen: 'AdminOpsApprovals' });
+    navigation.navigate('AdminOpsApprovals');
+  };
+
+  const openGiftCatalog = () => {
+    navigation.navigate('AdminGiftCatalog');
   };
 
   const activityPlus =
@@ -252,10 +264,11 @@ export function SuperAdminDashboardScreen() {
               </Pressable>
             </View>
 
-            {!operationalOnly ? (
+            {superAdmin ? (
+              <>
               <View style={[styles.opsCard, adminUi.shadowCard]}>
                 <Text style={styles.opsLabel}>OPS ADMIN ONBOARDING</Text>
-                <Text style={styles.opsTitle}>Approval Requests</Text>
+                <Text style={styles.opsTitle}>Ops Approval</Text>
                 <Text style={styles.opsSub}>
                   Review Ops Admin signup requests and approve access.
                 </Text>
@@ -273,10 +286,30 @@ export function SuperAdminDashboardScreen() {
                   onPress={openOpsApprovals}
                   accessibilityRole="button"
                   accessibilityLabel="Open Ops Admin approval requests">
-                  <Text style={styles.opsCtaText}>Open Approvals</Text>
+                  <Text style={styles.opsCtaText}>Open Ops Approval</Text>
                   <Text style={styles.opsCtaArrow}>{'\u2192'}</Text>
                 </Pressable>
               </View>
+
+              <View style={[styles.opsCard, adminUi.shadowCard]}>
+                <Text style={styles.opsLabel}>REWARDS CATALOG</Text>
+                <Text style={styles.opsTitle}>Gift Catalog</Text>
+                <Text style={styles.opsSub}>
+                  Manage worker and contractor slab gifts shown in the customer app.
+                </Text>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.giftCta,
+                    pressed && { opacity: 0.92 },
+                  ]}
+                  onPress={openGiftCatalog}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open gift catalog">
+                  <Text style={styles.giftCtaText}>Open Gift Catalog</Text>
+                  <Text style={styles.giftCtaArrow}>{'\u2192'}</Text>
+                </Pressable>
+              </View>
+              </>
             ) : null}
 
             <Text style={styles.blockTitle}>Key Metrics</Text>
@@ -537,6 +570,27 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   opsCtaArrow: {
+    color: adminUi.white,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  giftCta: {
+    marginTop: 14,
+    backgroundColor: adminUi.accentOrange,
+    borderRadius: adminUi.radiusPill,
+    paddingVertical: 14,
+    paddingHorizontal: 22,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  giftCtaText: {
+    color: adminUi.white,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  giftCtaArrow: {
     color: adminUi.white,
     fontSize: 18,
     fontWeight: '700',

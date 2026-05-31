@@ -3,10 +3,10 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, View } from 'react-native';
 import { AdminTabBar } from './AdminTabBar';
+import { AdminHomeStack } from './AdminHomeStack';
 import { AdminUsersStack } from './AdminUsersStack';
 import { AdminApprovalsStack } from './AdminApprovalsStack';
 import { AdminProfileStack } from './AdminProfileStack';
-import { SuperAdminDashboardScreen } from '../screens/admin/SuperAdminDashboardScreen';
 import { AdminCouponStack } from './AdminCouponStack';
 import type { AdminTabParamList } from './types';
 import { getAuthMe } from '../api/users';
@@ -80,7 +80,7 @@ export function AdminTabNavigator() {
         tabBarHideOnKeyboard: true,
       }}
       initialRouteName="AdminHome">
-      <Tab.Screen name="AdminHome" component={SuperAdminDashboardScreen} />
+      <Tab.Screen name="AdminHome" component={AdminHomeStack} />
       {showUsers ? <Tab.Screen name="AdminUsers" component={AdminUsersStack} /> : null}
       {showCoupon ? <Tab.Screen name="AdminScan" component={AdminCouponStack} /> : null}
       {showApprovals ? <Tab.Screen name="AdminApprovals" component={AdminApprovalsStack} /> : null}

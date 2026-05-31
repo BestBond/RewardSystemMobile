@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { AdminUsersStackParamList } from '../../navigation/types';
+import type { AdminHomeStackParamList } from '../../navigation/types';
 import { adminUi } from '../../theme/adminUi';
 import {
   approveOperationalAdmin,
@@ -20,8 +20,9 @@ import {
 } from '../../api/adminOperationalAdminApprovals';
 import { isApiError, userFacingApiMessage } from '../../api/client';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
+import { AdminHeader } from './components/AdminHeader';
 
-type Nav = NativeStackNavigationProp<AdminUsersStackParamList, 'AdminOpsApprovals'>;
+type Nav = NativeStackNavigationProp<AdminHomeStackParamList, 'AdminOpsApprovals'>;
 
 function Separator() {
   return <View style={{ height: 10 }} />;
@@ -107,17 +108,9 @@ export function AdminOpsApprovalsScreen() {
   };
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={styles.root}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
-        <Pressable
-          onPress={() => navigation.goBack()}
-          hitSlop={12}
-          style={styles.backBtn}>
-          <Text style={styles.backTxt}>{'\u2190'}</Text>
-        </Pressable>
-        <Text style={styles.title}>Ops Admin Approvals</Text>
-      </View>
+      <AdminHeader title="Ops Approval" onBack={() => navigation.goBack()} />
 
       {error ? <Text style={styles.err}>{error}</Text> : null}
 
@@ -194,15 +187,6 @@ export function AdminOpsApprovalsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: adminUi.screenBg },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 10,
-  },
-  backBtn: { width: 42, height: 42, justifyContent: 'center' },
-  backTxt: { fontSize: 18, color: adminUi.sectionTitle, fontWeight: '800' },
-  title: { fontSize: 20, fontWeight: '900', color: adminUi.sectionTitle },
   err: {
     paddingHorizontal: 20,
     marginBottom: 10,

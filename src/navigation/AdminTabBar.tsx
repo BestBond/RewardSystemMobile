@@ -24,15 +24,14 @@ function CheckApprovalsGlyph({ focused }: { focused: boolean }) {
 }
 
 function ScanCenterGlyph({ focused }: { focused: boolean }) {
-  return (
-    <View
-      style={[
-        styles.scanOuter,
-        focused && styles.scanOuterActive,
-      ]}>
-      <AddQr width={28} height={28} />
-    </View>
-  );
+  if (focused) {
+    return (
+      <View style={styles.scanOuterActive}>
+        <AddQr width={28} height={28} color="#FFFFFF" />
+      </View>
+    );
+  }
+  return <AddQr width={35} height={35} style={styles.scanOuter} />;
 }
 
 function TabIcon({
@@ -173,15 +172,15 @@ const styles = StyleSheet.create({
     fontWeight: tabBarTokens.labelActiveWeight,
   },
   scanOuter: {
+    marginBottom: 6,
+  },
+  scanOuterActive: {
     width: tabBarTokens.floatingSize,
     height: tabBarTokens.floatingSize,
     borderRadius: tabBarTokens.floatingRadius,
-    backgroundColor: tabBarTokens.background,
+    backgroundColor: tabBarTokens.floatingBg,
     alignItems: 'center',
     justifyContent: 'center',
     ...tabBarTokens.floatingShadow,
-  },
-  scanOuterActive: {
-    transform: [{ scale: 1.02 }],
   },
 });

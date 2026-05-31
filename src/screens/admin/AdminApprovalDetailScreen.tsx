@@ -26,6 +26,7 @@ import {
 } from '../../api/adminRedemptions';
 import { isApiError, userFacingApiMessage } from '../../api/client';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
+import { RewardImageBlock } from '../rewards/RewardImageBlock';
 
 type Props = NativeStackScreenProps<
   AdminApprovalsStackParamList,
@@ -75,6 +76,11 @@ export function AdminApprovalDetailScreen(_props: Props) {
   );
 
   const canDeliver = useMemo(() => !!detail && detail.status === 'SHIPPED' && !submitting, [detail, submitting]);
+
+  const isDealerStore = detail?.channel === 'DEALER_STORE';
+  const deliverButtonLabel = isDealerStore
+    ? 'Mark as Delivered to Dealer'
+    : 'Mark as Delivered to Customer';
 
   const onApprove = useCallback(async () => {
     if (!detail || submitting) return;
@@ -139,8 +145,10 @@ export function AdminApprovalDetailScreen(_props: Props) {
           ? {
               ...prev,
               status: 'DELIVERED',
-              statusLabel: 'Delivered to Dealer',
-              statusMessage: 'The reward has been delivered to the dealer.',
+              statusLabel: isDealerStore ? 'Delivered to Dealer' : 'Delivered',
+              statusMessage: isDealerStore
+                ? 'The reward has been delivered to the dealer.'
+                : 'The reward has been delivered to the customer.',
             }
           : prev,
       );
@@ -151,7 +159,7 @@ export function AdminApprovalDetailScreen(_props: Props) {
     } finally {
       setSubmitting(false);
     }
-  }, [detail, submitting]);
+  }, [detail, submitting, isDealerStore]);
 
   return (
     <View style={styles.root}>
@@ -197,7 +205,13 @@ export function AdminApprovalDetailScreen(_props: Props) {
         </View>
 
         <View style={[styles.rewardCard, adminUi.shadowCard]}>
-          <View style={styles.thumb} />
+          <View style={styles.thumb}>
+            <RewardImageBlock
+              imageUrl={detail.reward.imageUrl}
+              minHeight={64}
+              padded={false}
+            />
+          </View>
           <Text style={styles.rewardTitle}>{detail.reward.title ?? 'Reward'}</Text>
           <Text style={styles.rewardPts}>{formatInt(detail.reward.points)} PTS</Text>
         </View>
@@ -259,13 +273,13 @@ export function AdminApprovalDetailScreen(_props: Props) {
             ]}
             disabled={!canDeliver || submitting}
             accessibilityRole="button"
-            accessibilityLabel="Mark request as delivered"
+            accessibilityLabel={deliverButtonLabel}
             onPress={() => { onDeliver().catch(() => {}); }}>
             {submitting ? (
               <ActivityIndicator color={adminUi.white} />
             ) : (
               <Text style={styles.deliverTxt}>
-                {'\u2713'} Mark as Delivered to Dealer
+                {'\u2713'} {deliverButtonLabel}
               </Text>
             )}
           </Pressable>
@@ -331,7 +345,8 @@ export function AdminApprovalDetailScreen(_props: Props) {
             </View>
             <Text style={styles.modalTitle}>Delivered!</Text>
             <Text style={styles.modalSub}>
-              Reward #{detail?.code ?? '—'} has been marked as delivered to the dealer.
+              Reward #{detail?.code ?? '—'} has been marked as delivered to the{' '}
+              {isDealerStore ? 'dealer' : 'customer'}.
             </Text>
             <Pressable
               style={styles.modalBtn}
@@ -424,6 +439,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#E5E7EB',
     marginBottom: 12,
+    overflow: 'hidden',
   },
   rewardTitle: {
     fontSize: 20,

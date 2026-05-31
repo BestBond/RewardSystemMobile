@@ -22,7 +22,7 @@ import { isSuperAdmin } from './adminRole';
 
 type Nav = NativeStackNavigationProp<AdminUsersStackParamList, 'AdminUsersList'>;
 
-const FILTERS = ['All', 'Contractor/Worker', 'Dealer'] as const;
+const FILTERS = ['All', 'Contractor/Worker', 'Dealer', 'Ops Admin'] as const;
 
 function formatInt(n: number): string {
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(
@@ -99,18 +99,25 @@ export function AdminUsersListScreen() {
   const take = 20;
 
   const professionParam = filter === 'All' ? undefined : filter;
+  const itemsRef = React.useRef(items);
+  itemsRef.current = items;
+  const hasMoreRef = React.useRef(hasMore);
+  hasMoreRef.current = hasMore;
+  const loadingRef = React.useRef({ loading, loadingMore });
+  loadingRef.current = { loading, loadingMore };
 
   const load = useCallback(
     async (mode: 'reset' | 'more') => {
       if (mode === 'more') {
-        if (loadingMore || loading || !hasMore) return;
+        const { loadingMore: lm, loading: l } = loadingRef.current;
+        if (lm || l || !hasMoreRef.current) return;
         setLoadingMore(true);
       } else {
         setLoading(true);
       }
       setError(null);
       try {
-        const offset = mode === 'more' ? items.length : 0;
+        const offset = mode === 'more' ? itemsRef.current.length : 0;
         const res = await listAdminUsers({
           q,
           profession: professionParam,
@@ -128,12 +135,22 @@ export function AdminUsersListScreen() {
         setLoadingMore(false);
       }
     },
-    [hasMore, items.length, loading, loadingMore, professionParam, q],
+    [professionParam, q],
   );
 
   useRefreshOnFocusAndForeground(() => {
     load('reset').catch(() => {});
   });
+
+  React.useEffect(() => {
+    const timer = setTimeout(
+      () => {
+        load('reset').catch(() => {});
+      },
+      q.trim() ? 300 : 0,
+    );
+    return () => clearTimeout(timer);
+  }, [filter, q, load]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -186,12 +203,7 @@ export function AdminUsersListScreen() {
           placeholder="Search by Name or Mobile Number"
           placeholderTextColor={adminUi.mutedGray}
           value={q}
-          onChangeText={t => {
-            setQ(t);
-            // Light debounce feel without adding timers: refresh on typing end via focus reload.
-            // Also allow user to hit keyboard search by auto-refreshing after short idle.
-            setTimeout(() => load('reset').catch(() => {}), 150);
-          }}
+          onChangeText={setQ}
           autoCapitalize="none"
           autoCorrect={false}
         />
@@ -203,10 +215,7 @@ export function AdminUsersListScreen() {
           return (
             <Pressable
               key={f}
-              onPress={() => {
-                setFilter(f);
-                setTimeout(() => load('reset').catch(() => {}), 0);
-              }}
+              onPress={() => setFilter(f)}
               accessibilityRole="button"
               accessibilityLabel={`Filter by ${f}`}
               style={[styles.pill, on && styles.pillOn]}>
