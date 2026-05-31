@@ -70,6 +70,8 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Camera access is required to scan coupon codes.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>BestBond does not use your location. This notice is required because a bundled library references location APIs.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>RCTNewArchEnabled</key>
