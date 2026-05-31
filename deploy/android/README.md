@@ -5,7 +5,9 @@
 In `android/app/build.gradle`:
 
 - `versionCode` — must **increase** every upload (integer)
-- `versionName` — user-visible version (e.g. `1.0.3`)
+- `versionName` — user-visible version (e.g. `1.0.4`)
+
+Also align `package.json`, and iOS `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in `ios/BestBond.xcodeproj/project.pbxproj`.
 
 ## Build signed AAB
 
@@ -27,12 +29,14 @@ In `android/app/build.gradle`:
 
 1. **Google Play Console** → **BestBond** → **Production** (or Testing track first).
 2. **Create new release** → upload **app-release.aab**.
-3. **Release name:** `1.0.3` (match `versionName`).
+3. **Release name:** `1.0.4` (match `versionName`).
 4. **Release notes** (example):
 
    ```
-   • Delete your account from Profile → Delete Account
-   • Security and stability improvements
+   • Admin: fixed user list filters (Contractor/Worker, Dealer, Ops Admin)
+   • Admin: Gift Catalog and Ops Approval for super admins
+   • Admin: improved scan tab and redemption approval screens
+   • Stability and UI improvements
    ```
 
 5. **App content** (if prompted):
@@ -43,5 +47,5 @@ In `android/app/build.gradle`:
 
 ## Notes
 
-- Production API: `https://api.bestbond.in` (release builds only).
-- Account deletion requires API `DELETE /users/me` on production (deployed with backend).
+- Production API: `https://api.bestbond.in` (release builds only; `__DEV__` is false).
+- Account deletion requires API `DELETE /users/me` on production.

@@ -88,8 +88,8 @@ android {
         applicationId "com.nuvate.bestbond"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 5
-        versionName "1.0.3"
+        versionCode 6
+        versionName "1.0.4"
 
         // Windows builds can sometimes fail to link VisionCamera and other native modules with missing C++ runtime symbols
         // (operator new, __cxa_throw, std::mutex, ...). Force libc++_shared linking.
