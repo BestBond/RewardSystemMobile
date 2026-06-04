@@ -41,7 +41,7 @@ import type {
 } from '../../navigation/types';
 import { colors } from '../../theme/colors';
 import { figma } from '../../theme/figmaTokens';
-import { formatPointsCompact } from '../../utils/formatPointsCompact';
+import { formatPtsMoreNeeded } from '../../utils/formatPointsCompact';
 import {
   canRedeemGiftTier,
   CONTRACTOR_TIER_THRESHOLD,
@@ -310,7 +310,7 @@ export function RewardsHomeScreen() {
             {giftTier === 'WORKER' ? (
               <View style={styles.progressBottom}>
                 <Text style={styles.nextPtsText}>
-                  {formatPointsCompact(contractorThreshold)} pts
+                  {formatPtsMoreNeeded(pointsToContractor)}
                 </Text>
               </View>
             ) : null}

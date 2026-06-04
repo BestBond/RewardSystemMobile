@@ -5,7 +5,7 @@
 In `android/app/build.gradle`:
 
 - `versionCode` — must **increase** every upload (integer)
-- `versionName` — user-visible version (e.g. `1.0.4`)
+- `versionName` — user-visible version (e.g. `1.0.5`)
 
 Also align `package.json`, and iOS `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in `ios/BestBond.xcodeproj/project.pbxproj`.
 
@@ -29,14 +29,13 @@ Also align `package.json`, and iOS `MARKETING_VERSION` / `CURRENT_PROJECT_VERSIO
 
 1. **Google Play Console** → **BestBond** → **Production** (or Testing track first).
 2. **Create new release** → upload **app-release.aab**.
-3. **Release name:** `1.0.4` (match `versionName`).
+3. **Release name:** `1.0.5` (match `versionName`).
 4. **Release notes** (example):
 
    ```
-   • Admin: fixed user list filters (Contractor/Worker, Dealer, Ops Admin)
-   • Admin: Gift Catalog and Ops Approval for super admins
-   • Admin: improved scan tab and redemption approval screens
-   • Stability and UI improvements
+   • Clearer tier progress: “X pts more needed” toward Contractor
+   • Fixed cropped text on Transaction History (summary cards and POINTS labels)
+   • UI stability improvements
    ```
 
 5. **App content** (if prompted):

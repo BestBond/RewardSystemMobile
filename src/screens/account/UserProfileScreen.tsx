@@ -43,7 +43,7 @@ import { MENU_SUBTITLES } from './accountFigmaData';
 import packageJson from '../../../package.json';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 import { getMyGiftTier, type GiftTier } from '../../api/rewards';
-import { formatPointsCompact } from '../../utils/formatPointsCompact';
+import { formatPtsMoreNeeded } from '../../utils/formatPointsCompact';
 
 const CONTRACTOR_THRESHOLD = 120_000;
 
@@ -181,11 +181,7 @@ export function UserProfileScreen() {
               </View>
               {giftTier === 'WORKER' ? (
                 <Text style={styles.nextPtsText}>
-                  {balance === 0
-                    ? contractorThreshold.toLocaleString()
-                    : pointsToContractor > 0
-                      ? `${pointsToContractor.toLocaleString()} pts to ${formatPointsCompact(contractorThreshold)}`
-                      : formatPointsCompact(contractorThreshold)}
+                  {formatPtsMoreNeeded(pointsToContractor)}
                 </Text>
               ) : null}
             </View>

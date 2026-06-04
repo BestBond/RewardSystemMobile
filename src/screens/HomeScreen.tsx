@@ -33,7 +33,7 @@ import {
 import type { MainTabParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
 import { figma } from '../theme/figmaTokens';
-import { formatPointsCompact } from '../utils/formatPointsCompact';
+import { formatPtsMoreNeeded } from '../utils/formatPointsCompact';
 import { RewardImageBlock } from './rewards/RewardImageBlock';
 import {
   activityIconFromType,
@@ -275,11 +275,7 @@ export function HomeScreen() {
           {giftTier === 'WORKER' ? (
             <View style={styles.balanceRight}>
               <Text style={styles.tierRightSmall}>
-                {balance === 0
-                  ? contractorThreshold.toLocaleString()
-                  : ptsToNext > 0
-                    ? `${ptsToNext.toLocaleString()} pts to ${formatPointsCompact(contractorThreshold)}`
-                    : formatPointsCompact(contractorThreshold)}
+                {formatPtsMoreNeeded(ptsToNext)}
               </Text>
             </View>
           ) : null}

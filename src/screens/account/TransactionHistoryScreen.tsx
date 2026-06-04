@@ -39,7 +39,7 @@ import {
   activitySubtitle,
   formatPointsDelta,
 } from '../../utils/activityFormat';
-import { formatPointsCompact } from '../../utils/formatPointsCompact';
+import { formatPtsMoreNeeded } from '../../utils/formatPointsCompact';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 
 type Nav = NativeStackNavigationProp<
@@ -303,11 +303,7 @@ export function TransactionHistoryScreen() {
             {giftTier === 'WORKER' ? (
               <Text style={styles.tierHint}>
                 Contractor{'\n'}
-                {balance === 0
-                  ? contractorThreshold.toLocaleString()
-                  : ptsToContractor > 0
-                    ? `${ptsToContractor.toLocaleString()} pts to ${formatPointsCompact(contractorThreshold)}`
-                    : `${formatPointsCompact(contractorThreshold)} pts`}
+                {formatPtsMoreNeeded(ptsToContractor)}
               </Text>
             ) : null}
           </View>
@@ -500,7 +496,7 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
-    minHeight: 104,
+    minHeight: 110,
     borderRadius: 20,
     paddingVertical: 16,
     paddingHorizontal: 14,
@@ -512,20 +508,22 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   summaryLabel: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 15,
     fontWeight: '600',
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
     color: muted,
+    flexShrink: 1,
   },
   summaryLabelRight: {
     textAlign: 'right',
   },
   summaryValue: {
-    fontSize: 33,
-    lineHeight: 28,
+    fontSize: 38,
+    lineHeight: 40,
     fontWeight: '600',
     color: text,
+    includeFontPadding: false,
   },
   tierRow: {
     flexDirection: 'row',
@@ -680,18 +678,23 @@ const styles = StyleSheet.create({
   },
   txPts: {
     alignItems: 'flex-end',
-    minWidth: 56,
+    justifyContent: 'center',
+    minWidth: 64,
+    paddingLeft: 4,
   },
   txPtsMain: {
     fontSize: 14,
-    lineHeight: 14,
+    lineHeight: 18,
     fontWeight: '900',
+    includeFontPadding: false,
   },
   txPtsLabel: {
-    fontSize: 12,
-    lineHeight: 9,
+    marginTop: 2,
+    fontSize: 11,
+    lineHeight: 14,
     fontWeight: '900',
     letterSpacing: 0.2,
+    includeFontPadding: false,
   },
   loadMore: {
     alignSelf: 'center',

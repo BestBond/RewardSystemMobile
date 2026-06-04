@@ -4,7 +4,7 @@
 
 In `ios/BestBond.xcodeproj/project.pbxproj` (Debug + Release):
 
-- `MARKETING_VERSION` — user-visible version (e.g. `1.0.4`)
+- `MARKETING_VERSION` — user-visible version (e.g. `1.0.5`)
 - `CURRENT_PROJECT_VERSION` — build number; must **increase** every upload
 
 Also align `package.json` and Android `versionCode` / `versionName`.
@@ -43,15 +43,14 @@ Export options: `deploy/ios/ExportOptions.plist` (team `J22N5WHHN9`).
 
 ## App Store Connect — publish update
 
-1. **App Store Connect** → **BestBond** → new version **1.0.4**.
-2. Select the uploaded build (build **9**).
+1. **App Store Connect** → **BestBond** → new version **1.0.5**.
+2. Select the uploaded build (build **11**).
 3. **What's New** (example):
 
    ```
-   • Admin: fixed user list filters (Contractor/Worker, Dealer, Ops Admin)
-   • Admin: Gift Catalog and Ops Approval for super admins
-   • Admin: improved scan tab and redemption approval screens
-   • Stability and UI improvements
+   • Clearer tier progress: “X pts more needed” toward Contractor
+   • Fixed cropped text on Transaction History (summary cards and POINTS labels)
+   • UI stability improvements
    ```
 
 4. Submit for review.
