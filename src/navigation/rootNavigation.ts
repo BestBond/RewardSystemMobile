@@ -49,6 +49,30 @@ export function resetToLogin() {
   }
 }
 
+let pendingOpenScan = false;
+
+export function navigateToScanTab(): boolean {
+  if (!rootNavigationRef.isReady()) return false;
+  rootNavigationRef.dispatch(
+    CommonActions.navigate({
+      name: 'Main',
+      params: { screen: 'Scan' },
+    }),
+  );
+  return true;
+}
+
+export function requestOpenScanTab() {
+  if (navigateToScanTab()) return;
+  pendingOpenScan = true;
+}
+
+export function consumePendingOpenScan() {
+  if (!pendingOpenScan) return;
+  pendingOpenScan = false;
+  navigateToScanTab();
+}
+
 /** Account Management → Edit profile (same form as onboarding). */
 export function navigateToProfileEdit() {
   if (rootNavigationRef.isReady()) {

@@ -4,7 +4,7 @@
 
 In `ios/BestBond.xcodeproj/project.pbxproj` (Debug + Release):
 
-- `MARKETING_VERSION` — user-visible version (e.g. `1.0.5`)
+- `MARKETING_VERSION` — user-visible version (e.g. `1.0.6`)
 - `CURRENT_PROJECT_VERSION` — build number; must **increase** every upload
 
 Also align `package.json` and Android `versionCode` / `versionName`.
@@ -43,17 +43,21 @@ Export options: `deploy/ios/ExportOptions.plist` (team `J22N5WHHN9`).
 
 ## App Store Connect — publish update
 
-1. **App Store Connect** → **BestBond** → new version **1.0.5**.
-2. Select the uploaded build (build **11**).
+1. **App Store Connect** → **BestBond** → new version **1.0.6**.
+2. Select the uploaded build (build **12**).
 3. **What's New** (example):
 
    ```
-   • Clearer tier progress: “X pts more needed” toward Contractor
-   • Fixed cropped text on Transaction History (summary cards and POINTS labels)
-   • UI stability improvements
+   • Coupon QR codes open the BestBond app scanner when scanned with the phone camera
+   • If the app is not installed, scan redirects to the App Store
+   • Scan in the app to redeem points (camera scan alone does not add points)
    ```
 
 4. Submit for review.
+
+## Associated Domains (required for coupon QR)
+
+Before archiving a **Release** build, enable **Associated Domains** on App ID `com.nuvate.bestbond` in [Apple Developer](https://developer.apple.com/account/resources/identifiers) and add `applinks:api.bestbond.in`. The API serves `/.well-known/apple-app-site-association` for `/c/*` paths.
 
 ## Notes
 

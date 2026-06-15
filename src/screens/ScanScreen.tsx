@@ -28,6 +28,7 @@ import { Flashlight } from '../assets/svgs';
 import { ScanSuccessModal } from '../components/ScanSuccessModal';
 import { redeemCoupon } from '../api/coupons';
 import { isApiError, userFacingApiMessage } from '../api/client';
+import { normalizeScannedCouponInput } from '../utils/couponLink';
 import type { AdminTabParamList, MainTabParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
 
@@ -183,7 +184,7 @@ function ScanScreenWithCamera() {
     device != null;
 
   const redeemCode = useCallback(async (raw: string) => {
-    const code = raw.trim();
+    const code = normalizeScannedCouponInput(raw);
     if (!code.length) {
       setError('Enter or scan a coupon code.');
       return;

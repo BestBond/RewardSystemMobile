@@ -1,4 +1,5 @@
 import { apiGet, apiPost } from './client';
+import { normalizeScannedCouponInput } from '../utils/couponLink';
 
 export type RedeemCouponResponse = {
   pointsAdded: number;
@@ -8,7 +9,7 @@ export type RedeemCouponResponse = {
 };
 
 export async function redeemCoupon(code: string) {
-  const normalized = code.trim().toUpperCase();
+  const normalized = normalizeScannedCouponInput(code);
   return apiPost<RedeemCouponResponse>('/coupons/redeem', { code: normalized });
 }
 

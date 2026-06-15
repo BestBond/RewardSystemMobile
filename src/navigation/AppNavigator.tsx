@@ -13,6 +13,7 @@ import { AdminLoginScreen } from '../screens/AdminLoginScreen';
 import { OpsAdminSignUpScreen } from '../screens/OpsAdminSignUpScreen';
 import { PendingApprovalScreen } from '../screens/PendingApprovalScreen';
 import type { RootStackParamList } from './types';
+import { useCouponDeepLink } from './useCouponDeepLink';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -25,6 +26,8 @@ const navTheme = {
 };
 
 export function AppNavigator() {
+  useCouponDeepLink();
+
   return (
     <NavigationContainer ref={rootNavigationRef} theme={navTheme}>
       <Stack.Navigator

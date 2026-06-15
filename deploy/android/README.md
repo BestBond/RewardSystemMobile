@@ -5,7 +5,7 @@
 In `android/app/build.gradle`:
 
 - `versionCode` — must **increase** every upload (integer)
-- `versionName` — user-visible version (e.g. `1.0.5`)
+- `versionName` — user-visible version (e.g. `1.0.6`)
 
 Also align `package.json`, and iOS `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in `ios/BestBond.xcodeproj/project.pbxproj`.
 
@@ -29,13 +29,13 @@ Also align `package.json`, and iOS `MARKETING_VERSION` / `CURRENT_PROJECT_VERSIO
 
 1. **Google Play Console** → **BestBond** → **Production** (or Testing track first).
 2. **Create new release** → upload **app-release.aab**.
-3. **Release name:** `1.0.5` (match `versionName`).
+3. **Release name:** `1.0.6` (match `versionName`).
 4. **Release notes** (example):
 
    ```
-   • Clearer tier progress: “X pts more needed” toward Contractor
-   • Fixed cropped text on Transaction History (summary cards and POINTS labels)
-   • UI stability improvements
+   • Coupon QR codes open the BestBond app scanner when scanned with the phone camera
+   • If the app is not installed, scan redirects to Google Play
+   • Scan in the app to redeem points (camera scan alone does not add points)
    ```
 
 5. **App content** (if prompted):
@@ -43,6 +43,10 @@ Also align `package.json`, and iOS `MARKETING_VERSION` / `CURRENT_PROJECT_VERSIO
    - **Account deletion:** in-app under Profile → Delete Account
 
 6. **Review and roll out**.
+
+## App Links (optional, improves coupon QR)
+
+Set `ANDROID_APP_LINK_SHA256` on the API VPS (Play App Signing SHA-256) so `https://api.bestbond.in/.well-known/assetlinks.json` verifies. Without it, camera scan still opens the app via the browser fallback page (`bestbond://scan`).
 
 ## Notes
 

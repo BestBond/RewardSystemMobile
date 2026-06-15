@@ -8,6 +8,7 @@ import { CartNavigator } from './CartNavigator';
 import { ProfileNavigator } from './ProfileNavigator';
 import { RewardsNavigator } from './RewardsNavigator';
 import type { MainTabParamList } from './types';
+import { usePendingCouponScanNavigation } from './useCouponDeepLink';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -16,6 +17,8 @@ function MainTabBarOuter(props: BottomTabBarProps) {
 }
 
 export function MainTabNavigator() {
+  usePendingCouponScanNavigation();
+
   return (
     <Tab.Navigator
       tabBar={MainTabBarOuter}

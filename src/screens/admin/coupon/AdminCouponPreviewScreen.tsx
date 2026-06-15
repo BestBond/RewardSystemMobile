@@ -25,6 +25,7 @@ import { AdminHeader } from '../components/AdminHeader';
 import type { AdminCouponStackParamList } from '../../../navigation/types';
 import { adminUi } from '../../../theme/adminUi';
 import { formatBatchCreatedLabel } from './couponGenerationUtils';
+import { buildCouponQrUrl } from '../../../utils/couponLink';
 import { ChevronRight, Scanner, TxTicketOrange } from '../../../assets/svgs';
 import CouponPhoneScan from '../../../assets/svgs/originals/coupon_phone_scan.svg';
 import BestBondManLogo from '../../../assets/svgs/originals/BestBondman.svg';
@@ -223,7 +224,7 @@ export function AdminCouponPreviewScreen() {
                 <View style={[styles.qrWrap, { marginTop: 10 * scale }]}>
                   {selectedCode ? (
                     <QRCode
-                      value={selectedCode}
+                      value={buildCouponQrUrl(selectedCode)}
                       size={150 * scale}
                       quietZone={2}
                       backgroundColor="transparent"
