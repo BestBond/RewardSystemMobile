@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
@@ -8,8 +8,6 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,7 +24,6 @@ import {
 import { getMyProfile } from '../api/users';
 import { setAccessToken } from '../api/storage';
 import { pickHomeRoute } from '../auth/roleRouting';
-import { BestBondManWithMobile } from '../assets/svgs';
 
 const COUNTRY_CODE = '+91';
 
@@ -44,16 +41,8 @@ export function CustomerAuthScreen({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
   const [trade, setTrade] = useState<Trade>('contractor_painter');
-  const [deliveryAddress, setDeliveryAddress] = useState('');
-  const { width, height } = useWindowDimensions();
-
-
-  const title = useMemo(
-    () => (mode === 'login' ? 'Log In' : 'Sign Up'),
-    [mode],
-  );
+  const [place, setPlace] = useState('');
 
   const resetPasscodeState = () => {
     setPasscode('');
@@ -82,8 +71,8 @@ export function CustomerAuthScreen({
       setError('Enter your full name.');
       return;
     }
-    if (mode === 'signup' && !deliveryAddress.trim()) {
-      setError('Enter your delivery address.');
+    if (mode === 'signup' && !place.trim()) {
+      setError('Enter your place.');
       return;
     }
     setLoading(true);
@@ -97,10 +86,9 @@ export function CustomerAuthScreen({
             passcode,
             confirmPasscode,
             fullName: fullName.trim(),
-            email: email.trim() || null,
             profession:
               trade === 'dealer' ? 'Dealer' : 'Contractor/Worker',
-            deliveryAddress: deliveryAddress.trim(),
+            deliveryAddress: place.trim(),
           })
           : await loginCustomerWithPasscode({
             phone: digits,
@@ -124,10 +112,6 @@ export function CustomerAuthScreen({
       setLoading(false);
     }
   };
-
-  // Image is 306x460 (0.66 aspect ratio)
-  const logoWidth = Math.min(width * 0.6, 130);
-  const logoHeight = logoWidth * (300 / 206);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -170,21 +154,14 @@ export function CustomerAuthScreen({
             </Pressable>
           </View>
 
+          <View style={styles.formContainer}>
           {mode === 'signup' ? (
-            <View style={[styles.formContainer, { marginBottom: 18 }]}>
+            <>
               <AppFieldLabel text="FULL NAME" />
-              <AppPillInput placeholder="Enter your full name" value={fullName} onChangeText={setFullName} />
-
-              <View style={styles.gap}>
-                <AppFieldLabel text="EMAIL (OPTIONAL)" />
-              </View>
               <AppPillInput
-                placeholder="name@example.com"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="email-address"
+                placeholder="Enter your full name"
+                value={fullName}
+                onChangeText={setFullName}
               />
 
               <View style={styles.gap}>
@@ -209,25 +186,19 @@ export function CustomerAuthScreen({
               </View>
 
               <View style={styles.gap}>
-                <AppFieldLabel text="DELIVERY ADDRESS" />
+                <AppFieldLabel text="PLACE" />
               </View>
-              <TextInput
-                style={styles.addressInput}
-                placeholder="Enter your address"
-                placeholderTextColor={colors.lightGray}
-                value={deliveryAddress}
-                onChangeText={setDeliveryAddress}
-                multiline
-                textAlignVertical="top"
+              <AppPillInput
+                placeholder="Enter your place"
+                value={place}
+                onChangeText={setPlace}
               />
-            </View>
+            </>
           ) : null}
 
-          <View style={styles.formContainer}>
-
-            <View >
-              <AppFieldLabel text="YOUR PHONE NUMBER" />
-            </View>
+          <View style={mode === 'signup' ? styles.gap : undefined}>
+            <AppFieldLabel text="YOUR PHONE NUMBER" />
+          </View>
             <AppPhoneInput
               countryCode={COUNTRY_CODE}
               value={phone}
@@ -351,33 +322,28 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
   },
-  gap: { marginTop: 16 },
+  gap: { marginTop: 12 },
   switchPillOn: {
     backgroundColor: colors.white,
   },
   switchText: { fontWeight: '800', color: colors.mutedGray },
   switchTextOn: { color: figma.textTitle },
-  addressInput: {
-    borderWidth: 1,
-    borderColor: '#E6EAF0',
-    borderRadius: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: figma.textTitle,
-    minHeight: 100,
+  formContainer: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
     backgroundColor: colors.white,
+    borderRadius: 22,
   },
-  tradeRow: { flexDirection: 'row' },
+  tradeRow: { flexDirection: 'row', marginTop: 4 },
   card: {
     flex: 1,
     marginHorizontal: 6,
     borderWidth: 1,
     borderColor: '#E6EAF0',
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: 14,
+    padding: 10,
     backgroundColor: colors.white,
-    minHeight: 148,
+    minHeight: 112,
   },
   cardSelected: {
     borderColor: colors.primaryOrange,
@@ -404,9 +370,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cardBadgeText: { color: colors.white, fontSize: 12, fontWeight: '700' },
-  cardIcon: { fontSize: 28, marginBottom: 10 },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: figma.textTitle },
-  cardSub: { fontSize: 12, color: colors.mutedGray, marginTop: 6, lineHeight: 17 },
+  cardIcon: { fontSize: 24, marginBottom: 6 },
+  cardTitle: { fontSize: 14, fontWeight: '700', color: figma.textTitle },
+  cardSub: { fontSize: 11, color: colors.mutedGray, marginTop: 4, lineHeight: 15 },
   otpHeader: {
     marginTop: 18,
     flexDirection: 'row',
@@ -416,16 +382,10 @@ const styles = StyleSheet.create({
   },
   otpMuted: { fontSize: 12, color: colors.mutedGray, marginBottom: 2 },
   otpAction: { fontSize: 12, color: colors.primaryOrange, fontWeight: '700', marginBottom: 10 },
-  cta: { marginTop: 26 },
+  cta: { marginTop: 20 },
   error: { marginTop: 10, fontSize: 13, color: '#D14343', textAlign: 'center' },
   bottomRow: { marginTop: 16, flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
   muted: { color: colors.white, fontSize: 15, marginHorizontal:15, textAlign:'center', width:"70%", lineHeight:22 },
   link: { color: colors.white, fontSize: 16, fontWeight: '900' },
-  formContainer: {
-    paddingVertical: 24,
-    padding: 18,
-    backgroundColor: colors.white,
-    borderRadius: 22,
-  }
 });
 

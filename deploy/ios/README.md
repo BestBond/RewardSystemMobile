@@ -4,7 +4,7 @@
 
 In `ios/BestBond.xcodeproj/project.pbxproj` (Debug + Release):
 
-- `MARKETING_VERSION` — user-visible version (e.g. `1.0.6`)
+- `MARKETING_VERSION` — user-visible version (e.g. `1.0.7`)
 - `CURRENT_PROJECT_VERSION` — build number; must **increase** every upload
 
 Also align `package.json` and Android `versionCode` / `versionName`.
@@ -43,14 +43,15 @@ Export options: `deploy/ios/ExportOptions.plist` (team `J22N5WHHN9`).
 
 ## App Store Connect — publish update
 
-1. **App Store Connect** → **BestBond** → new version **1.0.6**.
-2. Select the uploaded build (build **12**).
+1. **App Store Connect** → **BestBond** → new version **1.0.7**.
+2. Select the uploaded build (build **13**).
 3. **What's New** (example):
 
    ```
-   • Coupon QR codes open the BestBond app scanner when scanned with the phone camera
-   • If the app is not installed, scan redirects to the App Store
-   • Scan in the app to redeem points (camera scan alone does not add points)
+   • Wallet shows days until points reset; unused balance resets annually
+   • Admin: large coupon batches download as ZIP with progress
+   • Simpler sign up with Place field (no email)
+   • Coupon QR opens app scanner; redeem in-app only
    ```
 
 4. Submit for review.

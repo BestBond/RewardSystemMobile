@@ -1,11 +1,17 @@
 import { apiGet } from './client';
 
-export type PointsTransactionType = 'COUPON_SCAN' | 'REWARD_REDEEM';
+export type PointsTransactionType =
+  | 'COUPON_SCAN'
+  | 'REWARD_REDEEM'
+  | 'REDEMPTION_REFUND'
+  | 'POINTS_EXPIRE';
 
 export type MyTransactionsResponse = {
   period: 'THIS_MONTH' | 'ALL';
   totalPointsEarned: number;
   totalPointsSpent: number;
+  pointsExpiresAt?: string | null;
+  pointsExpireInDays?: number | null;
   /** True when more rows exist after this page (use offset + limit). */
   hasMore?: boolean;
   transactions: {

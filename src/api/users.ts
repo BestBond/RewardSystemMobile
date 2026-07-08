@@ -17,6 +17,10 @@ export type MyProfile = {
   deliveryAddress: string | null;
   loyaltyPoints: number;
   memberSinceYear: number | null;
+  /** ISO date when unused wallet balance resets to 0 (annual). */
+  pointsExpiresAt?: string | null;
+  /** Whole days until pointsExpiresAt; 0 means today. */
+  pointsExpireInDays?: number | null;
   /** From GET/PUT /users/me/profile — authoritative when present. */
   profileComplete?: boolean;
   /** RBAC role names, e.g. SUPERADMIN, CUSTOMER */

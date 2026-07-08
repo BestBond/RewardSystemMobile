@@ -21,6 +21,7 @@ import {
   ScannerWhite,
 } from '../assets/svgs';
 import { AppCard, AppChip } from '../components/ui';
+import { WalletExpiryNotice } from '../components/WalletExpiryNotice';
 import { getAuthMe, getMyProfile } from '../api/users';
 import { redirectStaffToAdminShellIfNeeded } from '../auth/staffShellRedirect';
 import { getMyTransactions } from '../api/transactions';
@@ -87,6 +88,9 @@ export function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [balance, setBalance] = useState(0);
+  const [pointsExpireInDays, setPointsExpireInDays] = useState<number | null>(
+    null,
+  );
   const [userLabel, setUserLabel] = useState('Member');
   const [giftTier, setGiftTier] = useState<GiftTier>('WORKER');
   const [contractorThreshold, setContractorThreshold] =
@@ -124,6 +128,7 @@ export function HomeScreen() {
       if (redirectStaffToAdminShellIfNeeded(profile, me)) return;
       const pts = profile.loyaltyPoints ?? 0;
       setBalance(pts);
+      setPointsExpireInDays(profile.pointsExpireInDays ?? null);
       setUserLabel(displayName(profile.fullName));
 
       const tier = tierInfo?.giftTier ?? 'WORKER';
@@ -279,6 +284,7 @@ export function HomeScreen() {
               </Text>
             </View>
           ) : null}
+          <WalletExpiryNotice expireInDays={pointsExpireInDays} />
         </AppCard>
 
         <Pressable

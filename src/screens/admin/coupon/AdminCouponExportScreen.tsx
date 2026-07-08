@@ -1,27 +1,37 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
-  Platform,
   Pressable,
-  Share,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import ReactNativeBlobUtil from 'react-native-blob-util';
-import RNFS from 'react-native-fs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AdminHeader } from '../components/AdminHeader';
 import type { AdminCouponStackParamList } from '../../../navigation/types';
 import { adminUi } from '../../../theme/adminUi';
 import { CheckCircle, Download, Pdf } from '../../../assets/svgs';
-import { API_BASE_URL } from '../../../api/config';
-import { getAccessToken } from '../../../api/storage';
+import {
+  getBatchExportMeta,
+  type BatchExportMeta,
+  type ExportJobStatus,
+} from '../../../api/couponExport';
+import { ExportProgressModal } from './ExportProgressModal';
+import {
+  downloadSyncBatchPdf,
+  exportErrorMessage,
+  exportOverlayTitle,
+  formatExportFileSize,
+  isExportTooLargeError,
+  runAsyncBatchExport,
+  shareLocalExportFile,
+  shouldUseAsyncExport,
+} from './couponExportUtils';
 
 type Nav = NativeStackNavigationProp<
   AdminCouponStackParamList,
@@ -41,12 +51,55 @@ export function AdminCouponExportScreen() {
   const { params } = useRoute<R>();
   const { batchId, createdAtLabel, totalCoupons, totalPts, slabPts } = params;
   const [downloading, setDownloading] = useState(false);
+  const [exportStatus, setExportStatus] = useState<ExportJobStatus | null>(
+    null,
+  );
+  const [batchMeta, setBatchMeta] = useState<BatchExportMeta | null>(null);
+  const [metaLoading, setMetaLoading] = useState(true);
+
+  const couponCount = batchMeta?.totalCoupons ?? totalCoupons;
+  const isLargeBatch = shouldUseAsyncExport(
+    couponCount,
+    batchMeta?.useAsyncExport,
+  );
+
+  useEffect(() => {
+    const id = batchId?.trim();
+    if (!id) {
+      setMetaLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const meta = await getBatchExportMeta(id);
+        if (!cancelled) setBatchMeta(meta);
+      } catch {
+        /* fall back to route params */
+      } finally {
+        if (!cancelled) setMetaLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [batchId]);
 
   const onViewPdf = () => {
     if (!batchId || !batchId.trim()) {
       Alert.alert(
         'View failed',
         'Batch id is missing. Please regenerate the batch and try again.',
+        [{ text: 'OK' }],
+      );
+      return;
+    }
+    if (isLargeBatch) {
+      Alert.alert(
+        'Large batch',
+        'Full PDF preview is only available for batches up to 300 coupons. Use Download ZIP to export this batch.',
         [{ text: 'OK' }],
       );
       return;
@@ -64,52 +117,84 @@ export function AdminCouponExportScreen() {
       );
       return;
     }
+
     setDownloading(true);
-    (async () => {
-      const token = await getAccessToken();
-      if (!token) throw new Error('Not authenticated');
+    setExportStatus(null);
 
-      const docDir = RNFS.DocumentDirectoryPath;
-      if (!docDir) {
-        throw new Error(
-          'File module is not linked (DocumentDirectoryPath missing). Run `cd ios && pod install`, then rebuild the iOS app.',
-        );
+    void (async () => {
+      let meta = batchMeta;
+      if (!meta) {
+        try {
+          meta = await getBatchExportMeta(batchId);
+          setBatchMeta(meta);
+        } catch {
+          meta = {
+            batchId,
+            totalCoupons,
+            syncMax: 300,
+            useAsyncExport: totalCoupons > 300,
+          };
+        }
       }
 
-      const fromUrl = `${API_BASE_URL}/coupons/batches/${encodeURIComponent(
-        batchId,
-      )}/export.pdf`;
-      const toFile = `${docDir}/coupon-batch-${batchId}.pdf`;
+      const count = meta.totalCoupons;
+      const useAsync = shouldUseAsyncExport(count, meta.useAsyncExport);
 
-      const r = RNFS.downloadFile({
-        fromUrl,
-        toFile,
-        headers: { Authorization: `Bearer ${token}` },
-        background: Platform.OS === 'ios',
-      });
-      const result = await r.promise;
-      if (result.statusCode && result.statusCode >= 400) {
-        throw new Error(`Download failed (${result.statusCode})`);
-      }
+      try {
+        if (useAsync) {
+          const { filePath, fileSizeBytes } = await runAsyncBatchExport({
+            batchId,
+            totalCoupons: count,
+            onProgress: setExportStatus,
+          });
+          await shareLocalExportFile({
+            filePath,
+            batchId,
+            mime: 'application/zip',
+          });
+          Alert.alert(
+            'Download ready',
+            `Saved ${formatExportFileSize(fileSizeBytes)} (${count.toLocaleString()} coupons). Use Files or Share to access the ZIP.`,
+          );
+          return;
+        }
 
-      if (Platform.OS === 'android') {
-        await ReactNativeBlobUtil.android.actionViewIntent(
-          toFile,
-          'application/pdf',
-        );
-      } else {
-        await Share.share({
-          title: `Coupon batch ${batchId}`,
-          url: `file://${toFile}`,
-        });
+        try {
+          const filePath = await downloadSyncBatchPdf(batchId);
+          await shareLocalExportFile({
+            filePath,
+            batchId,
+            mime: 'application/pdf',
+          });
+          Alert.alert('Success', 'Coupon batch downloaded.');
+        } catch (syncErr) {
+          if (isExportTooLargeError(syncErr)) {
+            const { filePath, fileSizeBytes } = await runAsyncBatchExport({
+              batchId,
+              totalCoupons: count || totalCoupons,
+              onProgress: setExportStatus,
+            });
+            await shareLocalExportFile({
+              filePath,
+              batchId,
+              mime: 'application/zip',
+            });
+            Alert.alert(
+              'Download ready',
+              `Saved ${formatExportFileSize(fileSizeBytes)} (${(count || totalCoupons).toLocaleString()} coupons).`,
+            );
+            return;
+          }
+          throw syncErr;
+        }
+      } catch (error) {
+        const text = await exportErrorMessage(error, useAsync);
+        Alert.alert('Export failed', text, [{ text: 'OK' }]);
+      } finally {
+        setDownloading(false);
+        setExportStatus(null);
       }
-    })()
-      .catch((e) => {
-        const msg = String((e as Error)?.message ?? e);
-        console.warn('[Export] PDF download failed', msg);
-        Alert.alert('Export failed', msg, [{ text: 'OK' }]);
-      })
-      .finally(() => setDownloading(false));
+    })();
   };
 
   const onDiscard = () => {
@@ -118,6 +203,12 @@ export function AdminCouponExportScreen() {
       routes: [{ name: 'AdminCouponGenerate' }],
     });
   };
+
+  const downloadButtonLabel = downloading
+    ? exportOverlayTitle(exportStatus)
+    : isLargeBatch
+      ? 'Download ZIP'
+      : 'Download';
 
   return (
     <View style={styles.root}>
@@ -133,7 +224,6 @@ export function AdminCouponExportScreen() {
 
         <View style={styles.detailCard}>
           <View style={styles.watermark} pointerEvents="none">
-            {/* If you want an exact watermark icon, share the SVG and I’ll swap it. */}
             <Pdf width={92} height={92} opacity={0.06} />
           </View>
           <View style={styles.detailRow}>
@@ -146,7 +236,9 @@ export function AdminCouponExportScreen() {
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLbl}>TOTAL COUPONS</Text>
-            <Text style={styles.detailVal}>{formatInt(totalCoupons)}</Text>
+            <Text style={styles.detailVal}>
+              {metaLoading ? '…' : formatInt(couponCount)}
+            </Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLbl}>TOTAL VALUE</Text>
@@ -159,13 +251,22 @@ export function AdminCouponExportScreen() {
           </Text>
         </View>
 
+        {isLargeBatch ? (
+          <Text style={styles.largeBatchHint}>
+            Large batches export as a ZIP in the background. Keep the app open
+            — if interrupted, tap Download ZIP again to resume.
+          </Text>
+        ) : null}
+
         <Text style={styles.formatSectionLbl}>SELECT EXPORT FORMAT</Text>
 
         <View style={[styles.formatRow, styles.formatRowSelected]}>
           <View style={styles.formatIconWrap}>
             <Pdf width={22} height={22} />
           </View>
-          <Text style={styles.formatTitle}>PDF (Print Ready)</Text>
+          <Text style={styles.formatTitle}>
+            {isLargeBatch ? 'ZIP (Multiple PDFs)' : 'PDF (Print Ready)'}
+          </Text>
           <View style={styles.checkWrap}>
             <CheckCircle width={22} height={22} />
           </View>
@@ -175,11 +276,15 @@ export function AdminCouponExportScreen() {
           style={({ pressed }) => [
             styles.secondaryBtn,
             pressed && styles.secondaryBtnPressed,
+            isLargeBatch && styles.secondaryBtnDisabled,
           ]}
           accessibilityRole="button"
           accessibilityLabel="View batch PDF in app"
+          disabled={isLargeBatch || metaLoading}
           onPress={onViewPdf}>
-          <Text style={styles.secondaryBtnText}>View PDF</Text>
+          <Text style={styles.secondaryBtnText}>
+            {isLargeBatch ? 'View PDF (small batches only)' : 'View PDF'}
+          </Text>
         </Pressable>
 
         <Pressable
@@ -190,12 +295,10 @@ export function AdminCouponExportScreen() {
           ]}
           accessibilityRole="button"
           accessibilityLabel="Download exported coupon batch"
-          disabled={downloading}
+          disabled={downloading || metaLoading}
           onPress={onDownload}>
           <Download width={20} height={20} />
-          <Text style={styles.primaryBtnText}>
-            {downloading ? 'Downloading…' : 'Download'}
-          </Text>
+          <Text style={styles.primaryBtnText}>{downloadButtonLabel}</Text>
         </Pressable>
 
         <Pressable
@@ -206,6 +309,12 @@ export function AdminCouponExportScreen() {
           <Text style={styles.discard}>Cancel/Discard</Text>
         </Pressable>
       </ScrollView>
+
+      <ExportProgressModal
+        visible={downloading && isLargeBatch}
+        status={exportStatus}
+        totalCoupons={couponCount}
+      />
     </View>
   );
 }
@@ -257,6 +366,14 @@ const styles = StyleSheet.create({
     color: adminUi.labelMuted,
     marginTop: 4,
   },
+  largeBatchHint: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: adminUi.labelMuted,
+    marginTop: -12,
+    marginBottom: 18,
+    textAlign: 'center',
+  },
   formatSectionLbl: {
     fontSize: 11,
     fontWeight: '800',
@@ -278,7 +395,6 @@ const styles = StyleSheet.create({
     borderColor: adminUi.accentOrange,
     backgroundColor: '#FFF7ED',
   },
-  formatRowPressed: { opacity: 0.92 },
   formatIconWrap: {
     width: 36,
     height: 36,
@@ -318,6 +434,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: adminUi.borderSoft,
   },
+  secondaryBtnDisabled: { opacity: 0.5 },
   secondaryBtnPressed: { opacity: 0.9 },
   secondaryBtnText: {
     fontSize: 16,

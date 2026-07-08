@@ -5,7 +5,7 @@
 In `android/app/build.gradle`:
 
 - `versionCode` — must **increase** every upload (integer)
-- `versionName` — user-visible version (e.g. `1.0.6`)
+- `versionName` — user-visible version (e.g. `1.0.7`)
 
 Also align `package.json`, and iOS `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in `ios/BestBond.xcodeproj/project.pbxproj`.
 
@@ -29,13 +29,14 @@ Also align `package.json`, and iOS `MARKETING_VERSION` / `CURRENT_PROJECT_VERSIO
 
 1. **Google Play Console** → **BestBond** → **Production** (or Testing track first).
 2. **Create new release** → upload **app-release.aab**.
-3. **Release name:** `1.0.6` (match `versionName`).
+3. **Release name:** `1.0.7` (match `versionName`).
 4. **Release notes** (example):
 
    ```
-   • Coupon QR codes open the BestBond app scanner when scanned with the phone camera
-   • If the app is not installed, scan redirects to Google Play
-   • Scan in the app to redeem points (camera scan alone does not add points)
+   • Wallet shows days until points reset; unused balance resets annually
+   • Admin: large coupon batches download as ZIP with progress
+   • Simpler sign up with Place field (no email)
+   • Coupon QR opens app scanner; redeem in-app only
    ```
 
 5. **App content** (if prompted):

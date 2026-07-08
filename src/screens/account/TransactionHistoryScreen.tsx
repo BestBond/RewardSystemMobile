@@ -41,6 +41,7 @@ import {
 } from '../../utils/activityFormat';
 import { formatPtsMoreNeeded } from '../../utils/formatPointsCompact';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
+import { WalletExpiryNotice } from '../../components/WalletExpiryNotice';
 
 type Nav = NativeStackNavigationProp<
   ProfileStackParamList,
@@ -97,6 +98,9 @@ export function TransactionHistoryScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [balance, setBalance] = useState(0);
+  const [pointsExpireInDays, setPointsExpireInDays] = useState<number | null>(
+    null,
+  );
   const [giftTier, setGiftTier] = useState<GiftTier>('WORKER');
   const [contractorThreshold, setContractorThreshold] =
     useState(CONTRACTOR_THRESHOLD);
@@ -156,6 +160,7 @@ export function TransactionHistoryScreen() {
       ]);
       const pts = Number(profile.loyaltyPoints ?? 0);
       setBalance(Number.isFinite(pts) ? pts : 0);
+      setPointsExpireInDays(profile.pointsExpireInDays ?? null);
       const threshold =
         tierInfo?.contractorThreshold ?? CONTRACTOR_THRESHOLD;
       const tier = tierInfo?.giftTier ?? 'WORKER';
@@ -273,6 +278,11 @@ export function TransactionHistoryScreen() {
           showsVerticalScrollIndicator={false}
         >
           {error ? <Text style={styles.err}>{error}</Text> : null}
+
+          <WalletExpiryNotice
+            expireInDays={pointsExpireInDays}
+            style={styles.expiryNotice}
+          />
 
           <View style={styles.summaryRow}>
             <View style={[styles.summaryCard, { backgroundColor: earnedBg }]}>
@@ -488,6 +498,10 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 17,
     paddingTop: 4,
+  },
+  expiryNotice: {
+    marginTop: 0,
+    marginBottom: 14,
   },
   summaryRow: {
     flexDirection: 'row',

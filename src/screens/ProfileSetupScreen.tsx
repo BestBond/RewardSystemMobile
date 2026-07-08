@@ -8,7 +8,6 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import Svg, { Defs, LinearGradient as SvgLinear, Rect, Stop } from 'react-native-svg';
@@ -31,9 +30,8 @@ export function ProfileSetupScreen({
   /** First-time incomplete setup may skip; returning users / edit flow may not. */
   const [showSkipButton, setShowSkipButton] = useState(() => !edit);
   const [fullName, setFullName] = useState('');
-  const [address, setAddress] = useState('');
+  const [place, setPlace] = useState('');
   const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
   /** Profession is chosen at signup; profile edit only updates name/address. */
   const [professionToKeep, setProfessionToKeep] =
     useState<string>('Contractor/Worker');
@@ -81,11 +79,10 @@ export function ProfileSetupScreen({
   useEffect(() => {
     getMyProfile()
       .then(p => {
-        setEmail(p.email?.trim() ?? '');
         setPhone(p.phone?.trim() ?? '');
         if (edit) {
           setFullName(p.fullName?.trim() ?? '');
-          setAddress(p.deliveryAddress?.trim() ?? '');
+          setPlace(p.deliveryAddress?.trim() ?? '');
         }
         const pro = p.profession?.trim();
         if (pro) setProfessionToKeep(pro);
@@ -127,10 +124,10 @@ export function ProfileSetupScreen({
       const updated = await updateMyProfile({
         fullName: fullName || undefined,
         profession: professionToKeep,
-        deliveryAddress: address || undefined,
+        deliveryAddress: place || undefined,
       });
       if (!isProfileComplete(updated)) {
-        setError('Please enter your full name and delivery address.');
+        setError('Please enter your full name and place.');
         return;
       }
       navigation.reset({
@@ -211,18 +208,6 @@ export function ProfileSetupScreen({
           />
 
           <View style={styles.labelGap}>
-            <AppFieldLabel text="EMAIL" />
-          </View>
-          <AppPillInput
-            containerStyle={[styles.inputPill, styles.readOnlyContainer]}
-            placeholder="Not available"
-            value={email}
-            editable={false}
-            selectTextOnFocus={false}
-            style={styles.readOnlyInput}
-          />
-
-          <View style={styles.labelGap}>
             <AppFieldLabel text="FULL NAME" />
           </View>
           <AppPillInput
@@ -233,17 +218,13 @@ export function ProfileSetupScreen({
           />
 
           <View style={styles.labelGap}>
-            <AppFieldLabel text="DELIVERY ADDRESS" />
+            <AppFieldLabel text="PLACE" />
           </View>
-
-          <TextInput
-            style={styles.inputArea}
-            placeholder="Enter your address"
-            placeholderTextColor={colors.lightGray}
-            value={address}
-            onChangeText={setAddress}
-            multiline
-            textAlignVertical="top"
+          <AppPillInput
+            containerStyle={styles.inputPill}
+            placeholder="Enter your place"
+            value={place}
+            onChangeText={setPlace}
           />
 
           <AppButton
@@ -319,18 +300,7 @@ const styles = StyleSheet.create({
   readOnlyInput: {
     color: colors.navyAlt,
   },
-  inputArea: {
-    borderWidth: 1,
-    borderColor: colors.borderInput,
-    borderRadius: 20,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    fontSize: 16,
-    color: colors.navy,
-    minHeight: 120,
-    backgroundColor: colors.white,
-  },
-  cta: { marginTop: 32 },
+  cta: { marginTop: 24 },
   error: {
     marginTop: 12,
     fontSize: 13,

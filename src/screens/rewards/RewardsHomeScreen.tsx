@@ -49,6 +49,7 @@ import {
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 import { goBackInApp } from '../../navigation/goBackInApp';
 import { AppCard, AppChip } from '../../components/ui';
+import { WalletExpiryNotice } from '../../components/WalletExpiryNotice';
 
 type Nav = CompositeNavigationProp<
   NativeStackNavigationProp<RewardsStackParamList, 'RewardsHome'>,
@@ -88,6 +89,9 @@ export function RewardsHomeScreen() {
   const [_error, setError] = useState<string | null>(null);
   const [_rewardsError, setRewardsError] = useState<string | null>(null);
   const [balance, setBalance] = useState(0);
+  const [pointsExpireInDays, setPointsExpireInDays] = useState<number | null>(
+    null,
+  );
   const [allRewards, setAllRewards] = useState<RewardDto[]>([]);
   const [giftTier, setGiftTier] = useState<GiftTier>('WORKER');
   const [contractorThreshold, setContractorThreshold] = useState(
@@ -102,6 +106,7 @@ export function RewardsHomeScreen() {
       const profile = await getMyProfile();
       const pts = Number(profile.loyaltyPoints ?? 0);
       setBalance(Number.isFinite(pts) ? pts : 0);
+      setPointsExpireInDays(profile.pointsExpireInDays ?? null);
     } catch (e) {
       setError((e as Error)?.message ?? 'Could not load profile');
       setLoading(false);
@@ -314,6 +319,8 @@ export function RewardsHomeScreen() {
                 </Text>
               </View>
             ) : null}
+
+            <WalletExpiryNotice expireInDays={pointsExpireInDays} />
 
             <Pressable
               style={({ pressed }) => [

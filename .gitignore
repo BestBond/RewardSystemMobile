@@ -39,6 +39,10 @@ ios/DerivedData/
 *.xcodeproj/*.mode2v3
 *.xcodeproj/*.perspectivev3
 
+# CocoaPods / Ruby (local bundle — do not commit)
+vendor/bundle/
+Gemfile.lock
+
 # CocoaPods
 Podfile.lock
 

@@ -42,6 +42,7 @@ import { figma } from '../../theme/figmaTokens';
 import { MENU_SUBTITLES } from './accountFigmaData';
 import packageJson from '../../../package.json';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
+import { WalletExpiryNotice } from '../../components/WalletExpiryNotice';
 import { getMyGiftTier, type GiftTier } from '../../api/rewards';
 import { formatPtsMoreNeeded } from '../../utils/formatPointsCompact';
 
@@ -201,6 +202,11 @@ export function UserProfileScreen() {
               </Text>
             </View>
           </View>
+
+          <WalletExpiryNotice
+            expireInDays={profile?.pointsExpireInDays}
+            style={styles.expiryNotice}
+          />
 
           <View style={styles.menuContainer}>
             <Pressable
@@ -445,6 +451,10 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     gap: 16,
+    marginBottom: 12,
+  },
+  expiryNotice: {
+    marginTop: 0,
     marginBottom: 24,
   },
   statCard: {

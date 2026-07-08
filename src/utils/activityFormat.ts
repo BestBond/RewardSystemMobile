@@ -21,7 +21,9 @@ export function activityIconFromType(
   type: PointsTransactionType,
   pointsDelta: number,
 ): 'cart' | 'rewardsEarn' | 'rewardsRedeem' {
-  if (type === 'REWARD_REDEEM' || pointsDelta < 0) return 'rewardsRedeem';
+  if (type === 'REWARD_REDEEM' || type === 'POINTS_EXPIRE' || pointsDelta < 0) {
+    return 'rewardsRedeem';
+  }
   if (type === 'COUPON_SCAN') return 'cart';
   return 'rewardsEarn';
 }

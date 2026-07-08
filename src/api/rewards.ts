@@ -24,6 +24,8 @@ export type GiftTierInfo = {
   giftTier: GiftTier;
   loyaltyPoints: number;
   contractorThreshold: number;
+  pointsExpiresAt?: string | null;
+  pointsExpireInDays?: number | null;
 };
 
 export type RedeemResponse = {
