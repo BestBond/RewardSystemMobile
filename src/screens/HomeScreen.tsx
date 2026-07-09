@@ -116,9 +116,14 @@ export function HomeScreen() {
     else setLoading(true);
     setError(null);
     try {
-      const [profile, tx, me, tierInfo, rewards] = await Promise.all([
+      // Profile is required for balance; other sections fail independently so one
+      // 500 (e.g. transactions) does not blank the whole home screen.
+      const [profile, txResult, me, tierInfo, rewards] = await Promise.all([
         getMyProfile(),
-        getMyTransactions({ period: 'ALL', limit: 5 }),
+        getMyTransactions({ period: 'ALL', limit: 5 }).then(
+          data => ({ ok: true as const, data }),
+          err => ({ ok: false as const, err }),
+        ),
         getAuthMe()
           .then(r => r.user)
           .catch(() => null),
@@ -152,19 +157,28 @@ export function HomeScreen() {
       );
       setRecommendedRewards(sorted.slice(0, 3));
 
-      setActivities(
-        tx.transactions.map(t => {
-          const { text, positive } = formatPointsDelta(t.pointsDelta);
-          return {
-            id: t.id,
-            title: t.title,
-            sub: activitySubtitle(t.site, t.createdAt),
-            points: text,
-            positive,
-            icon: activityIconFromType(t.type, t.pointsDelta),
-          };
-        }),
-      );
+      if (txResult.ok) {
+        setActivities(
+          txResult.data.transactions.map(t => {
+            const { text, positive } = formatPointsDelta(t.pointsDelta);
+            return {
+              id: t.id,
+              title: t.title,
+              sub: activitySubtitle(t.site, t.createdAt),
+              points: text,
+              positive,
+              icon: activityIconFromType(t.type, t.pointsDelta),
+            };
+          }),
+        );
+      } else {
+        setActivities([]);
+        const msg =
+          txResult.err instanceof Error
+            ? txResult.err.message
+            : 'Could not load recent activity.';
+        setError(msg);
+      }
     } catch (e) {
       setError(
         e instanceof Error ? e.message : 'Could not load home. Pull to retry.',
