@@ -22,6 +22,10 @@ import { getMyProfile } from '../api/users';
 import { setAccessToken } from '../api/storage';
 import { isProfileComplete } from '../auth/profileCompletion';
 import { pickHomeRoute } from '../auth/roleRouting';
+import {
+  isValidIndiaMobile,
+  normalizeIndiaNationalPhoneInput,
+} from '../utils/phone';
 
 const COUNTRY_CODE = '+91';
 
@@ -36,8 +40,8 @@ export function AdminLoginScreen({
   const [loginKind, setLoginKind] = useState<'ops' | 'super'>('ops');
 
   const onLogin = async () => {
-    const digits = phone.replace(/\D/g, '').slice(0, 10);
-    if (digits.length !== 10) {
+    const digits = normalizeIndiaNationalPhoneInput(phone);
+    if (!isValidIndiaMobile(digits)) {
       setError('Enter a valid 10-digit mobile number.');
       return;
     }
@@ -132,7 +136,7 @@ export function AdminLoginScreen({
               value={phone}
               autoFocus
               onChangeText={(t) => {
-                setPhone(t.replace(/\D/g, '').slice(0, 10));
+                setPhone(normalizeIndiaNationalPhoneInput(t));
                 if (error) setError(null);
               }}
             />

@@ -17,6 +17,10 @@ import { colors } from '../theme/colors';
 import { figma } from '../theme/figmaTokens';
 import { isApiError, userFacingApiMessage } from '../api/client';
 import { signupAdminWithPasscode } from '../api/auth';
+import {
+  isValidIndiaMobile,
+  normalizeIndiaNationalPhoneInput,
+} from '../utils/phone';
 
 const COUNTRY_CODE = '+91';
 
@@ -33,8 +37,8 @@ export function OpsAdminSignUpScreen({
   const [error, setError] = useState<string | null>(null);
 
   const onCreate = async () => {
-    const digits = phone.replace(/\D/g, '').slice(0, 10);
-    if (digits.length !== 10) {
+    const digits = normalizeIndiaNationalPhoneInput(phone);
+    if (!isValidIndiaMobile(digits)) {
       setError('Enter a valid 10-digit mobile number.');
       return;
     }
@@ -110,7 +114,7 @@ export function OpsAdminSignUpScreen({
               countryCode={COUNTRY_CODE}
               value={phone}
               onChangeText={(t) => {
-                setPhone(t.replace(/\D/g, '').slice(0, 10));
+                setPhone(normalizeIndiaNationalPhoneInput(t));
                 if (error) setError(null);
               }}
             />
