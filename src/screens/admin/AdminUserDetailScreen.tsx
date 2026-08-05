@@ -3,6 +3,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Modal,
   Pressable,
@@ -20,13 +21,15 @@ import type { AdminUsersStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { adminUi } from '../../theme/adminUi';
 import { AdminHeader } from './components/AdminHeader';
-import { isStaffAdminProfessionLabel } from './adminRole';
+import { canDeleteUsers, isStaffAdminProfessionLabel } from './adminRole';
 import {
   activateAdminUser,
+  deleteAdminUser,
   getAdminUserById,
   suspendAdminUser,
   type AdminUserDetail,
 } from '../../api/adminUsers';
+import { getAuthMe } from '../../api/users';
 import { isApiError, userFacingApiMessage } from '../../api/client';
 import { useRefreshOnFocusAndForeground } from '../../hooks/useRefreshOnFocusAndForeground';
 
@@ -99,10 +102,59 @@ export function AdminUserDetailScreen(_props: Props) {
   const statusActive = (u?.status ?? 'ACTIVE') === 'ACTIVE';
   const suspendAllowed = Boolean(u && !isStaffAdminProfessionLabel(u.profession));
 
+  const [meId, setMeId] = useState<string | null>(null);
+  const [canDelete, setCanDelete] = useState(false);
+  React.useEffect(() => {
+    let cancelled = false;
+    getAuthMe()
+      .then(r => {
+        if (cancelled) return;
+        setMeId(r.user?.id ?? null);
+        setCanDelete(canDeleteUsers(r.user));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMeId(null);
+          setCanDelete(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const deleteAllowed = Boolean(
+    u && canDelete && !isStaffAdminProfessionLabel(u.profession) && meId !== u.id,
+  );
+
   const [suspendOpen, setSuspendOpen] = useState(false);
   const [suspendReason, setSuspendReason] = useState('');
   const [suspendSubmitting, setSuspendSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
+  const onConfirmDelete = useCallback(async () => {
+    if (!u || deleteSubmitting || deleteConfirmText.trim() !== 'DELETE') return;
+    setDeleteSubmitting(true);
+    setActionError(null);
+    try {
+      await deleteAdminUser(u.id);
+      setDeleteOpen(false);
+      setDeleteConfirmText('');
+      Alert.alert(
+        'Deleted',
+        'User account has been permanently deleted.',
+        [{ text: 'OK', onPress: () => navigation.goBack() }],
+      );
+    } catch (e) {
+      if (isApiError(e)) setActionError(userFacingApiMessage(e.message));
+      else setActionError('Could not delete account.');
+    } finally {
+      setDeleteSubmitting(false);
+    }
+  }, [u, deleteConfirmText, deleteSubmitting, navigation]);
 
   const onConfirmSuspend = useCallback(async () => {
     if (!u || suspendSubmitting) return;
@@ -278,6 +330,23 @@ export function AdminUserDetailScreen(_props: Props) {
             )}
           </Pressable>
         )}
+
+        {deleteAllowed ? (
+          <Pressable
+            hitSlop={12}
+            style={[styles.deleteRow, deleteSubmitting && { opacity: 0.5 }]}
+            disabled={deleteSubmitting}
+            accessibilityRole="button"
+            accessibilityLabel="Delete account permanently"
+            onPress={() => {
+              setActionError(null);
+              setDeleteConfirmText('');
+              setDeleteOpen(true);
+            }}>
+            <Text style={styles.deleteIcon}>{'✖'}</Text>
+            <Text style={styles.deleteTxt}>Delete Account</Text>
+          </Pressable>
+        ) : null}
           </>
         ) : null}
       </ScrollView>
@@ -354,6 +423,59 @@ export function AdminUserDetailScreen(_props: Props) {
               accessibilityLabel="Dismiss suspension dialog"
               onPress={() => { setSuspendOpen(false); setSuspendReason(''); setActionError(null); }}>
               <Text style={styles.modalCancelTxt}>Dismiss for now</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delete modal — superadmin only, typed "DELETE" confirmation (matches admin web) */}
+      <Modal visible={deleteOpen} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Delete this{'\n'}Account?</Text>
+            <Text style={styles.modalBody}>
+              This permanently deletes {u?.displayName ?? 'this user'}&rsquo;s account
+              and all of their wallet points and redemption history. This action
+              cannot be undone.
+            </Text>
+            <Text style={styles.modalFieldLbl}>TYPE DELETE TO CONFIRM</Text>
+            <TextInput
+              style={styles.modalConfirmInput}
+              placeholder="DELETE"
+              placeholderTextColor={adminUi.labelMuted}
+              value={deleteConfirmText}
+              onChangeText={setDeleteConfirmText}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              editable={!deleteSubmitting}
+            />
+            {actionError ? (
+              <Text style={styles.modalErr}>{actionError}</Text>
+            ) : null}
+            <Pressable
+              style={({ pressed }) => [
+                styles.modalConfirmBtn,
+                pressed && { opacity: 0.92 },
+                deleteSubmitting && { opacity: 0.6 },
+                deleteConfirmText.trim() !== 'DELETE' && { opacity: 0.45 },
+              ]}
+              disabled={deleteSubmitting || deleteConfirmText.trim() !== 'DELETE'}
+              accessibilityRole="button"
+              accessibilityLabel="Permanently delete account"
+              onPress={() => { onConfirmDelete().catch(() => {}); }}>
+              {deleteSubmitting ? (
+                <ActivityIndicator color={adminUi.white} />
+              ) : (
+                <Text style={styles.modalConfirmTxt}>Permanently Delete</Text>
+              )}
+            </Pressable>
+            <Pressable
+              style={styles.modalCancelBtn}
+              disabled={deleteSubmitting}
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss delete dialog"
+              onPress={() => { setDeleteOpen(false); setDeleteConfirmText(''); setActionError(null); }}>
+              <Text style={styles.modalCancelTxt}>Cancel</Text>
             </Pressable>
           </View>
         </View>
@@ -606,6 +728,24 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: adminUi.successGreen,
   },
+  deleteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    paddingVertical: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(192, 78, 46, 0.35)',
+    borderRadius: 16,
+    backgroundColor: adminUi.white,
+  },
+  deleteIcon: { fontSize: 14, color: adminUi.dangerBrown },
+  deleteTxt: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: adminUi.dangerBrown,
+  },
   snackWrap: {
     position: 'absolute',
     left: 16,
@@ -656,12 +796,29 @@ const styles = StyleSheet.create({
     color: adminUi.sectionTitle,
     marginBottom: 22,
   },
+  modalBody: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: adminUi.labelMuted,
+    marginBottom: 18,
+  },
   modalFieldLbl: {
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.6,
     color: adminUi.labelMuted,
     marginBottom: 8,
+  },
+  modalConfirmInput: {
+    borderWidth: 1,
+    borderColor: adminUi.borderSoft,
+    borderRadius: adminUi.radiusMd,
+    padding: 14,
+    fontSize: 15,
+    fontWeight: '700',
+    color: adminUi.sectionTitle,
+    backgroundColor: adminUi.screenBg,
+    marginBottom: 14,
   },
   modalInput: {
     borderWidth: 1,

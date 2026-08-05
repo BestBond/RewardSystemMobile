@@ -3,6 +3,7 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -14,7 +15,6 @@ import {
 import Svg, { Defs, LinearGradient as SvgLinear, Rect, Stop, RadialGradient, Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  CardStar,
   CartInactive,
   RewardsActive,
   RewardsInactive,
@@ -35,6 +35,8 @@ import type { MainTabParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
 import { figma } from '../theme/figmaTokens';
 import { formatPtsMoreNeeded } from '../utils/formatPointsCompact';
+import { openWhatsAppChat } from '../utils/whatsappLink';
+import { SUPPORT } from './account/accountFigmaData';
 import { RewardImageBlock } from './rewards/RewardImageBlock';
 import {
   activityIconFromType,
@@ -236,17 +238,18 @@ export function HomeScreen() {
           <Pressable
             hitSlop={12}
             accessibilityRole="button"
-            accessibilityLabel="View transaction history"
-            onPress={() =>
-              navigation.navigate('Profile', { screen: 'TransactionHistory' })
-            }
+            accessibilityLabel="Contact support on WhatsApp"
+            onPress={() => void openWhatsAppChat(SUPPORT.fallbackWhatsapp)}
             style={({ pressed }) => [
               styles.ptsBadge,
               pressed && styles.scanCtaPressed,
             ]}>
-            <CardStar width={16} height={16} />
+            <Image
+              source={require('../assets/images/whatsapp.png')}
+              style={{ width: 16, height: 16 }}
+            />
             <AppChip
-              text={`${balance.toLocaleString()} Pts`}
+              text="Support"
               variant="accent"
               style={styles.pointsChip}
             />

@@ -242,7 +242,7 @@ export function CustomerAuthScreen({
           <View style={styles.bottomRow}>
             <Text style={styles.muted}>By logging in, you agree to our Terms of Service and Privacy Policy. </Text>
             <Pressable onPress={() => navigation.reset({ index: 0, routes: [{ name: 'AdminLogin' }] })} hitSlop={8}>
-              <Text style={[styles.link , {textDecorationLine:'underline'}]}>Go to Management</Text>
+              <Text style={[styles.link , {textDecorationLine:'underline'}]}>Are you an admin?: Admin Login</Text>
             </Pressable>
           </View>
 

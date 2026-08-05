@@ -67,6 +67,14 @@ export function isStaffAdminProfessionLabel(
   return false;
 }
 
+/** Matches backend DELETE /admin/users/:id — requires the users.delete permission (SUPERADMIN by default seed). */
+export function canDeleteUsers(
+  snap: AdminRoleSnapshot | null | undefined,
+) {
+  const perms = new Set((snap?.permissions ?? []).map(p => String(p)));
+  return hasRole(snap, 'SUPERADMIN') || perms.has('users.delete');
+}
+
 /** Matches GET /admin/dashboard — backend allows users.manage, dealer.redemptions.manage, or rbac.manage. */
 export function canAccessAdminDashboardApi(
   snap: AdminRoleSnapshot | null | undefined,

@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from './client';
+import { apiDelete, apiGet, apiPost } from './client';
 
 export type AdminUserListItem = {
   id: string;
@@ -63,6 +63,16 @@ export async function activateAdminUser(id: string) {
     `/admin/users/${encodeURIComponent(id)}/activate`,
     {},
   );
+}
+
+export type DeleteUserResponse = {
+  id: string;
+  deleted: true;
+};
+
+/** Superadmin only — permanently deletes the account. Matches DELETE /admin/users/:id. */
+export async function deleteAdminUser(id: string) {
+  return apiDelete<DeleteUserResponse>(`/admin/users/${encodeURIComponent(id)}`);
 }
 
 export type AdminUserTx = {
